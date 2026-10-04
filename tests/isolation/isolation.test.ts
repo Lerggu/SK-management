@@ -179,6 +179,12 @@ const cases: Record<string, Case> = {
     await expectRejected(projectService.assignMember(w.bCtx, w.bProject, { userId: w.ids.memberUserId, roleId: await w.b.roleId("EMPLOYEE") }));
     await expectRejected(projectService.assignMember(w.bCtx, w.bProject, { userId: w.bCtx.user.id, roleId: w.ids.role }));
   },
+  "project.listAssignable": async () => {
+    await expectNotFound(projectService.listAssignable(w.bCtx, w.ids.project));
+    const own = await projectService.listAssignable(w.bCtx, w.bProject);
+    expect(own.users.map((u) => u.id)).not.toContain(w.ids.memberUserId);
+    expect(own.roles.map((r) => r.id)).not.toContain(w.ids.role);
+  },
   "project.removeMember": () => expectNotFound(projectService.removeMember(w.bCtx, w.ids.projectMembership)),
   "site.list": () => expectNotFound(siteService.list(w.bCtx, w.ids.project)),
   "site.get": () => expectNotFound(siteService.get(w.bCtx, w.ids.site)),

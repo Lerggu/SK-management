@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalDate, optionalDecimal, optionalText, optionalUuid, text, uuid } from "@/platform/http/validation";
+import { optionalDate, optionalDecimal, optionalText, optionalUuid, text, uuid, flag } from "@/platform/http/validation";
 
 export const EQUIPMENT_CATEGORIES = [
   "CRANE",
@@ -43,6 +43,6 @@ export type EquipmentInput = z.input<typeof equipmentSchema>;
 
 export const equipmentListSchema = z.object({
   q: optionalText(100),
-  includeArchived: z.coerce.boolean().default(false),
+  includeArchived: flag(),
   projectId: optionalUuid(),
 });

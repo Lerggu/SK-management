@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalDate, optionalDecimal, optionalText, text, uuid } from "@/platform/http/validation";
+import { optionalDate, optionalDecimal, optionalText, text, uuid, flag } from "@/platform/http/validation";
 
 export const PROJECT_STATUSES = ["PLANNED", "ACTIVE", "ON_HOLD", "COMPLETED"] as const;
 export const SITE_STATUSES = ["ACTIVE", "CLOSED"] as const;
@@ -32,7 +32,7 @@ export type SiteInput = z.input<typeof siteSchema>;
 
 export const projectListSchema = z.object({
   q: optionalText(100),
-  includeArchived: z.coerce.boolean().default(false),
+  includeArchived: flag(),
 });
 
 export const assignMemberSchema = z.object({

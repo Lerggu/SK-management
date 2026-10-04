@@ -84,6 +84,18 @@ export class ProjectRepo {
     return this.tx.companyMembership.findFirst({ where: { companyId: this.companyId, userId, status: { in: ["ACTIVE", "INVITED"] } } });
   }
 
+  listAssignableUsers() {
+    return this.tx.companyMembership.findMany({
+      where: { companyId: this.companyId, status: { in: ["ACTIVE", "INVITED"] } },
+      select: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { user: { email: "asc" } },
+    });
+  }
+
+  listRoles() {
+    return this.tx.role.findMany({ where: { companyId: this.companyId, archivedAt: null }, select: { id: true, key: true, name: true }, orderBy: { createdAt: "asc" } });
+  }
+
   findRole(roleId: string) {
     return this.tx.role.findFirst({ where: { id: roleId, companyId: this.companyId, archivedAt: null } });
   }

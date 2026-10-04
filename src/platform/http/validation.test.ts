@@ -36,3 +36,13 @@ describe("validation helpers", () => {
     expect(parseInput(currency(), "sek")).toBe("SEK");
   });
 });
+
+describe("flag", () => {
+  it("parses checkbox and query flags strictly", async () => {
+    const { flag } = await import("./validation");
+    expect(parseInput(flag(), "on")).toBe(true);
+    expect(parseInput(flag(), "true")).toBe(true);
+    expect(parseInput(flag(), "false")).toBe(false);
+    expect(parseInput(flag(), undefined)).toBe(false);
+  });
+});

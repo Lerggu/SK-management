@@ -133,6 +133,16 @@ export const projectService = {
     });
   },
 
+  /** People and roles offered when assigning someone to the project. */
+  async listAssignable(ctx: RequestContext, projectId: string) {
+    const repo = new ProjectRepo(readClient(), ctx.company.id);
+    const project = await repo.find(projectId);
+    if (!project) throw new NotFoundError();
+    requireProjectPermission(ctx, project.id, "project.members.manage");
+    const [members, roles] = await Promise.all([repo.listAssignableUsers(), repo.listRoles()]);
+    return { users: members.map((m) => m.user), roles };
+  },
+
   async removeMember(ctx: RequestContext, projectMembershipId: string) {
     return runInTransaction(async (tx) => {
       const repo = new ProjectRepo(tx, ctx.company.id);

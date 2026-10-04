@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalDate, optionalText, optionalUuid, text, uuid } from "@/platform/http/validation";
+import { optionalDate, optionalText, optionalUuid, text, uuid, flag } from "@/platform/http/validation";
 
 export const DOCUMENT_CATEGORIES = [
   "CONTRACT",
@@ -47,7 +47,7 @@ export const documentListSchema = z.object({
   q: optionalText(100),
   projectId: optionalUuid(),
   category: z.preprocess((v) => (v === "" ? undefined : v), z.enum(DOCUMENT_CATEGORIES).optional()),
-  includeArchived: z.coerce.boolean().default(false),
+  includeArchived: flag(),
 });
 
 /** Uploaded file handed to the service by the UI/API layer. */

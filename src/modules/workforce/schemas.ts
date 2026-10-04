@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalDate, optionalEmail, optionalText, optionalUuid, text } from "@/platform/http/validation";
+import { optionalDate, optionalEmail, optionalText, optionalUuid, text, flag } from "@/platform/http/validation";
 
 export const EMPLOYMENT_TYPES = ["EMPLOYEE", "CONTRACTOR", "TEMPORARY"] as const;
 export const RESOURCE_STATUSES = ["ACTIVE", "INACTIVE"] as const;
@@ -25,5 +25,5 @@ export type EmployeeInput = z.input<typeof employeeSchema>;
 
 export const employeeListSchema = z.object({
   q: optionalText(100),
-  includeArchived: z.coerce.boolean().default(false),
+  includeArchived: flag(),
 });

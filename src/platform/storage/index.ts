@@ -1,5 +1,4 @@
 import { env } from "@/platform/config/env";
-import { MemoryObjectStorage } from "./memory";
 import { S3ObjectStorage } from "./s3";
 import type { ObjectStorage } from "./types";
 
