@@ -41,17 +41,21 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function CompanySwitcher({ company, companies, labels, className }: Pick<ShellProps, "company" | "companies" | "labels"> & { className?: string }) {
+function CompanySwitcher({ company, companies, labels, className, dark }: Pick<ShellProps, "company" | "companies" | "labels"> & { className?: string; dark?: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={cn("flex min-h-11 w-full items-center gap-2 rounded-lg border bg-background px-3 text-left text-sm font-medium hover:bg-muted md:min-h-9", className)}
+        className={cn(
+          "flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 text-left text-sm font-medium md:min-h-9",
+          dark ? "border-white/20 bg-white/5 text-white hover:bg-white/10" : "bg-background hover:bg-muted",
+          className,
+        )}
         aria-label={labels.switchCompany}
         data-testid="company-switcher"
       >
-        <Building2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <Building2 className={cn("size-4 shrink-0", dark ? "text-white/70" : "text-muted-foreground")} aria-hidden />
         <span className="flex-1 truncate">{company.name}</span>
-        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <ChevronsUpDown className={cn("size-4 shrink-0", dark ? "text-white/70" : "text-muted-foreground")} aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
         <DropdownMenuLabel>{labels.switchCompany}</DropdownMenuLabel>
@@ -72,7 +76,7 @@ function CompanySwitcher({ company, companies, labels, className }: Pick<ShellPr
   );
 }
 
-function LocaleForm({ locale, labels, setLocaleAction, onSubmit }: Pick<ShellProps, "locale" | "labels" | "setLocaleAction"> & { onSubmit?: () => void }) {
+function LocaleForm({ locale, labels, setLocaleAction, onSubmit, dark }: Pick<ShellProps, "locale" | "labels" | "setLocaleAction"> & { onSubmit?: () => void; dark?: boolean }) {
   return (
     <form action={setLocaleAction} onSubmit={onSubmit} className="flex items-center gap-1" aria-label={labels.language}>
       {(["fi", "en"] as const).map((l) => (
@@ -84,7 +88,7 @@ function LocaleForm({ locale, labels, setLocaleAction, onSubmit }: Pick<ShellPro
           aria-pressed={locale === l}
           className={cn(
             "min-h-11 rounded-md px-3 text-sm md:min-h-8",
-            locale === l ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+            locale === l ? "bg-primary text-primary-foreground" : dark ? "text-white/75 hover:bg-white/10 hover:text-white" : "text-muted-foreground hover:bg-muted",
           )}
         >
           {labels[l]}
@@ -94,10 +98,13 @@ function LocaleForm({ locale, labels, setLocaleAction, onSubmit }: Pick<ShellPro
   );
 }
 
-function SignOutButton({ labels, signOutAction }: Pick<ShellProps, "labels" | "signOutAction">) {
+function SignOutButton({ labels, signOutAction, dark }: Pick<ShellProps, "labels" | "signOutAction"> & { dark?: boolean }) {
   return (
     <form action={signOutAction}>
-      <button type="submit" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground md:min-h-9">
+      <button type="submit" className={cn(
+          "flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-sm md:min-h-9",
+          dark ? "text-white/75 hover:bg-white/10 hover:text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}>
         <LogOut className="size-4" aria-hidden />
         {labels.signOut}
       </button>
@@ -116,10 +123,10 @@ export function AppShell(props: ShellProps) {
   return (
     <div className="min-h-dvh bg-muted/30">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-background md:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="flex h-14 items-center px-4 text-base font-semibold">{labels.appName}</div>
         <div className="px-3 pb-3">
-          <CompanySwitcher company={company} companies={companies} labels={labels} />
+          <CompanySwitcher company={company} companies={companies} labels={labels} dark />
         </div>
         <nav aria-label={labels.mainNav} className="flex-1 space-y-1 overflow-y-auto px-3">
           {nav.map((item) => {
@@ -132,7 +139,9 @@ export function AppShell(props: ShellProps) {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium",
-                  active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--brand-turquoise)]"
+                    : "text-white/75 hover:bg-white/10 hover:text-white",
                 )}
               >
                 <Icon className="size-4" aria-hidden />
@@ -141,19 +150,19 @@ export function AppShell(props: ShellProps) {
             );
           })}
         </nav>
-        <div className="space-y-2 border-t p-3">
+        <div className="space-y-2 border-t border-sidebar-border p-3">
           <div className="px-3 text-sm">
             <div className="truncate font-medium">{user.name ?? user.email}</div>
-            <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+            <div className="truncate text-xs text-white/70">{user.email}</div>
           </div>
-          <LocaleForm locale={props.locale} labels={labels} setLocaleAction={props.setLocaleAction} />
-          <SignOutButton labels={labels} signOutAction={props.signOutAction} />
+          <LocaleForm locale={props.locale} labels={labels} setLocaleAction={props.setLocaleAction} dark />
+          <SignOutButton labels={labels} signOutAction={props.signOutAction} dark />
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur md:hidden">
-        <CompanySwitcher company={company} companies={companies} labels={labels} className="border-0 px-2" />
+      <header className="sticky top-0 z-20 flex h-14 items-center gap-2 bg-sidebar px-3 text-sidebar-foreground md:hidden">
+        <CompanySwitcher company={company} companies={companies} labels={labels} className="border-0 bg-transparent px-2" dark />
       </header>
 
       <main className="pb-24 md:pb-10 md:pl-64">
@@ -171,7 +180,10 @@ export function AppShell(props: ShellProps) {
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium", active ? "text-primary" : "text-muted-foreground")}
+                  className={cn(
+                    "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium",
+                    active ? "text-primary shadow-[inset_0_3px_0_var(--brand-turquoise)]" : "text-muted-foreground",
+                  )}
                 >
                   <Icon className={cn("size-6", active && "stroke-[2.5]")} aria-hidden />
                   <span className="max-w-full truncate px-1">{item.label}</span>

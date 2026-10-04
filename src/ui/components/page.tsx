@@ -98,7 +98,7 @@ export function SearchForm({ placeholder, defaultValue, includeArchivedLabel, in
         defaultValue={defaultValue}
         placeholder={placeholder}
         aria-label={searchLabel}
-        className="h-11 flex-1 rounded-lg border border-input bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:h-9 md:text-sm"
+        className="h-11 w-full rounded-lg border border-input sm:flex-1 bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:h-9 md:text-sm"
       />
       <label className="flex min-h-11 items-center gap-2 px-1 text-sm md:min-h-0">
         <input type="checkbox" name="archived" value="1" defaultChecked={includeArchived} className="size-5 accent-primary md:size-4" />
