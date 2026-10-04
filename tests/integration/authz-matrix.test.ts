@@ -1,0 +1,186 @@
+/**
+ * Authorization matrix: role template × action, table-driven, against the
+ * real services and database. ASSIGNED roles are assigned to the project
+ * with the same role as their project role.
+ *
+ *   ✓ = allowed   F = 403 Forbidden   N = 404 Not Found
+ */
+import { beforeAll, describe, expect, it } from "vitest";
+import { ForbiddenError, NotFoundError } from "@/platform/errors";
+import type { RequestContext, RoleTemplateKey } from "@/platform/authz";
+import { companyAdminService } from "@/modules/companies/service";
+import { projectService, siteService } from "@/modules/projects/service";
+import { employeeService } from "@/modules/workforce/service";
+import { equipmentService, equipmentTypeService } from "@/modules/equipment/service";
+import { documentService } from "@/modules/documents/service";
+import { db } from "@/platform/db";
+import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
+
+type Outcome = "✓" | "F" | "N";
+const ROLES: RoleTemplateKey[] = [
+  "CEO",
+  "PROJECT_DIRECTOR",
+  "PROJECT_MANAGER",
+  "SITE_MANAGER",
+  "SUPERVISOR",
+  "LOGISTICS_COORDINATOR",
+  "HSE",
+  "EMPLOYEE",
+  "SUBCONTRACTOR",
+  "CLIENT",
+];
+
+interface Fixture {
+  t: Tenant;
+  projectId: string;
+  unassignedProjectId: string;
+  employeeId: string;
+  equipmentId: string;
+  equipmentTypeId: string;
+  pendingVersionId: () => Promise<string>;
+  employeeRoleId: string;
+}
+
+type Action = (ctx: RequestContext, f: Fixture) => Promise<unknown>;
+
+const ACTIONS: Record<string, Action> = {
+  "view project": (c, f) => projectService.get(c, f.projectId),
+  "view unassigned project": (c, f) => projectService.get(c, f.unassignedProjectId),
+  "create project": (c) => projectService.create(c, { code: uniq("P"), name: "New" }),
+  "update project": (c, f) => projectService.update(c, f.projectId, { code: "MATRIX", name: "Matrix project" }),
+  "create site": (c, f) => siteService.create(c, f.projectId, { name: uniq("Site") }),
+  "assign project member": async (c, f) => {
+    const other = await createMember(f.t, "EMPLOYEE");
+    return projectService.assignMember(c, f.projectId, { userId: other.user.id, roleId: f.employeeRoleId });
+  },
+  "list employees": (c) => employeeService.list(c),
+  "create employee": (c) => employeeService.create(c, { employeeNumber: uniq("E"), firstName: "A", lastName: "B" }),
+  "view employee rates": (c, f) => employeeService.listRates(c, f.employeeId),
+  "change employee rates": (c, f) => employeeService.addRate(c, f.employeeId, { rateType: "BILLING", amount: "1", validFrom: "2030-01-01" }).then((r) => employeeService.archiveRate(c, r.id)),
+  "list equipment": (c) => equipmentService.list(c),
+  "create equipment": (c, f) => equipmentService.create(c, { equipmentTypeId: f.equipmentTypeId, assetNumber: uniq("Q"), name: "Q" }),
+  "view equipment rates": (c, f) => equipmentService.listRates(c, f.equipmentId),
+  "change equipment rates": (c, f) => equipmentService.addRate(c, f.equipmentId, { rateType: "BILLING", amount: "1", validFrom: "2030-01-01" }).then((r) => equipmentService.archiveRate(c, r.id)),
+  "create project document": (c, f) => documentService.create(c, { title: "Doc", projectId: f.projectId }, textFile("d.pdf")),
+  "approve document": async (c, f) => documentService.setVersionApproval(c, await f.pendingVersionId(), { state: "APPROVED" }),
+  "manage members": (c) => companyAdminService.listMembers(c),
+  "edit role permissions": async (c, f) => companyAdminService.updateRolePermissions(c, f.employeeRoleId, { permissionKeys: ["project.view", "documents.view"] }),
+  "view audit log": (c) => companyAdminService.listAuditEvents(c),
+};
+
+// Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI
+const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
+  "view project":            ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓"],
+  "view unassigned project": ["✓", "✓", "N", "N", "N", "N", "N", "N", "N", "N"],
+  "create project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "update project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "create site":             ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "assign project member":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "list employees":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F"],
+  "create employee":         ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "view employee rates":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "change employee rates":   ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "list equipment":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F"],
+  "create equipment":        ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "F", "F"],
+  "view equipment rates":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "change equipment rates":  ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "create project document": ["✓", "✓", "✓", "✓", "✓", "F", "✓", "F", "F", "F"],
+  "approve document":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "manage members":          ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "edit role permissions":   ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view audit log":          ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+};
+
+let f: Fixture;
+const ctxByRole = new Map<RoleTemplateKey, RequestContext>();
+
+beforeAll(async () => {
+  const t = await createTenant("Matrix");
+  const project = await projectService.create(t.ownerCtx, { code: "MATRIX", name: "Matrix project" });
+  const unassigned = await projectService.create(t.ownerCtx, { code: "OTHER", name: "Unassigned" });
+  const employee = await employeeService.create(t.ownerCtx, { employeeNumber: "M-1", firstName: "M", lastName: "One" });
+  await employeeService.addRate(t.ownerCtx, employee.id, { rateType: "COST", amount: "40", validFrom: "2026-01-01" });
+  const type = await equipmentTypeService.create(t.ownerCtx, { name: "Matrix type" });
+  const equipment = await equipmentService.create(t.ownerCtx, { equipmentTypeId: type.id, assetNumber: "M-EQ", name: "Matrix eq" });
+  f = {
+    t,
+    projectId: project.id,
+    unassignedProjectId: unassigned.id,
+    employeeId: employee.id,
+    equipmentId: equipment.id,
+    equipmentTypeId: type.id,
+    employeeRoleId: await t.roleId("EMPLOYEE"),
+    pendingVersionId: async () => {
+      const doc = await documentService.create(t.ownerCtx, { title: uniq("ToApprove"), projectId: project.id }, textFile("a.pdf"));
+      await documentService.setVersionApproval(t.ownerCtx, doc.currentVersion.id, { state: "PENDING_APPROVAL" });
+      return doc.currentVersion.id;
+    },
+  };
+  for (const role of ROLES) {
+    const assigned = role === "CEO" || role === "PROJECT_DIRECTOR" ? [] : [{ projectId: project.id }];
+    ctxByRole.set(role, await createMember(t, role, assigned));
+  }
+});
+
+async function outcome(p: Promise<unknown>): Promise<Outcome> {
+  try {
+    await p;
+    return "✓";
+  } catch (e) {
+    if (e instanceof ForbiddenError) return "F";
+    if (e instanceof NotFoundError) return "N";
+    throw e;
+  }
+}
+
+describe("authorization matrix (role × action)", () => {
+  const rows = Object.keys(ACTIONS).flatMap((action) => ROLES.map((role, i) => ({ action, role, expected: MATRIX[action][i] })));
+
+  it.each(rows)("$role → $action = $expected", async ({ action, role, expected }) => {
+    const ctx = ctxByRole.get(role)!;
+    expect(await outcome(ACTIONS[action](ctx, f))).toBe(expected);
+  });
+});
+
+describe("Client cannot see rates", () => {
+  it("client has no rate permissions and cannot read employees or rates", async () => {
+    const client = ctxByRole.get("CLIENT")!;
+    expect(client.permissions.has("employee.rates.view")).toBe(false);
+    expect(client.permissions.has("equipment.rates.view")).toBe(false);
+    await expect(employeeService.get(client, f.employeeId)).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(employeeService.listRates(client, f.employeeId)).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(equipmentService.listRates(client, f.equipmentId)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("even a database-level misconfiguration of the Client role does not expose rates", async () => {
+    const clientRoleId = await f.t.roleId("CLIENT");
+    // Bypass the service guard on purpose to simulate a bad manual change.
+    await db.rolePermission.createMany({
+      data: ["employee.view", "employee.rates.view", "equipment.view", "equipment.rates.view"].map((permissionKey) => ({
+        companyId: f.t.companyId,
+        roleId: clientRoleId,
+        permissionKey,
+      })),
+      skipDuplicates: true,
+    });
+    const client = await createMember(f.t, "CLIENT", [{ projectId: f.projectId }]);
+    expect(client.permissions.has("employee.view")).toBe(true);
+    expect(client.permissions.has("employee.rates.view")).toBe(false);
+    const employee = await employeeService.get(client, f.employeeId);
+    expect(employee).not.toHaveProperty("rates");
+    expect(employee).not.toHaveProperty("currentRates");
+    const equipment = await equipmentService.get(client, f.equipmentId);
+    expect(equipment).not.toHaveProperty("rates");
+    await expect(employeeService.listRates(client, f.employeeId)).rejects.toBeInstanceOf(ForbiddenError);
+    await db.rolePermission.deleteMany({
+      where: { roleId: clientRoleId, permissionKey: { in: ["employee.view", "employee.rates.view", "equipment.view", "equipment.rates.view"] } },
+    });
+  });
+
+  it("subcontractor project role cannot carry rate permissions into a project", async () => {
+    const sub = ctxByRole.get("SUBCONTRACTOR")!;
+    for (const perms of sub.projectGrants.values()) {
+      expect([...perms].some((p) => p.includes("rates"))).toBe(false);
+    }
+  });
+});
