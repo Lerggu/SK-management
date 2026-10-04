@@ -49,38 +49,51 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /*
+   * SK Infra brand (www.skinfra.fi):
+   *   turquoise #1E88A8 (buttons, highlights), navy #0B2545 (navigation, text),
+   *   light grey #E8ECEF (backgrounds, form fields), white #FFFFFF.
+   * Accessibility (WCAG AA): white on #1E88A8 is 4.08:1 (< 4.5), so surfaces
+   * carrying text use the darker turquoise #17738F (5.4:1). #1E88A8 is kept
+   * for non-text accents (focus ring, active markers, icons).
+   */
+  --brand-turquoise: #1e88a8;
+  --brand-turquoise-strong: #17738f;
+  --brand-navy: #0b2545;
+  --brand-grey: #e8ecef;
+
+  --background: #ffffff;
+  --foreground: var(--brand-navy);
+  --card: #ffffff;
+  --card-foreground: var(--brand-navy);
+  --popover: #ffffff;
+  --popover-foreground: var(--brand-navy);
+  --primary: var(--brand-turquoise-strong);
+  --primary-foreground: #ffffff;
+  --secondary: var(--brand-grey);
+  --secondary-foreground: var(--brand-navy);
+  --muted: var(--brand-grey);
+  --muted-foreground: #4f6175;
+  --accent: var(--brand-grey);
+  --accent-foreground: var(--brand-navy);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: #d3dae0;
+  --input: #7d8d9d;
+  --ring: var(--brand-turquoise);
+  --chart-1: var(--brand-turquoise);
+  --chart-2: var(--brand-navy);
+  --chart-3: #5aa9c1;
+  --chart-4: #4f6175;
+  --chart-5: #a9b6c2;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: var(--brand-navy);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--brand-turquoise);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #16375f;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1d3a5f;
+  --sidebar-ring: var(--brand-turquoise);
 }
 
 .dark {
