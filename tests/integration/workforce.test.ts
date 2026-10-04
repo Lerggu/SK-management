@@ -42,14 +42,16 @@ describe("workforce", () => {
   it("output mapper strips rates without employee.rates.view", async () => {
     const t = await createTenant("Strip");
     const e = await employeeService.create(t.ownerCtx, base);
-    await employeeService.addRate(t.ownerCtx, e.id, { rateType: "BILLING", amount: "70", validFrom: "2026-01-01" });
+    const rate = await employeeService.addRate(t.ownerCtx, e.id, { rateType: "BILLING", amount: "70", validFrom: "2026-01-01" });
     const withRates = await employeeService.get(t.ownerCtx, e.id);
     expect(withRates).toHaveProperty("rates");
     const sup = await createMember(t, "SUPERVISOR");
     const stripped = await employeeService.get(sup, e.id);
     expect(stripped).not.toHaveProperty("rates");
     expect(stripped).not.toHaveProperty("currentRates");
-    expect(JSON.stringify(await employeeService.list(sup))).not.toContain("70");
+    const list = await employeeService.list(sup);
+    expect(list.some((x) => "rates" in x || "currentRates" in x)).toBe(false);
+    expect(JSON.stringify(list)).not.toContain(rate.id);
     await expect(employeeService.listRates(sup, e.id)).rejects.toBeInstanceOf(ForbiddenError);
   });
 
