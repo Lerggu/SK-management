@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { isDevLoginEnabled, isEntraConfigured } from "@/platform/config/env";
 import { listDevLoginUsers } from "@/modules/identity/service";
+import Image from "next/image";
 import { Button } from "@/ui/components/button";
 import { getSessionUserId } from "@/app/_lib/context";
 import { devSignInAction, entraSignInAction } from "./actions";
@@ -16,6 +17,7 @@ const ERRORS: Record<string, string> = { not_invited: "errorNotInvited", rate_li
 export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   if (await getSessionUserId()) redirect("/");
   const t = await getTranslations("auth");
+  const tc = await getTranslations("common");
   const { error } = await searchParams;
   const devEnabled = isDevLoginEnabled();
   const devUsers = devEnabled ? await listDevLoginUsers() : [];
@@ -24,7 +26,8 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
     <main className="flex min-h-dvh items-start justify-center bg-muted/40 px-4 py-10 sm:items-center">
       <div className="w-full max-w-md space-y-6">
         <div className="rounded-2xl border bg-card p-6 shadow-sm">
-          <p className="text-sm font-semibold text-muted-foreground">SK Management</p>
+          <Image src="/brand/sk-infra-logo-dark.svg" alt="SK Infra" width={207} height={48} priority unoptimized className="h-12 w-auto" />
+          <p className="mt-3 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{tc("appName")}</p>
           <h1 className="mt-1 text-2xl font-semibold">{t("signInTitle")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("signInSubtitle")}</p>
           {error && (

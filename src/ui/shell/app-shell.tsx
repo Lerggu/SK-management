@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -124,7 +125,10 @@ export function AppShell(props: ShellProps) {
     <div className="min-h-dvh bg-muted/30">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
-        <div className="flex h-14 items-center px-4 text-base font-semibold">{labels.appName}</div>
+        <div className="flex flex-col gap-1 px-4 pt-5 pb-4">
+          <Image src="/brand/sk-infra-logo-light.svg" alt="SK Infra" width={172} height={40} priority unoptimized className="h-10 w-auto self-start" />
+          <span className="text-xs font-medium uppercase tracking-[0.2em] text-white/70">{labels.appName}</span>
+        </div>
         <div className="px-3 pb-3">
           <CompanySwitcher company={company} companies={companies} labels={labels} dark />
         </div>
@@ -162,6 +166,7 @@ export function AppShell(props: ShellProps) {
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-20 flex h-14 items-center gap-2 bg-sidebar px-3 text-sidebar-foreground md:hidden">
+        <Image src="/brand/sk-infra-mark.svg" alt={labels.appName} width={32} height={32} priority unoptimized className="size-8 shrink-0 rounded-sm" />
         <CompanySwitcher company={company} companies={companies} labels={labels} className="border-0 bg-transparent px-2" dark />
       </header>
 
