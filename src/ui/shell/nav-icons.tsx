@@ -1,8 +1,9 @@
-import { FileText, FolderKanban, LayoutDashboard, Settings, Truck, Users } from "lucide-react";
+import { Clock, FileText, FolderKanban, LayoutDashboard, Settings, Truck, Users } from "lucide-react";
 
 export const NAV_ICONS = {
   dashboard: LayoutDashboard,
   projects: FolderKanban,
+  time: Clock,
   workforce: Users,
   equipment: Truck,
   documents: FileText,

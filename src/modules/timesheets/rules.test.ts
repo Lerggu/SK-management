@@ -34,3 +34,12 @@ describe("time-tracking rules", () => {
     expect(isEditable("EXPORTED")).toBe(false);
   });
 });
+
+describe("ISO week numbers", () => {
+  it("matches ISO-8601", async () => {
+    const { isoWeekNumber } = await import("./rules");
+    expect(isoWeekNumber(new Date("2026-10-04T00:00:00Z"))).toBe(40);
+    expect(isoWeekNumber(new Date("2026-01-01T00:00:00Z"))).toBe(1);
+    expect(isoWeekNumber(new Date("2027-01-01T00:00:00Z"))).toBe(53);
+  });
+});
