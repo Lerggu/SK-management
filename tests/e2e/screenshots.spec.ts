@@ -12,6 +12,8 @@ const VIEWS: [string, string][] = [
   ["documents", "/c/sk-infra-demo/documents"],
   ["settings-roles", "/c/sk-infra-demo/settings/roles"],
   ["settings-audit", "/c/sk-infra-demo/settings/audit"],
+  ["time", "/c/sk-infra-demo/time"],
+  ["time-approvals", "/c/sk-infra-demo/time/approvals"],
 ];
 
 test("capture main views", async ({ page }, testInfo) => {
@@ -24,6 +26,13 @@ test("capture main views", async ({ page }, testInfo) => {
   await page.getByRole("link", { name: /Nordic Data Center Demo/ }).click();
   await page.waitForURL(/projects\/[0-9a-f-]{36}$/);
   await page.screenshot({ path: `${dir}/project-detail.png` });
+  await page.getByRole("link", { name: "Talous" }).click();
+  await page.waitForURL(/finance$/);
+  await page.screenshot({ path: `${dir}/project-finance.png`, fullPage: true });
+  await page.goBack();
+  await page.getByRole("link", { name: /\d{4} · Data Hall A/ }).first().click();
+  await page.waitForURL(/diary\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/site-diary.png`, fullPage: true });
   await page.goto("/c/sk-infra-demo/documents");
   await page.getByRole("link", { name: /pääkaavio/ }).click();
   await page.waitForURL(/documents\/[0-9a-f-]{36}$/);

@@ -628,7 +628,8 @@
     "save": "Save",
     "hours": "{hours} h",
     "entryCount": "{count} entries",
-    "photoCount": "{count} photos"
+    "photoCount": "{count} photos",
+    "uploadPhoto": "Upload photo"
   },
   "finance": {
     "title": "Project finance",

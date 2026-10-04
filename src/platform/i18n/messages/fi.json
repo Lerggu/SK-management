@@ -628,7 +628,8 @@
     "save": "Tallenna",
     "hours": "{hours} h",
     "entryCount": "{count} merkintää",
-    "photoCount": "{count} kuvaa"
+    "photoCount": "{count} kuvaa",
+    "uploadPhoto": "Lataa kuva"
   },
   "finance": {
     "title": "Projektin talous",

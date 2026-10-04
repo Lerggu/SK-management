@@ -151,7 +151,7 @@ export default async function DiaryPage({ params }: { params: Promise<{ companyS
             <ActionForm action={addPhotoAction.bind(null, companySlug, r.id)} className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
               <FileField label={t("addPhoto")} accept="image/*,application/pdf" />
               <TextField name="caption" label={t("caption")} />
-              <SubmitButton variant="outline">{t("addPhoto")}</SubmitButton>
+              <SubmitButton variant="outline">{t("uploadPhoto")}</SubmitButton>
             </ActionForm>
           )}
         </Section>

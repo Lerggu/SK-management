@@ -4,7 +4,9 @@ import { timesheetService } from "@/modules/timesheets/service";
 import { requireCompanyContext } from "@/app/_lib/context";
 
 /** Payroll CSV for one export batch (semicolon-separated, UTF-8 BOM for Excel). */
-function csvCell(v: string) {
+function csvCell(raw: string) {
+  // Neutralise spreadsheet formulas in free text; negative numbers (corrections) stay numeric.
+  const v = /^[=+@\t\r]|^-(?![\d.])/.test(raw) ? `'${raw}` : raw;
   return /[;"\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
