@@ -182,6 +182,10 @@ model Company {
   equipment      Equipment[]
   equipmentRates EquipmentRate[]
   documents      Document[]
+  timeEntries    TimeEntry[]
+  dailyReports   DailyReport[]
+  budgets        Budget[]
+  costEntries    CostEntry[]
 
   @@index([organizationId])
   @@map("companies")
@@ -436,6 +440,9 @@ model Project {
   memberships ProjectMembership[]
   equipment   Equipment[]
   documents   Document[]
+  timeEntries TimeEntry[]
+  budgets     Budget[]
+  costEntries CostEntry[]
 
   @@unique([companyId, id])
   @@unique([companyId, code])
@@ -462,10 +469,13 @@ model Site {
   updatedById String?    @map("updated_by") @db.Uuid
   archivedAt  DateTime?  @map("archived_at") @db.Timestamptz(6)
 
-  company   Company     @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  project   Project     @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
-  equipment Equipment[]
-  documents Document[]
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project      Project       @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  equipment    Equipment[]
+  documents    Document[]
+  timeEntries  TimeEntry[]
+  dailyReports DailyReport[]
+  costEntries  CostEntry[]
 
   @@unique([companyId, id])
   @@unique([companyId, projectId, id])
@@ -499,8 +509,9 @@ model Employee {
   updatedById    String?        @map("updated_by") @db.Uuid
   archivedAt     DateTime?      @map("archived_at") @db.Timestamptz(6)
 
-  company Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  rates   EmployeeRate[]
+  company     Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  rates       EmployeeRate[]
+  timeEntries TimeEntry[]
 
   @@unique([companyId, id])
   @@unique([companyId, employeeNumber])
@@ -578,11 +589,12 @@ model Equipment {
   updatedById        String?         @map("updated_by") @db.Uuid
   archivedAt         DateTime?       @map("archived_at") @db.Timestamptz(6)
 
-  company        Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  equipmentType  EquipmentType   @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
-  currentProject Project?        @relation(fields: [companyId, currentProjectId], references: [companyId, id], onDelete: Restrict)
-  currentSite    Site?           @relation(fields: [companyId, currentProjectId, currentSiteId], references: [companyId, projectId, id], onDelete: Restrict)
+  company        Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  equipmentType  EquipmentType      @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  currentProject Project?           @relation(fields: [companyId, currentProjectId], references: [companyId, id], onDelete: Restrict)
+  currentSite    Site?              @relation(fields: [companyId, currentProjectId, currentSiteId], references: [companyId, projectId, id], onDelete: Restrict)
   rates          EquipmentRate[]
+  diaryEntries   DailyReportEntry[]
 
   @@unique([companyId, id])
   @@unique([companyId, assetNumber])
@@ -720,4 +732,239 @@ model AuditEvent {
   @@index([companyId, entityType, entityId])
   @@index([actorUserId, occurredAt])
   @@map("audit_events")
+}
+
+// ─────────────────────────────────────────────────────────────── V2: Execution
+// Time tracking, site diary and project finance (Build Master §19, §20, §22).
+
+enum TimeEntryStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPORTED
+}
+
+/// Owner decision (docs/V2_PLAN.md): cost multipliers 1.0 / 1.5 / 2.0 / 1.0.
+enum WorkTimeClass {
+  NORMAL
+  OVERTIME_50
+  OVERTIME_100
+  TRAVEL
+}
+
+/// One person's hours on one project/site/day. Approved and exported entries
+/// are locked (DB trigger); corrections are separate entries that reference
+/// the original (correction_of_id) with a ± hours delta.
+model TimeEntry {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  companyId       String          @map("company_id") @db.Uuid
+  employeeId      String          @map("employee_id") @db.Uuid
+  projectId       String          @map("project_id") @db.Uuid
+  siteId          String?         @map("site_id") @db.Uuid
+  workDate        DateTime        @map("work_date") @db.Date
+  startMinute     Int?            @map("start_minute")
+  endMinute       Int?            @map("end_minute")
+  hours           Decimal         @db.Decimal(5, 2)
+  workClass       WorkTimeClass   @default(NORMAL) @map("work_class")
+  note            String?
+  status          TimeEntryStatus @default(DRAFT)
+  correctionOfId  String?         @map("correction_of_id") @db.Uuid
+  submittedAt     DateTime?       @map("submitted_at") @db.Timestamptz(6)
+  submittedById   String?         @map("submitted_by") @db.Uuid
+  decidedAt       DateTime?       @map("decided_at") @db.Timestamptz(6)
+  decidedById     String?         @map("decided_by") @db.Uuid
+  rejectionReason String?         @map("rejection_reason")
+  exportedAt      DateTime?       @map("exported_at") @db.Timestamptz(6)
+  exportBatchId   String?         @map("export_batch_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById     String?         @map("created_by") @db.Uuid
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById     String?         @map("updated_by") @db.Uuid
+  archivedAt      DateTime?       @map("archived_at") @db.Timestamptz(6)
+
+  company      Company     @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee     Employee    @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict)
+  project      Project     @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site         Site?       @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  correctionOf TimeEntry?  @relation("TimeEntryCorrection", fields: [companyId, correctionOfId], references: [companyId, id], onDelete: Restrict)
+  corrections  TimeEntry[] @relation("TimeEntryCorrection")
+
+  @@unique([companyId, id])
+  @@index([companyId, employeeId, workDate])
+  @@index([companyId, projectId, status, workDate])
+  @@index([companyId, exportBatchId])
+  @@map("time_entries")
+}
+
+enum DailyReportStatus {
+  DRAFT
+  SIGNED
+}
+
+enum DailyReportEntryKind {
+  WORK
+  EQUIPMENT
+  DELAY
+  INSTRUCTION
+}
+
+/// Site diary: one per site and day. Signing locks it (DB trigger) and
+/// freezes the attendance snapshot.
+model DailyReport {
+  id                 String            @id @default(uuid(7)) @db.Uuid
+  companyId          String            @map("company_id") @db.Uuid
+  projectId          String            @map("project_id") @db.Uuid
+  siteId             String            @map("site_id") @db.Uuid
+  reportDate         DateTime          @map("report_date") @db.Date
+  status             DailyReportStatus @default(DRAFT)
+  weather            String?
+  summary            String?
+  attendanceSnapshot Json?             @map("attendance_snapshot")
+  signedAt           DateTime?         @map("signed_at") @db.Timestamptz(6)
+  signedById         String?           @map("signed_by") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById        String?           @map("created_by") @db.Uuid
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById        String?           @map("updated_by") @db.Uuid
+
+  company     Company                 @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site        Site                    @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  entries     DailyReportEntry[]
+  attachments DailyReportAttachment[]
+
+  @@unique([companyId, id])
+  @@unique([siteId, reportDate])
+  @@index([companyId, projectId, reportDate])
+  @@map("daily_reports")
+}
+
+model DailyReportEntry {
+  id            String               @id @default(uuid(7)) @db.Uuid
+  companyId     String               @map("company_id") @db.Uuid
+  dailyReportId String               @map("daily_report_id") @db.Uuid
+  kind          DailyReportEntryKind
+  description   String?
+  equipmentId   String?              @map("equipment_id") @db.Uuid
+  hours         Decimal?             @db.Decimal(6, 2)
+  /// Added after signing (audited addendum).
+  isAddendum    Boolean              @default(false) @map("is_addendum")
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?              @map("created_by") @db.Uuid
+
+  dailyReport DailyReport @relation(fields: [companyId, dailyReportId], references: [companyId, id], onDelete: Restrict)
+  equipment   Equipment?  @relation(fields: [companyId, equipmentId], references: [companyId, id], onDelete: Restrict)
+
+  @@index([companyId, dailyReportId])
+  @@index([companyId, equipmentId])
+  @@map("daily_report_entries")
+}
+
+model DailyReportAttachment {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  dailyReportId String   @map("daily_report_id") @db.Uuid
+  fileName      String   @map("file_name")
+  contentType   String   @map("content_type")
+  sizeBytes     BigInt   @map("size_bytes")
+  sha256        String   @db.Char(64)
+  storageKey    String   @map("storage_key")
+  caption       String?
+  isAddendum    Boolean  @default(false) @map("is_addendum")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?  @map("created_by") @db.Uuid
+
+  dailyReport DailyReport @relation(fields: [companyId, dailyReportId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, dailyReportId])
+  @@map("daily_report_attachments")
+}
+
+enum CostCategory {
+  LABOR
+  EQUIPMENT
+  MATERIALS
+  SUBCONTRACT
+  OTHER
+}
+
+enum BudgetStatus {
+  DRAFT
+  ACTIVE
+  SUPERSEDED
+}
+
+/// Budget version per project. Version 1 is the original budget. Lines are
+/// editable only in DRAFT; activating a version supersedes the previous one.
+model Budget {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  companyId     String       @map("company_id") @db.Uuid
+  projectId     String       @map("project_id") @db.Uuid
+  versionNumber Int          @map("version_number")
+  status        BudgetStatus @default(DRAFT)
+  currency      String       @default("EUR") @db.Char(3)
+  note          String?
+  activatedAt   DateTime?    @map("activated_at") @db.Timestamptz(6)
+  activatedById String?      @map("activated_by") @db.Uuid
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?      @map("created_by") @db.Uuid
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById   String?      @map("updated_by") @db.Uuid
+
+  company Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project Project      @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  lines   BudgetLine[]
+
+  @@unique([companyId, id])
+  @@unique([projectId, versionNumber])
+  @@map("budgets")
+}
+
+model BudgetLine {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  companyId   String       @map("company_id") @db.Uuid
+  budgetId    String       @map("budget_id") @db.Uuid
+  category    CostCategory
+  description String
+  amount      Decimal      @db.Decimal(14, 2)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?      @map("created_by") @db.Uuid
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?      @map("updated_by") @db.Uuid
+
+  budget Budget @relation(fields: [companyId, budgetId], references: [companyId, id], onDelete: Cascade)
+
+  @@unique([companyId, id])
+  @@index([companyId, budgetId])
+  @@map("budget_lines")
+}
+
+/// Manually recorded project cost (materials, subcontracting, rentals…).
+/// Labour and diary equipment costs are computed, not entered here.
+model CostEntry {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  companyId   String       @map("company_id") @db.Uuid
+  projectId   String       @map("project_id") @db.Uuid
+  siteId      String?      @map("site_id") @db.Uuid
+  category    CostCategory
+  entryDate   DateTime     @map("entry_date") @db.Date
+  description String
+  supplier    String?
+  reference   String?
+  amount      Decimal      @db.Decimal(14, 2)
+  currency    String       @default("EUR") @db.Char(3)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?      @map("created_by") @db.Uuid
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?      @map("updated_by") @db.Uuid
+  archivedAt  DateTime?    @map("archived_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site    Site?   @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, projectId, entryDate])
+  @@map("cost_entries")
 }

@@ -415,7 +415,8 @@
       "document_version_create": "New document version",
       "document_version_approval_update": "Version approval changed",
       "document_link_create": "Document linked",
-      "document_link_archive": "Document link removed"
+      "document_link_archive": "Document link removed",
+      "role_permissions_migration": "Role permissions updated (migration)"
     }
   },
   "errors": {

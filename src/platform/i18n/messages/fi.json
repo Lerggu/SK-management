@@ -415,7 +415,8 @@
       "document_version_create": "Uusi dokumenttiversio",
       "document_version_approval_update": "Version hyväksyntätila muutettu",
       "document_link_create": "Dokumentti liitetty",
-      "document_link_archive": "Dokumentin liitos poistettu"
+      "document_link_archive": "Dokumentin liitos poistettu",
+      "role_permissions_migration": "Roolien oikeudet päivitetty (migraatio)"
     }
   },
   "errors": {
