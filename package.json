@@ -1,0 +1,61 @@
+{
+  "name": "sk-management",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "depcruise": "depcruise src --config .dependency-cruiser.cjs",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:migrations": "dotenv -e .env -- tsx scripts/migration-check.ts",
+    "test:e2e": "playwright test",
+    "check": "pnpm lint && pnpm typecheck && pnpm depcruise && pnpm test"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.11.3",
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@prisma/client": "^6.19.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.52.0",
+    "next": "16.3.8",
+    "next-auth": "5.0.0-beta.32",
+    "next-intl": "^4.14.9",
+    "prisma": "^6.19.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwind-merge": "^3.7.0",
+    "uuid": "^14.0.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dependency-cruiser": "^18.5.0",
+    "dotenv": "^18.0.5",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.3"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20.9"
+  }
+}

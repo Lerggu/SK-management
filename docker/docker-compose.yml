@@ -1,0 +1,38 @@
+# Local development services for SK Management.
+# Usage: docker compose -f docker/docker-compose.yml up -d
+name: sk-management
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sk
+      POSTGRES_PASSWORD: sk_dev_password
+      POSTGRES_DB: sk_management
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sk -d sk_management"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    # Upstream MinIO no longer publishes Docker images; pgsty/minio is a maintained
+    # build of the same server. Override with MINIO_IMAGE if your registry differs.
+    image: ${MINIO_IMAGE:-pgsty/minio:latest}
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: sk_minio
+      MINIO_ROOT_PASSWORD: sk_minio_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  miniodata:
