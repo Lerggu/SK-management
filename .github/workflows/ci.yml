@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://sk:sk_ci_password@localhost:5432/sk_management
+  TEST_DATABASE_URL: postgresql://sk:sk_ci_password@localhost:5432/sk_management_test
+  AUTH_SECRET: ci-only-not-a-secret-ci-only-not-a-secret
+  AUTH_URL: http://localhost:3100
+  AUTH_TRUST_HOST: "true"
+  DEV_LOGIN_ENABLED: "true"
+  S3_ENDPOINT: http://localhost:9000
+  S3_REGION: eu-north-1
+  S3_BUCKET: sk-management-ci
+  S3_ACCESS_KEY_ID: sk_minio
+  S3_SECRET_ACCESS_KEY: sk_minio_password
+  S3_FORCE_PATH_STYLE: "true"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  checks:
+    name: Lint, types, layers, unit tests, audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm depcruise
+      - run: pnpm test:unit
+      - name: Dependency scan (production dependencies)
+        run: pnpm audit --prod --audit-level high
+
+  database:
+    name: Migrations, integration, isolation and authorization tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sk
+          POSTGRES_PASSWORD: sk_ci_password
+          POSTGRES_DB: sk_management
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sk" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=sk_minio -e MINIO_ROOT_PASSWORD=sk_minio_password \
+            pgsty/minio:latest server /data
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - name: Migration test (empty DB, no drift, seed runs)
+        run: pnpm test:migrations
+      - name: Integration + tenant isolation + authorization matrix (real PostgreSQL)
+        run: pnpm test:integration
+
+  e2e:
+    name: E2E (Playwright, desktop + mobile)
+    runs-on: ubuntu-latest
+    needs: [checks]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sk
+          POSTGRES_PASSWORD: sk_ci_password
+          POSTGRES_DB: sk_management
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sk" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=sk_minio -e MINIO_ROOT_PASSWORD=sk_minio_password \
+            pgsty/minio:latest server /data
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - name: Production build
+        run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: mkdir -p tests/e2e/.auth && pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            docs/screenshots
+          retention-days: 14
