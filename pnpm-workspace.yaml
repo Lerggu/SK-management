@@ -7,3 +7,6 @@ onlyBuiltDependencies:
   - unrs-resolver
   - "@parcel/watcher"
   - "@swc/core"
+overrides:
+  # GHSA: deepmerge-ts <8 stack exhaustion (pulled in by @prisma/config; only merges our own config file).
+  deepmerge-ts: "^8.0.0"

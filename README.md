@@ -1,0 +1,95 @@
+# SK Management
+
+A multi-company construction and industrial project control platform for SK Infra, Purent and other group companies. This repository contains **release V1 — Foundation**: companies, users, roles and permissions, projects and sites, workforce, equipment, documents, the audit trail and a responsive mobile/desktop UI.
+
+- Build specification: [`docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md`](docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md)
+- Functional specification (Finnish): [`docs/specs/SK_management_master.md`](docs/specs/SK_management_master.md)
+- Architecture decisions: [`docs/adr/`](docs/adr)
+- V1 release report: [`docs/V1_REPORT.md`](docs/V1_REPORT.md)
+
+## Stack
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui · Prisma 6 · PostgreSQL 16 · Auth.js v5 (Microsoft Entra ID) · next-intl (fi/en) · S3-compatible storage (MinIO locally) · Vitest · Playwright · dependency-cruiser.
+
+## Local setup
+
+Requirements: Node.js ≥ 20.9 (22 recommended), pnpm 10, Docker.
+
+```bash
+pnpm install
+cp .env.example .env                 # then set AUTH_SECRET: openssl rand -base64 32
+docker compose -f docker/docker-compose.yml up -d   # PostgreSQL 16 + MinIO
+pnpm db:deploy                       # apply migrations
+pnpm db:seed                         # fictional demo data
+pnpm dev                             # http://localhost:3000
+```
+
+Sign in on `/sign-in` with **Kehityskirjautuminen** (dev login) and pick a demo user. The dev login is available only when `DEV_LOGIN_ENABLED=true` and is **always disabled when `NODE_ENV=production`**.
+
+| Demo user | Company / role |
+|---|---|
+| `group.admin@example.com` | Group owner; CEO in both SK Infra Demo and Purent Demo (company switching) |
+| `ceo@skinfra.example.com` | SK Infra Demo — CEO |
+| `pd@skinfra.example.com` | SK Infra Demo — Project Director |
+| `pm@skinfra.example.com` | SK Infra Demo — Project Manager (assigned projects) |
+| `site.manager@…`, `supervisor@…`, `logistics@…`, `hse@…`, `employee@skinfra.example.com` | Other SK Infra Demo roles |
+| `subcontractor@example.com`, `client@example.com` | External roles (no cost/rate data) |
+| `ceo@purent.example.com`, `pm@purent.example.com` | Purent Demo |
+
+All seed data is fictional. Never put real personal data in seed files.
+
+### Microsoft Entra ID
+
+Register an app in Entra ID with redirect URI `<AUTH_URL>/api/auth/callback/microsoft-entra-id`, then set `AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET` and `AUTH_MICROSOFT_ENTRA_ID_ISSUER` (`https://login.microsoftonline.com/<tenant-id>/v2.0`). Only invited users can sign in. Invite people under **Asetukset → Käyttäjät** (Settings → Users).
+
+## Database and migrations
+
+| Command | What it does |
+|---|---|
+| `pnpm db:migrate` | Create and apply a new migration in development (`prisma migrate dev`) |
+| `pnpm db:deploy` | Apply pending migrations (CI and production) |
+| `pnpm db:seed` | Seed fictional demo data (idempotent: skips if it already exists) |
+| `pnpm db:reset` | Drop, re-migrate and re-seed the development database |
+| `pnpm db:generate` | Regenerate the Prisma client |
+
+All schema changes go through Prisma migrations. Triggers, check constraints and partial indexes are hand-written SQL in migrations ([ADR 0004](docs/adr/0004-database-integrity.md)). Permission changes need a new migration.
+
+## Testing
+
+| Command | Scope |
+|---|---|
+| `pnpm test:unit` | Vitest unit tests: permission resolution, guards, validation, audit masking, document versioning, rate periods, i18n catalogues, dev-login guard |
+| `pnpm test:integration` | Vitest against **real PostgreSQL** (`TEST_DATABASE_URL`, recreated each run): module services, DB integrity, tenant isolation suite, role × action authorization matrix |
+| `pnpm test` | Both of the above |
+| `pnpm test:migrations` | Empty DB → migrate → schema drift check → seed |
+| `pnpm test:e2e` | Playwright at desktop and mobile (Pixel 7) viewports on a fresh E2E database; also writes `docs/screenshots/` |
+| `pnpm lint` / `pnpm typecheck` / `pnpm depcruise` | ESLint, TypeScript, architecture layer rules |
+| `pnpm check` | lint + typecheck + depcruise + unit + integration |
+
+Integration and E2E tests need the docker-compose services running. E2E starts `next dev` on port 3100, because the dev login is disabled in production builds. If Playwright's bundled browser is not installed, set `PW_CHROMIUM=/path/to/chromium`.
+
+**Tenant isolation rule:** every service method listed in `src/modules/registry.ts` must have a case in `tests/isolation/isolation.test.ts`. CI fails otherwise.
+
+## Project structure
+
+```
+src/app/            UI routes, server actions, /api/v1 route handlers
+  (auth)/sign-in    sign-in (Entra + dev login)
+  c/[companySlug]/  dashboard, projects, workforce, equipment, documents, settings
+src/modules/        domain modules: identity, companies, projects, workforce, equipment, documents
+                    (schemas.ts = Zod validation, repo.ts = company-scoped repository, service.ts)
+src/platform/       auth, authz, audit, db, storage, errors, config, i18n, ratelimit, ai (interface), integrations (interfaces)
+src/ui/             app shell, responsive navigation, shadcn/ui components
+prisma/             schema.prisma, migrations/, seed.ts
+tests/              integration/, isolation/, e2e/, helpers/
+docker/             docker-compose.yml (postgres, minio)
+docs/               adr/, specs/, screenshots/, V1_REPORT.md
+```
+
+## Security notes
+
+- Company scoping is server-side on every request: the URL company is checked against your membership, repositories inject `company_id`, and composite foreign keys prevent cross-company references. Cross-company access returns 404.
+- Capability-based permissions. Cost and rate data need separate permissions and are never available to Client or Subcontractor roles.
+- Audit log is append-only (DB triggers). Sensitive values are masked.
+- Uploaded files are served only as attachments with `nosniff`. Active content types are refused.
+- Secrets come from the environment only. `.env` is git-ignored.
