@@ -12,6 +12,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  devIndicators: false,
   experimental: {
     serverActions: {
       // Document uploads go through server actions (limit enforced again in the service).

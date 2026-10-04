@@ -72,9 +72,9 @@ function CompanySwitcher({ company, companies, labels, className }: Pick<ShellPr
   );
 }
 
-function LocaleForm({ locale, labels, setLocaleAction }: Pick<ShellProps, "locale" | "labels" | "setLocaleAction">) {
+function LocaleForm({ locale, labels, setLocaleAction, onSubmit }: Pick<ShellProps, "locale" | "labels" | "setLocaleAction"> & { onSubmit?: () => void }) {
   return (
-    <form action={setLocaleAction} className="flex items-center gap-1" aria-label={labels.language}>
+    <form action={setLocaleAction} onSubmit={onSubmit} className="flex items-center gap-1" aria-label={labels.language}>
       {(["fi", "en"] as const).map((l) => (
         <button
           key={l}
@@ -225,7 +225,7 @@ export function AppShell(props: ShellProps) {
                   </div>
                   <div className="flex items-center justify-between gap-2 border-t pt-4">
                     <span className="text-sm text-muted-foreground">{labels.language}</span>
-                    <LocaleForm locale={props.locale} labels={labels} setLocaleAction={props.setLocaleAction} />
+                    <LocaleForm locale={props.locale} labels={labels} setLocaleAction={props.setLocaleAction} onSubmit={() => setMoreOpen(false)} />
                   </div>
                   <div className="border-t pt-2">
                     <div className="px-3 py-2 text-sm">
