@@ -5,6 +5,9 @@ import { employeeService } from "./workforce/service";
 import { equipmentService, equipmentTypeService } from "./equipment/service";
 import { documentService } from "./documents/service";
 import { profileService } from "./identity/service";
+import { timesheetService } from "./timesheets/service";
+import { diaryService } from "./diary/service";
+import { budgetService, costService, projectFinanceService } from "./finance/service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -22,4 +25,10 @@ export const SERVICE_REGISTRY = {
   equipment: equipmentService,
   document: documentService,
   profile: profileService,
+  // V2
+  timesheet: timesheetService,
+  diary: diaryService,
+  budget: budgetService,
+  cost: costService,
+  projectFinance: projectFinanceService,
 } as const;
