@@ -22,10 +22,12 @@ import {
   createDocumentSchema,
   documentListSchema,
   documentMetadataSchema,
+  documentSharingSchema,
   linkSchema,
   versionMetaSchema,
   type CreateDocumentInput,
   type DocumentMetadataInput,
+  type DocumentSharingInput,
   type LinkInput,
   type UploadedFile,
   type VersionMetaInput,
@@ -33,6 +35,18 @@ import {
 import { approvalTransitionPermission, nextVersionNumber, resolveContentType, sanitizeFileName, sha256Hex, storageKey } from "./versioning";
 
 type DocumentRow = NonNullable<Awaited<ReturnType<DocumentRepo["find"]>>>;
+type ShareFlags = Pick<DocumentRow, "projectId" | "sharedWithClient" | "sharedWithSubcontractors">;
+
+/**
+ * V7 external boundary: an external member sees a project document only when
+ * it is shared with their party (client / subcontractors), and then only its
+ * APPROVED versions. External members never manage documents.
+ */
+export function sharedWithMember(ctx: RequestContext, doc: ShareFlags): boolean {
+  if (!ctx.external) return true;
+  if (!doc.projectId) return false;
+  return (doc.sharedWithClient && ctx.externalParties.has("CLIENT")) || (doc.sharedWithSubcontractors && ctx.externalParties.has("SUBCONTRACTOR"));
+}
 
 /**
  * Company-level documents (no project) are internal: they need company-level
@@ -45,7 +59,13 @@ function documentPermissions(ctx: RequestContext, doc: Pick<DocumentRow, "projec
 }
 
 /** Visibility check: invisible documents are 404, missing capability is 403. */
-function requireDocumentPermission(ctx: RequestContext, doc: Pick<DocumentRow, "projectId">, permission: PermissionKey) {
+function requireDocumentPermission(ctx: RequestContext, doc: ShareFlags, permission: PermissionKey) {
+  if (ctx.external) {
+    if (!doc.projectId || !canAccessProject(ctx, doc.projectId) || !sharedWithMember(ctx, doc)) throw new NotFoundError();
+    requireProjectPermission(ctx, doc.projectId, "documents.view");
+    if (permission !== "documents.view") throw new ForbiddenError("External members cannot manage documents");
+    return;
+  }
   if (doc.projectId) {
     requireProjectPermission(ctx, doc.projectId, "documents.view");
     if (permission !== "documents.view") requireProjectPermission(ctx, doc.projectId, permission);
@@ -132,7 +152,12 @@ export const documentService = {
     const companyLevel = hasPermission(ctx, "documents.view") && !ctx.external;
     const projectIds = projectIdsWithPermission(ctx, "documents.view");
     if (filter.projectId && !canAccessProject(ctx, filter.projectId)) throw new NotFoundError();
-    const rows = await new DocumentRepo(readClient(), ctx.company.id).list({ ...filter, companyLevel, projectIds });
+    const repo = new DocumentRepo(readClient(), ctx.company.id);
+    if (ctx.external) {
+      const rows = await repo.listShared({ ...filter, projectIds: projectIds ?? [], client: ctx.externalParties.has("CLIENT"), subcontractors: ctx.externalParties.has("SUBCONTRACTOR") });
+      return rows.filter((d) => d.versions.length > 0).map(({ versions, ...d }) => ({ ...d, currentVersion: versions[0] ?? null }));
+    }
+    const rows = await repo.list({ ...filter, companyLevel, projectIds });
     return rows.map(({ versions, ...d }) => ({ ...d, currentVersion: versions[0] ?? null }));
   },
 
@@ -140,19 +165,26 @@ export const documentService = {
     const doc = await new DocumentRepo(readClient(), ctx.company.id).findDetailed(documentId);
     if (!doc) throw new NotFoundError();
     requireDocumentPermission(ctx, doc, "documents.view");
+    if (ctx.external) {
+      const { links: _links, ...rest } = doc;
+      void _links;
+      const versions = doc.versions.filter((v) => v.approvalState === "APPROVED").map(serializeVersion);
+      if (versions.length === 0) throw new NotFoundError();
+      return { ...rest, links: [], versions, permissions: { manage: false, approve: false, share: false } };
+    }
     const perms = documentPermissions(ctx, doc);
     return {
       ...doc,
       versions: doc.versions.map(serializeVersion),
-      permissions: { manage: perms.has("documents.manage"), approve: perms.has("documents.approve") },
+      permissions: { manage: perms.has("documents.manage"), approve: perms.has("documents.approve"), share: !!doc.projectId && perms.has("documents.approve") },
     };
   },
 
   async create(ctx: RequestContext, input: CreateDocumentInput & VersionMetaInput, file: UploadedFile) {
     const data = parseInput(createDocumentSchema, input);
     const meta = parseInput(versionMetaSchema, input);
+    if (ctx.external) throw new ForbiddenError("External members cannot manage documents");
     if (data.projectId) requireProjectPermission(ctx, data.projectId, "documents.manage");
-    else if (ctx.external) throw new ForbiddenError();
     else requirePermission(ctx, "documents.manage");
 
     const readRepo = new DocumentRepo(readClient(), ctx.company.id);
@@ -239,6 +271,7 @@ export const documentService = {
       const doc = await repo.find(version.documentId);
       if (!doc) throw new NotFoundError();
       requireDocumentPermission(ctx, doc, "documents.view");
+      if (ctx.external) throw new ForbiddenError("External members cannot approve documents");
       if (version.status !== "CURRENT") throw new ValidationError({ _form: ["validation.versionNotCurrent"] });
       const needed = approvalTransitionPermission(version.approvalState, state);
       if (!needed) throw new ValidationError({ state: ["validation.invalidTransition"] });
@@ -270,6 +303,7 @@ export const documentService = {
     const doc = await repo.find(version.documentId);
     if (!doc) throw new NotFoundError();
     requireDocumentPermission(ctx, doc, "documents.view");
+    if (ctx.external && version.approvalState !== "APPROVED") throw new NotFoundError();
     const object = await getStorage().get(version.storageKey);
     if (!object) throw new NotFoundError("File missing from storage");
     return { fileName: version.fileName, contentType: version.contentType, body: object.body, sha256: version.sha256 };
@@ -338,9 +372,37 @@ export const documentService = {
     });
   },
 
+  /**
+   * V7: shares a project document with the client and/or subcontractors.
+   * Externals then see its APPROVED versions only. Needs documents.approve.
+   */
+  async setSharing(ctx: RequestContext, documentId: string, input: DocumentSharingInput) {
+    const data = parseInput(documentSharingSchema, input);
+    return runInTransaction(async (tx) => {
+      const repo = new DocumentRepo(tx, ctx.company.id);
+      const before = await repo.find(documentId);
+      if (!before) throw new NotFoundError();
+      requireDocumentPermission(ctx, before, "documents.view");
+      if (!before.projectId) throw new ValidationError({ _form: ["validation.shareProjectOnly"] });
+      requireDocumentPermission(ctx, before, "documents.approve");
+      if (before.archivedAt) throw new ValidationError({ _form: ["validation.archived"] });
+      const after = await repo.update(before.id, { sharedWithClient: data.sharedWithClient, sharedWithSubcontractors: data.sharedWithSubcontractors, updatedById: ctx.user.id });
+      await writeAudit(tx, ctx, {
+        action: "document.share_update",
+        entityType: "document",
+        entityId: after.id,
+        projectId: after.projectId,
+        before: { sharedWithClient: before.sharedWithClient, sharedWithSubcontractors: before.sharedWithSubcontractors },
+        after: { sharedWithClient: after.sharedWithClient, sharedWithSubcontractors: after.sharedWithSubcontractors },
+      });
+      return after;
+    });
+  },
+
   /** Visible documents linked to an employee/equipment/project/site. */
   async listLinkedTo(ctx: RequestContext, input: LinkInput) {
     const data = parseInput(linkSchema, input);
+    if (ctx.external) return [];
     const rows = await new DocumentRepo(readClient(), ctx.company.id).listLinkedTo(data.entityType, data.entityId);
     return rows.filter((r) => documentPermissions(ctx, r.document).has("documents.view")).map((r) => ({ linkId: r.id, ...r.document }));
   },

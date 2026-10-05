@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { D, roundCents, type Decimal } from "@/modules/finance/calculations";
 import { Prisma } from "@/platform/db";
 
@@ -215,4 +216,47 @@ export function bookedHours(startsAt: Date, endsAt: Date): Decimal {
   return D(endsAt.getTime() - startsAt.getTime())
     .div(3_600_000)
     .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+}
+
+// ── V7: client approval snapshot (owner decision 2) ───────────────────
+/**
+ * The frozen content a client approves: never costs, markup or margin. The
+ * hash is SHA-256 over canonical JSON (sorted keys), so the client's decision
+ * is bound to exactly the version they saw.
+ */
+export interface ClientSnapshot {
+  number: number;
+  title: string;
+  description: string | null;
+  cause: string | null;
+  clientReference: string | null;
+  salesPrice: string;
+  currency: string;
+}
+
+export function clientSnapshot(v: { number: number; title: string; description: string | null; cause: string | null; clientReference: string | null; salesPrice: Prisma.Decimal.Value; currency: string }): ClientSnapshot {
+  return {
+    number: v.number,
+    title: v.title,
+    description: v.description,
+    cause: v.cause,
+    clientReference: v.clientReference,
+    salesPrice: roundCents(D(v.salesPrice)).toFixed(2),
+    currency: v.currency,
+  };
+}
+
+export function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  return `{${Object.keys(obj)
+    .sort()
+    .filter((k) => obj[k] !== undefined)
+    .map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`)
+    .join(",")}}`;
+}
+
+export function snapshotHash(snapshot: ClientSnapshot): string {
+  return createHash("sha256").update(canonicalJson(snapshot), "utf8").digest("hex");
 }

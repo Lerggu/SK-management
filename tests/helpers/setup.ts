@@ -8,6 +8,9 @@ process.env.DEV_LOGIN_ENABLED = "true";
 
 const { setStorageForTests, MemoryObjectStorage } = await import("@/platform/storage");
 setStorageForTests(new MemoryObjectStorage());
+// V7: e-mails go to an in-memory mailbox (getMailer() as MemoryMailer).
+const { setMailerForTests, MemoryMailer } = await import("@/platform/mail");
+setMailerForTests(new MemoryMailer());
 
 afterAll(async () => {
   const { db } = await import("@/platform/db");

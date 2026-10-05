@@ -46,6 +46,30 @@ export class DocumentRepo {
     });
   }
 
+  /** V7: project documents shared with an external party, with their latest APPROVED version. */
+  listShared(filter: { projectIds: string[]; projectId: string | null; category?: string; q: string | null; client: boolean; subcontractors: boolean }) {
+    const share: Prisma.DocumentWhereInput[] = [];
+    if (filter.client) share.push({ sharedWithClient: true });
+    if (filter.subcontractors) share.push({ sharedWithSubcontractors: true });
+    if (share.length === 0) return Promise.resolve([]);
+    const projectIds = filter.projectId ? filter.projectIds.filter((id) => id === filter.projectId) : filter.projectIds;
+    return this.tx.document.findMany({
+      where: {
+        companyId: this.companyId,
+        archivedAt: null,
+        projectId: { in: projectIds },
+        AND: [{ OR: share }, ...(filter.q ? [{ OR: [{ title: { contains: filter.q, mode: "insensitive" as const } }, { documentNumber: { contains: filter.q, mode: "insensitive" as const } }] }] : [])],
+        ...(filter.category ? { category: filter.category as Prisma.DocumentWhereInput["category"] } : {}),
+      },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        project: { select: { id: true, code: true, name: true } },
+        site: { select: { id: true, name: true } },
+        versions: { where: { approvalState: "APPROVED" }, orderBy: { versionNumber: "desc" }, take: 1, select: { id: true, versionNumber: true, revisionLabel: true, approvalState: true, fileName: true } },
+      },
+    });
+  }
+
   find(id: string) {
     return this.tx.document.findFirst({ where: { id, companyId: this.companyId } });
   }

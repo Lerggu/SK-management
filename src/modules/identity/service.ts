@@ -6,6 +6,8 @@ import type { Locale, RequestMeta, UserContext } from "@/platform/authz";
 import { z } from "zod";
 
 export const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
+/** V7: external users (e-mail link) get a shorter session. */
+export const EXTERNAL_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
 /**
  * Invitation-based access: a person may sign in only if an ACTIVE user with
@@ -93,9 +95,9 @@ export async function recordSignIn(params: {
 }
 
 /** Creates a database session (used by the dev login; Entra uses Auth.js). */
-export async function createDatabaseSession(userId: string) {
+export async function createDatabaseSession(userId: string, maxAgeSeconds = SESSION_MAX_AGE_SECONDS) {
   const sessionToken = randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+  const expires = new Date(Date.now() + maxAgeSeconds * 1000);
   await readClient().session.create({ data: { sessionToken, userId, expires } });
   return { sessionToken, expires };
 }

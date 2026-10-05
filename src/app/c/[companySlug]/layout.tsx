@@ -1,13 +1,17 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { companyDirectoryService } from "@/modules/companies/service";
 import { AppShell } from "@/ui/shell/app-shell";
 import { getLocale, requireCompanyContext, requireUserContext } from "@/app/_lib/context";
-import { navItems } from "@/app/_lib/nav";
+import { externalPathAllowed, navItems } from "@/app/_lib/nav";
 import { setLocaleAction, signOutAction } from "@/app/_lib/shell-actions";
 
 export default async function CompanyLayout({ children, params }: { children: React.ReactNode; params: Promise<{ companySlug: string }> }) {
   const { companySlug } = await params;
   const ctx = await requireCompanyContext(companySlug);
+  // External members (Client, Subcontractor) are kept in the portal.
+  if (!externalPathAllowed(ctx, (await headers()).get("x-pathname"))) redirect(`/c/${companySlug}/portal`);
   const uctx = await requireUserContext();
   const [companies, t, tc, tl, locale] = await Promise.all([
     companyDirectoryService.listMyCompanies(uctx),

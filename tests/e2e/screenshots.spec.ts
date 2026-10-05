@@ -127,3 +127,30 @@ test("capture main views", async ({ page }, testInfo) => {
   await page.goto("/sign-in");
   await page.screenshot({ path: `${dir}/sign-in.png`, caret: "initial" });
 });
+
+/** V7 views: HSE (as HSE), the client portal and the subcontractor portal. */
+test("capture V7 views", async ({ browser }, testInfo) => {
+  test.setTimeout(120_000);
+  const dir = `docs/screenshots/${testInfo.project.name}`;
+  const as = async (user: Parameters<typeof authFile>[0]) => (await browser.newContext({ storageState: authFile(user), ...testInfo.project.use })).newPage();
+  const hse = await as("hse");
+  await hse.goto("/c/sk-infra-demo/hse");
+  await hse.screenshot({ path: `${dir}/hse.png`, fullPage: true, caret: "initial" });
+  await hse.getByTestId("hse-urgent").getByRole("link").first().click();
+  await hse.waitForURL(/incidents\/[0-9a-f-]{36}$/);
+  await hse.screenshot({ path: `${dir}/hse-incident.png`, fullPage: true, caret: "initial" });
+  await hse.goto("/c/sk-infra-demo/hse/report?kind=SAFETY_OBSERVATION");
+  await hse.screenshot({ path: `${dir}/hse-report.png`, fullPage: true, caret: "initial" });
+  const client = await as("client");
+  await client.goto("/c/sk-infra-demo/portal");
+  await client.screenshot({ path: `${dir}/portal-client.png`, fullPage: true, caret: "initial" });
+  const pending = client.getByRole("link", { name: /UPS-tilan lisäpistorasiat/ });
+  if (await pending.count()) {
+    await pending.first().click();
+    await client.waitForURL(/approvals\/[0-9a-f-]{36}$/);
+    await client.screenshot({ path: `${dir}/portal-approval.png`, fullPage: true, caret: "initial" });
+  }
+  const sub = await as("subcontractor");
+  await sub.goto("/c/sk-infra-demo/portal");
+  await sub.screenshot({ path: `${dir}/portal-subcontractor.png`, fullPage: true, caret: "initial" });
+});

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "@/platform/errors";
 import { documentService } from "@/modules/documents/service";
-import type { CreateDocumentInput, DocumentMetadataInput, LinkInput, VersionMetaInput } from "@/modules/documents/schemas";
+import type { CreateDocumentInput, DocumentMetadataInput, DocumentSharingInput, LinkInput, VersionMetaInput } from "@/modules/documents/schemas";
 import { formInput, readFile, runAction, type ActionState } from "@/app/_lib/action";
 import { requireCompanyContext } from "@/app/_lib/context";
 
@@ -74,5 +74,13 @@ export async function removeLinkAction(slug: string, documentId: string, linkId:
   const ctx = await requireCompanyContext(slug);
   const r = await runAction(null, () => documentService.removeLink(ctx, linkId));
   revalidatePath(`${base(slug)}/${documentId}`);
+  return r;
+}
+
+export async function setSharingAction(slug: string, documentId: string, _: ActionState | null, formData: FormData): Promise<ActionState> {
+  const ctx = await requireCompanyContext(slug);
+  const r = await runAction(formData, () => documentService.setSharing(ctx, documentId, formInput<DocumentSharingInput>(formData)).then(() => undefined));
+  revalidatePath(`/c/${slug}/documents`, "layout");
+  revalidatePath(`/c/${slug}/portal`, "layout");
   return r;
 }

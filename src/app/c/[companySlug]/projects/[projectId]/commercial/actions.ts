@@ -69,6 +69,14 @@ export async function variationStepAction(slug: string, variationId: string, ste
   return r;
 }
 
+export async function publishToClientAction(slug: string, variationId: string): Promise<ActionState> {
+  const ctx = await requireCompanyContext(slug);
+  const r = await runAction(null, () => variationService.publishToClient(ctx, variationId).then(() => undefined));
+  refresh(slug);
+  revalidatePath(`/c/${slug}/portal`, "layout");
+  return r;
+}
+
 export async function returnVariationAction(slug: string, variationId: string, _: ActionState | null, formData: FormData): Promise<ActionState> {
   const ctx = await requireCompanyContext(slug);
   const r = await runAction(formData, () => variationService.returnToDraft(ctx, variationId, formInput(formData)));

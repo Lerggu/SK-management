@@ -32,6 +32,8 @@ import { quoteService } from "@/modules/commercial/quote.service";
 import { contractService, forecastService, variationService } from "@/modules/commercial/project.service";
 import { invoiceService } from "@/modules/commercial/invoice.service";
 import { deliveryService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
+import { hseActionService, hseObservationService, incidentService } from "@/modules/hse/hse.service";
+import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
 import { addDays, isoDateString, weekStart } from "@/modules/timesheets/rules";
 import { todayInDisplayZone } from "@/platform/i18n/config";
 
@@ -170,7 +172,8 @@ async function main() {
   // Project assignments (ASSIGNED roles see only these projects).
   for (const u of SK_USERS.filter((u) => !["CEO", "PROJECT_DIRECTOR"].includes(u.role))) {
     const user = await db.user.findUniqueOrThrow({ where: { email: u.email } });
-    await projectService.assignMember(skCeo, ndc.id, { userId: user.id, roleId: sk.roleId(u.role) });
+    // V7: the client contact is the named client approver of this project.
+    await projectService.assignMember(skCeo, ndc.id, { userId: user.id, roleId: sk.roleId(u.role === "CLIENT" ? "CLIENT_APPROVER" : u.role) });
   }
   const pmUser = await db.user.findUniqueOrThrow({ where: { email: "pm@skinfra.example.com" } });
   await projectService.assignMember(skCeo, cable.id, { userId: pmUser.id, roleId: sk.roleId("PROJECT_MANAGER") });
@@ -260,6 +263,9 @@ async function main() {
       textFile("NDC-E-110_B.txt", "FICTIONAL DEMO DRAWING – revision B\n"),
     );
     await documentService.setVersionApproval(skCeo, revB.id, { state: "PENDING_APPROVAL" });
+    // V7: shared externally — the client and subcontractors see approved revision A only.
+    await documentService.setSharing(skCeo, drawing.id, { sharedWithClient: "on", sharedWithSubcontractors: "on" });
+    await documentService.setSharing(skCeo, rams.id, { sharedWithSubcontractors: "on" });
 
     const cert = await documentService.create(
       skCeo,
@@ -562,12 +568,50 @@ async function main() {
   await variationService.markExecuted(pmCtx, vo3.id);
   await variationService.markReadyToInvoice(pmCtx, vo3.id);
 
+  // V7: a variation waiting for the client's decision in the portal.
+  const vo4 = await variationService.create(pmCtx, { projectId: ndc.id, contractId: won.contractId, title: "UPS-tilan lisäpistorasiat", cause: "Asiakkaan muutospyyntö", clientReference: "MP-07", description: "12 kpl lisäpistorasioita UPS-tilaan, asennus ja käyttöönotto." });
+  await variationService.updateDraft(pmCtx, vo4.id, { title: "UPS-tilan lisäpistorasiat", cause: "Asiakkaan muutospyyntö", clientReference: "MP-07", description: "12 kpl lisäpistorasioita UPS-tilaan, asennus ja käyttöönotto.", laborCost: "1900", materialsCost: "1300", markupPct: "15" });
+  await variationService.submitForReview(pmCtx, vo4.id);
+  await variationService.approveInternal(pdCtx, vo4.id, { decision: "APPROVE", note: "Hinta tarkistettu" });
+
   // Forecast: estimate to complete per category; invoice candidates up to today.
   for (const [category, etcAmount] of [["LABOR", "182000"], ["EQUIPMENT", "41000"], ["MATERIALS", "96000"], ["SUBCONTRACT", "18000"]] as const) await forecastService.setEtc(pmCtx, ndc.id, { category, etcAmount, note: "Kuukausiennuste" });
   await invoiceService.generate(pmCtx, { projectId: ndc.id, to: todayIso });
 
+  // ── V7: HSE (SK Infra Demo, Nordic Data Center Demo) ─────────────
+  const hseCtx = await ctxFor("hse@skinfra.example.com", "sk-infra-demo");
+  const subCtx = await ctxFor("subcontractor@example.com", "sk-infra-demo");
+  const at = (days: number, hm: string) => `${inDays(days)}T${hm}`;
+  await hseObservationService.create(employeeCtx, { projectId: ndc.id, siteId: hallA.id, kind: "SAFETY_OBSERVATION", category: "HOUSEKEEPING", severity: "MEDIUM", title: "Kaapelikelojen välissä kulkuväylä tukossa", location: "Data Hall A, 1. krs", occurredAt: at(-3, "09:20") });
+  const nearMiss = await hseObservationService.create(subCtx, { projectId: ndc.id, siteId: hallA.id, kind: "NEAR_MISS", category: "LIFTING", severity: "HIGH", title: "Hyllynippu heilahti noston aikana", description: "Taglinea ei käytetty, kukaan ei ollut nostoalueella.", occurredAt: at(-2, "13:05"), liftPlanId: trayLift.id });
+  await hseObservationService.triage(smCtx, nearMiss.id, { category: "LIFTING", severity: "HIGH" });
+  const tagAction = await hseActionService.create(smCtx, { sourceType: "OBSERVATION", sourceId: nearMiss.id, title: "Taglinet pakollisiksi kaikkiin hyllynostoihin", assigneeId: (await db.user.findUniqueOrThrow({ where: { email: "supervisor@skinfra.example.com" } })).id, dueDate: inDays(3) });
+  void tagAction;
+  const minor = await incidentService.report(employeeCtx, { projectId: ndc.id, siteId: hallA.id, type: "INJURY", severity: "FIRST_AID", title: "Viiltohaava kaapelin kuorinnassa", occurredAt: at(-10, "10:40"), immediateActions: "Ensiapu annettu" });
+  await incidentService.triage(smCtx, minor.id, { type: "INJURY", severity: "FIRST_AID", immediateActions: "Ensiapu annettu, viiltosuojahanskat jaettu" });
+  await incidentService.close(smCtx, minor.id, { note: "Viiltosuojahanskat käyttöön" });
+  const serious = await incidentService.report(supervisorCtx, { projectId: ndc.id, siteId: hallA.id, type: "INJURY", severity: "LOST_TIME", title: "Kaatuminen telineeltä 1,5 m", occurredAt: at(-1, "14:30"), immediateActions: "Alue eristetty, teline tarkastettu" });
+  await incidentService.triage(smCtx, serious.id, { type: "INJURY", severity: "LOST_TIME", immediateActions: "Alue eristetty, teline tarkastettu" });
+  await incidentService.startInvestigation(hseCtx, serious.id);
+  await incidentService.addPerson(hseCtx, serious.id, { personName: "Demo Henkilö", employerName: "SK Infra Demo", bodyPart: "Nilkka", injuryDescription: "Nyrjähdys (fiktiivinen)", absenceDays: "5" });
+  await incidentService.recordInvestigation(hseCtx, serious.id, { rootCause: "Telineen kaide irrotettu ilman lupaa", lostDays: "5" });
+  const railAction = await hseActionService.create(smCtx, { sourceType: "INCIDENT", sourceId: serious.id, title: "Telineiden päivittäinen tarkastus ennen käyttöä", dueDate: inDays(2) });
+  await hseActionService.markDone(smCtx, railAction.id, { note: "Tarkastuslista otettu käyttöön" });
+  await toolboxTalkService.create(smCtx, { projectId: ndc.id, siteId: hallA.id, heldOn: inDays(-7), topic: "Nostot ja taglinet", presenter: "Pekka Demo", attendeeCount: "14" });
+  await toolboxTalkService.create(smCtx, { projectId: ndc.id, siteId: hallA.id, heldOn: inDays(-1), topic: "Telineiden käyttö", presenter: "Riikka Harjoitus", attendeeCount: "16" });
+  for (const [days, correct, incorrect] of [[-21, 88, 12], [-14, 91, 9], [-7, 94, 6]] as const) {
+    await hseInspectionService.create(smCtx, { projectId: ndc.id, siteId: hallA.id, kind: "MVR", inspectedOn: inDays(days), correctCount: String(correct), incorrectCount: String(incorrect) });
+  }
+  const ra = await riskAssessmentService.create(smCtx, { projectId: ndc.id, siteId: hallA.id, title: "Muuntajan nosto perustukselle", workDescription: "Ajoneuvonosturi, 18 t muuntaja", liftPlanId: transformerLift.id });
+  await riskAssessmentService.addItem(smCtx, ra.id, { hazard: "Taakan putoaminen", likelihood: "2", consequence: "5", controls: "Nostoalue eristetty, nostovastaava paikalla", residualLikelihood: "1", residualConsequence: "5" });
+  await riskAssessmentService.addItem(smCtx, ra.id, { hazard: "Nosturin kaatuminen", likelihood: "1", consequence: "5", controls: "Maapohja tarkastettu, tukijalkojen alusta", residualLikelihood: "1", residualConsequence: "4" });
+  await riskAssessmentService.approve(hseCtx, ra.id);
+  const permit = await workPermitService.request(subCtx, { projectId: ndc.id, siteId: hallA.id, type: "HOT_WORK", description: "Kannakkeiden hitsaus", contractor: "Aliurakka Demo Oy", validFrom: at(1, "07:00"), validTo: at(1, "15:00"), precautions: "Sammutin ja palovartija" });
+  await workPermitService.decide(smCtx, permit.id, { decision: "APPROVE", note: "Palovartija nimetty" });
+  await workPermitService.request(subCtx, { projectId: ndc.id, siteId: hallA.id, type: "WORK_AT_HEIGHT", description: "Hyllyasennus nostimelta", contractor: "Aliurakka Demo Oy", validFrom: at(2, "07:00"), validTo: at(2, "15:00") });
+
   console.log("✔ Seed complete (fictional data).");
-  console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, pd@skinfra.example.com, client@example.com, ceo@purent.example.com …");
+  console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, pd@skinfra.example.com, hse@skinfra.example.com, client@example.com (client approver), subcontractor@example.com, ceo@purent.example.com …");
 }
 
 main()

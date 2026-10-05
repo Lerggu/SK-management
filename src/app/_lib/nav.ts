@@ -1,15 +1,28 @@
 import type { RequestContext } from "@/platform/authz";
 
-export type NavKey = "dashboard" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "sales" | "billing" | "workforce" | "equipment" | "documents" | "settings";
+export type NavKey = "dashboard" | "portal" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "hse" | "sales" | "billing" | "workforce" | "equipment" | "documents" | "settings";
 
 export interface NavItem {
   key: NavKey;
   href: string;
 }
 
+/**
+ * V7: external members (Client, Subcontractor) use the portal only. Internal
+ * pages redirect them there (company layout); services still enforce access.
+ */
+export const EXTERNAL_PATHS = ["portal", "hse", "documents"] as const;
+
+export function externalPathAllowed(ctx: RequestContext, pathname: string | null): boolean {
+  if (!ctx.external) return true;
+  const rest = (pathname ?? "").split("/").slice(3);
+  return rest.length > 0 && (EXTERNAL_PATHS as readonly string[]).includes(rest[0]);
+}
+
 /** Navigation filtered by capability. */
 export function navItems(ctx: RequestContext): NavItem[] {
   const base = `/c/${ctx.company.slug}`;
+  if (ctx.external) return [{ key: "portal", href: `${base}/portal` }];
   const has = (p: Parameters<RequestContext["permissions"]["has"]>[0]) => ctx.permissions.has(p);
   const anyProjectGrant = ctx.projectGrants.size > 0;
   const items: NavItem[] = [{ key: "dashboard", href: `${base}/dashboard` }];
@@ -19,6 +32,7 @@ export function navItems(ctx: RequestContext): NavItem[] {
   if (hasLogisticsAccess(ctx)) items.push({ key: "logistics", href: `${base}/logistics` });
   if (hasLogisticsAccess(ctx)) items.push({ key: "lifting", href: `${base}/lifting` });
   if (hasMaterialAccess(ctx)) items.push({ key: "materials", href: `${base}/materials` });
+  if (hasHseAccess(ctx)) items.push({ key: "hse", href: `${base}/hse` });
   if (has("crm.view")) items.push({ key: "sales", href: `${base}/sales` });
   if (has("invoice.manage") || [...ctx.projectGrants.values()].some((g) => g.has("invoice.manage"))) items.push({ key: "billing", href: `${base}/billing` });
   if (has("employee.view")) items.push({ key: "workforce", href: `${base}/workforce` });
@@ -50,4 +64,11 @@ export function hasLogisticsAccess(ctx: RequestContext): boolean {
 /** Material and cable drum visibility, company-wide or through a project role. */
 export function hasMaterialAccess(ctx: RequestContext): boolean {
   return ctx.permissions.has("material.view") || [...ctx.projectGrants.values()].some((g) => g.has("material.view"));
+}
+
+/** HSE register or reporting, company-wide or through a project role. */
+export function hasHseAccess(ctx: RequestContext): boolean {
+  const keys = ["hse.view", "hse.create"] as const;
+  if (keys.some((k) => ctx.permissions.has(k))) return true;
+  return [...ctx.projectGrants.values()].some((g) => keys.some((k) => g.has(k)));
 }

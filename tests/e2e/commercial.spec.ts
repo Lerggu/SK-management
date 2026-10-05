@@ -132,9 +132,10 @@ test.describe("sales", () => {
 test.describe("client", () => {
   test.use({ storageState: authFile("client") });
 
-  test("sees no sales, prices or billing", async ({ page }) => {
-    expect((await page.goto("/c/sk-infra-demo/sales"))?.status()).toBe(404);
-    expect((await page.goto("/c/sk-infra-demo/billing"))?.status()).toBe(404);
-    expect((await page.goto("/c/sk-infra-demo/sales/quotes"))?.status()).toBe(404);
+  test("sees no sales, prices or billing (V7: kept in the portal)", async ({ page }) => {
+    for (const path of ["/c/sk-infra-demo/sales", "/c/sk-infra-demo/billing", "/c/sk-infra-demo/sales/quotes"]) {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/portal/);
+    }
   });
 });

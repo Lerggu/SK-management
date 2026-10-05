@@ -21,6 +21,9 @@ const envSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_FORCE_PATH_STYLE: boolString,
   UPLOAD_MAX_MB: z.coerce.number().positive().default(25),
+  // V7: e-mail (sign-in links for external users, serious-incident alerts).
+  SMTP_URL: z.string().optional(),
+  MAIL_FROM: z.string().default("SK Management <no-reply@sk-management.invalid>"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -65,4 +68,14 @@ export function isEntraConfigured(): boolean {
 
 export function uploadMaxBytes(): number {
   return Math.floor(env().UPLOAD_MAX_MB * 1024 * 1024);
+}
+
+/** V7: SMTP is configured for real e-mail delivery. */
+export function isSmtpConfigured(): boolean {
+  return Boolean(env().SMTP_URL);
+}
+
+/** Public base URL for links in e-mails (AUTH_URL), without a trailing slash. */
+export function appBaseUrl(): string {
+  return (env().AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }

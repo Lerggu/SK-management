@@ -1,4 +1,5 @@
 import type { PermissionKey } from "./permissions";
+import type { ExternalParty } from "./resolve";
 
 export type Locale = "fi" | "en";
 
@@ -43,5 +44,7 @@ export interface RequestContext {
   permissions: ReadonlySet<PermissionKey>;
   projectAccess: "ALL" | "ASSIGNED";
   external: boolean;
+  /** V7: external parties (Client / Subcontractor) the member represents. */
+  externalParties: ReadonlySet<ExternalParty>;
   projectGrants: ReadonlyMap<string, ReadonlySet<PermissionKey>>;
 }

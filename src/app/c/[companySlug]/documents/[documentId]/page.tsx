@@ -12,7 +12,7 @@ import { DetailList, EmptyState, PageHeader, Section } from "@/ui/components/pag
 import { StatusBadge } from "@/ui/components/status-badge";
 import { fmtBytes, fmtDate, fmtDateTime } from "@/ui/format";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
-import { addLinkAction, archiveDocumentAction, removeLinkAction, setApprovalAction, updateDocumentAction, uploadVersionAction } from "../actions";
+import { addLinkAction, archiveDocumentAction, removeLinkAction, setApprovalAction, setSharingAction, updateDocumentAction, uploadVersionAction } from "../actions";
 
 export default async function DocumentPage({ params }: { params: Promise<{ companySlug: string; documentId: string }> }) {
   const { companySlug, documentId } = await params;
@@ -49,8 +49,8 @@ export default async function DocumentPage({ params }: { params: Promise<{ compa
       <PageHeader
         title={doc.title}
         description={[t(`categories.${doc.category}`), doc.documentNumber, doc.project ? `${doc.project.code}${doc.site ? ` › ${doc.site.name}` : ""}` : t("companyLevel")].filter(Boolean).join(" · ")}
-        backHref={`${base}/documents`}
-        backLabel={t("title")}
+        backHref={ctx.external ? (doc.project ? `${base}/portal/${doc.project.id}` : `${base}/portal`) : `${base}/documents`}
+        backLabel={ctx.external ? t("portal") : t("title")}
         actions={
           canManage && (
             <ActionButton action={archiveDocumentAction.bind(null, companySlug, doc.id)} confirm={tc("confirmArchive")} variant="destructive">
@@ -126,6 +126,18 @@ export default async function DocumentPage({ params }: { params: Promise<{ compa
           )}
         </Section>
 
+        {doc.permissions.share && (
+          <Section title={t("sharing")}>
+            <p className="mb-3 text-sm text-muted-foreground">{t("sharingHint")}</p>
+            <ActionForm action={setSharingAction.bind(null, companySlug, doc.id)} className="space-y-2" showSuccess data-testid="sharing-form">
+              <input type="hidden" name="present" value="1" />
+              <SharingBoxes client={doc.sharedWithClient} subcontractors={doc.sharedWithSubcontractors} labels={{ client: t("shareClient"), subcontractors: t("shareSubcontractors") }} />
+              <SubmitButton variant="outline">{tc("save")}</SubmitButton>
+            </ActionForm>
+          </Section>
+        )}
+
+        {!ctx.external && (
         <Section title={t("links")}>
           {doc.links.length === 0 ? (
             <EmptyState>{t("noLinks")}</EmptyState>
@@ -151,6 +163,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ compa
             </ActionForm>
           )}
         </Section>
+        )}
 
         <Section title={tc("details")}>
           {canManage ? (
@@ -172,7 +185,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ compa
               ]}
             />
           )}
-          {doc.project && (
+          {doc.project && !ctx.external && (
             <p className="mt-3 text-sm">
               <Link className="underline" href={`${base}/projects/${doc.project.id}`}>
                 {doc.project.code} · {doc.project.name}
@@ -182,5 +195,21 @@ export default async function DocumentPage({ params }: { params: Promise<{ compa
         </Section>
       </div>
     </>
+  );
+}
+
+/** Checkboxes pre-set from the stored flags. */
+function SharingBoxes({ client, subcontractors, labels }: { client: boolean; subcontractors: boolean; labels: { client: string; subcontractors: string } }) {
+  return (
+    <div className="space-y-1">
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm md:min-h-9">
+        <input type="checkbox" name="sharedWithClient" defaultChecked={client} className="size-5 accent-primary md:size-4" />
+        {labels.client}
+      </label>
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm md:min-h-9">
+        <input type="checkbox" name="sharedWithSubcontractors" defaultChecked={subcontractors} className="size-5 accent-primary md:size-4" />
+        {labels.subcontractors}
+      </label>
+    </div>
   );
 }

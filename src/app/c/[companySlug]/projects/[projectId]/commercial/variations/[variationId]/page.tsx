@@ -6,7 +6,7 @@ import { DetailList, PageHeader, Section } from "@/ui/components/page";
 import { StatusBadge } from "@/ui/components/status-badge";
 import { fmtDateTime, fmtMoney } from "@/ui/format";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
-import { approveVariationAction, clientDecisionAction, returnVariationAction, updateVariationAction, variationStepAction } from "../../actions";
+import { approveVariationAction, clientDecisionAction, publishToClientAction, returnVariationAction, updateVariationAction, variationStepAction } from "../../actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("commercial"))("variation") };
@@ -58,6 +58,24 @@ export default async function VariationPage({ params }: { params: Promise<{ comp
           />
         </Section>
 
+        {v.clientApprovals.length > 0 && (
+          <Section title={t("clientPortal")}>
+            <ul className="divide-y text-sm" data-testid="client-approvals">
+              {v.clientApprovals.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span>
+                    {fmtDateTime(format, c.sentAt)} · {money((c.snapshot as { salesPrice: string }).salesPrice)}
+                    {c.decidedAt ? ` · ${user(c.decidedById)} · ${fmtDateTime(format, c.decidedAt)}` : ""}
+                    {c.channel ? ` · ${t(`approvalChannels.${c.channel}`)}` : ""}
+                  </span>
+                  <StatusBadge status={c.decision === "APPROVED" ? "APPROVED" : c.decision === "REJECTED" ? "REJECTED" : c.decision === "PENDING" ? "PENDING_APPROVAL" : "CLOSED"} label={t(`clientDecisions.${c.decision}`)} />
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">{t("clientPortalHint")}</p>
+          </Section>
+        )}
+
         {v.can.edit && (
           <Section title={t("pricing")}>
             <ActionForm action={updateVariationAction.bind(null, slug, v.id)} className="grid gap-3 sm:grid-cols-3" showSuccess data-testid="variation-draft-form">
@@ -87,7 +105,7 @@ export default async function VariationPage({ params }: { params: Promise<{ comp
           </Section>
         )}
 
-        {(v.can.approveInternal || v.can.selfApprovalBlocked || v.can.returnToDraft || v.can.clientDecision || v.can.execute || v.can.readyToInvoice) && (
+        {(v.can.approveInternal || v.can.selfApprovalBlocked || v.can.returnToDraft || v.can.clientDecision || v.can.publishToClient || v.can.execute || v.can.readyToInvoice) && (
           <Section title={t("actions")}>
             <div className="space-y-4">
               {v.can.selfApprovalBlocked && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{t("selfApprovalBlocked")}</p>}
@@ -124,6 +142,9 @@ export default async function VariationPage({ params }: { params: Promise<{ comp
                     </button>
                   </div>
                 </ActionForm>
+              )}
+              {v.can.publishToClient && (
+                <ActionButton action={publishToClientAction.bind(null, slug, v.id)}>{t("publishToClient")}</ActionButton>
               )}
               {v.can.execute && (
                 <ActionButton action={variationStepAction.bind(null, slug, v.id, "execute")} variant="default">

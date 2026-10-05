@@ -37,6 +37,11 @@ import { commercialDashboardService, customerService, opportunityService } from 
 import { quoteService } from "@/modules/commercial/quote.service";
 import { contractService, forecastService, variationService } from "@/modules/commercial/project.service";
 import { invoiceService } from "@/modules/commercial/invoice.service";
+import { clientApprovalService } from "@/modules/commercial/client-approval.service";
+import { hseActionService, hseObservationService, hseOverviewService, hsePhotoService, incidentService } from "@/modules/hse/hse.service";
+import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
+import { scheduleSummaryService } from "@/modules/takt/summary.service";
+import { portalService } from "@/modules/portal/service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -93,6 +98,8 @@ interface World {
   b5: { liftPlan: string; drum: string; batch: string };
   v6: { customer: string; contact: string; opportunity: string; quote: string; quoteLine: string; contract: string; variation: string; candidate: string; exportBatch: string };
   b6: { customer: string; variation: string };
+  v7: { observation: string; incident: string; action: string; photo: string; risk: string; riskItem: string; permit: string; inspection: string; approval: string; approvalHash: string; variation: string };
+  b7: { incident: string; clientApprover: RequestContext };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
@@ -216,6 +223,24 @@ beforeAll(async () => {
   const candidate = (await invoiceService.list(actx, { projectId: project.id })).find((c) => c.sourceType === "MILESTONE")!;
   const invoiceExport = await invoiceService.export(actx, { kind: "CUSTOMER", projectId: project.id });
 
+  // ── V7 data in company A ──
+  const observation = await hseObservationService.create(actx, { projectId: project.id, siteId: site.id, kind: "NEAR_MISS", title: "A secret near miss", occurredAt: "2026-10-01T08:00", liftPlanId: liftPlan.id });
+  const photo = await hsePhotoService.add(actx, { recordType: "OBSERVATION", recordId: observation.id }, { fileName: "a.jpg", bytes: new Uint8Array([0xff, 0xd8, 0xff, 1, 2, 3]) });
+  const incident = await incidentService.report(actx, { projectId: project.id, siteId: site.id, type: "INJURY", severity: "SERIOUS", title: "A secret incident", occurredAt: "2026-10-01T09:00" });
+  await incidentService.triage(actx, incident.id, { type: "INJURY", severity: "SERIOUS" });
+  await incidentService.addPerson(actx, incident.id, { personName: "A injured person", employeeId: employee.id });
+  const action = await hseActionService.create(actx, { sourceType: "INCIDENT", sourceId: incident.id, title: "A secret action", assigneeId: member.user.id });
+  await toolboxTalkService.create(actx, { projectId: project.id, heldOn: "2026-10-01", topic: "A topic", attendeeCount: "5" });
+  const risk = await riskAssessmentService.create(actx, { projectId: project.id, title: "A secret risk" });
+  const riskItem = await riskAssessmentService.addItem(actx, risk.id, { hazard: "A hazard", likelihood: "3", consequence: "4" });
+  const permit = await workPermitService.request(actx, { projectId: project.id, type: "HOT_WORK", description: "A welding", validFrom: "2026-11-02T07:00", validTo: "2026-11-02T15:00" });
+  const inspection = await hseInspectionService.create(actx, { projectId: project.id, kind: "MVR", inspectedOn: "2026-10-01", correctCount: "45", incorrectCount: "5" });
+  const portalVariation = await variationService.create(actx, { projectId: project.id, title: "A client variation" });
+  await variationService.updateDraft(actx, portalVariation.id, { title: "A client variation", laborCost: "1000", markupPct: "10" });
+  await variationService.submitForReview(actx, portalVariation.id);
+  await variationService.approveInternal(await createMember(a, "PROJECT_DIRECTOR"), portalVariation.id, { decision: "APPROVE" });
+  const approval = await db.variationClientApproval.findFirstOrThrow({ where: { variationId: portalVariation.id } });
+
   // ── V3 data in company B (for cross-references) ──
   const bBuilding = await taktStructureService.createBuilding(b.ownerCtx, { siteId: bSite.id, name: "B building" });
   const bArea = await taktStructureService.createArea(b.ownerCtx, { buildingId: bBuilding.id, code: "B1", name: "B area" });
@@ -228,6 +253,9 @@ beforeAll(async () => {
   const bBatch = await materialBatchService.create(b.ownerCtx, { siteId: bSite.id, code: "B-MB1", material: "B material", quantity: "1", unit: "pcs" });
   const bCustomer = await customerService.create(b.ownerCtx, { name: "B customer" });
   const bVariation = await variationService.create(b.ownerCtx, { projectId: bProject.id, title: "B variation" });
+  const bIncident = await incidentService.report(b.ownerCtx, { projectId: bProject.id, type: "PROPERTY_DAMAGE", severity: "FIRST_AID", title: "B incident", occurredAt: "2026-10-01T08:00" });
+  await incidentService.triage(b.ownerCtx, bIncident.id, { type: "PROPERTY_DAMAGE", severity: "FIRST_AID" });
+  const bClientApprover = await createMember(b, "CLIENT_APPROVER", [{ projectId: bProject.id }]);
 
   w = {
     a,
@@ -283,6 +311,20 @@ beforeAll(async () => {
     b5: { liftPlan: bLift.id, drum: bDrum.id, batch: bBatch.id },
     v6: { customer: customer.id, contact: contact.id, opportunity: opportunity.id, quote: quote.id, quoteLine: quoteLine.id, contract: contract.id, variation: variation.id, candidate: candidate.id, exportBatch: invoiceExport.id },
     b6: { customer: bCustomer.id, variation: bVariation.id },
+    v7: {
+      observation: observation.id,
+      incident: incident.id,
+      action: action.id,
+      photo: photo.id,
+      risk: risk.id,
+      riskItem: riskItem.id,
+      permit: permit.id,
+      inspection: inspection.id,
+      approval: approval.id,
+      approvalHash: approval.contentSha256,
+      variation: portalVariation.id,
+    },
+    b7: { incident: bIncident.id, clientApprover: bClientApprover },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
@@ -836,6 +878,89 @@ const cases: Record<string, Case> = {
   "invoice.download": () => expectNotFound(invoiceService.download(w.bCtx, w.v6.exportBatch)),
   "invoice.markInvoiced": () => expectNotFound(invoiceService.markInvoiced(w.bCtx, { ids: [w.v6.candidate], invoiceReference: "X" })),
 
+  // ── V7 HSE and portals ──────────────────────────────────────────
+  "document.setSharing": () => expectNotFound(documentService.setSharing(w.bCtx, w.ids.document, { sharedWithClient: "on" })),
+  "variation.publishToClient": () => expectNotFound(variationService.publishToClient(w.bCtx, w.v7.variation)),
+  "hseOverview.projects": async () => {
+    expect((await hseOverviewService.projects(w.bCtx)).map((p) => p.id)).not.toContain(w.ids.project);
+  },
+  "hseOverview.register": () => expectNotFound(hseOverviewService.register(w.bCtx, w.ids.project)),
+  "hseOverview.metrics": () => expectNotFound(hseOverviewService.metrics(w.bCtx, w.ids.project)),
+  "hseOverview.portalFigures": async () => {
+    await expectNotFound(hseOverviewService.portalFigures(w.bCtx, w.ids.project));
+    await expectNotFound(hseOverviewService.portalFigures(w.b7.clientApprover, w.ids.project));
+  },
+  "hseOverview.urgent": async () => {
+    expect((await hseOverviewService.urgent(w.bCtx)).map((i) => i.id)).not.toContain(w.v7.incident);
+  },
+  "hseObservation.create": async () => {
+    await expectNotFound(hseObservationService.create(w.bCtx, { projectId: w.ids.project, kind: "SAFETY_OBSERVATION", title: "x", occurredAt: "2026-10-01T08:00" }));
+    await expectRejected(hseObservationService.create(w.bCtx, { projectId: w.bProject, siteId: w.ids.site, kind: "SAFETY_OBSERVATION", title: "x", occurredAt: "2026-10-01T08:00" }));
+    await expectRejected(hseObservationService.create(w.bCtx, { projectId: w.bProject, liftPlanId: w.ids.liftPlan, kind: "SAFETY_OBSERVATION", title: "x", occurredAt: "2026-10-01T08:00" }));
+  },
+  "hseObservation.get": () => expectNotFound(hseObservationService.get(w.bCtx, w.v7.observation)),
+  "hseObservation.triage": () => expectNotFound(hseObservationService.triage(w.bCtx, w.v7.observation, { category: "PPE", severity: "HIGH" })),
+  "hseObservation.close": () => expectNotFound(hseObservationService.close(w.bCtx, w.v7.observation, {})),
+  "incident.report": async () => {
+    await expectNotFound(incidentService.report(w.bCtx, { projectId: w.ids.project, type: "INJURY", severity: "FIRST_AID", title: "x", occurredAt: "2026-10-01T08:00" }));
+    await expectRejected(incidentService.report(w.bCtx, { projectId: w.bProject, siteId: w.ids.site, type: "INJURY", severity: "FIRST_AID", title: "x", occurredAt: "2026-10-01T08:00" }));
+  },
+  "incident.get": () => expectNotFound(incidentService.get(w.bCtx, w.v7.incident)),
+  "incident.triage": () => expectNotFound(incidentService.triage(w.bCtx, w.v7.incident, { type: "INJURY", severity: "FIRST_AID" })),
+  "incident.startInvestigation": () => expectNotFound(incidentService.startInvestigation(w.bCtx, w.v7.incident)),
+  "incident.recordInvestigation": () => expectNotFound(incidentService.recordInvestigation(w.bCtx, w.v7.incident, { rootCause: "x" })),
+  "incident.close": () => expectNotFound(incidentService.close(w.bCtx, w.v7.incident, {})),
+  "incident.addPerson": async () => {
+    await expectNotFound(incidentService.addPerson(w.bCtx, w.v7.incident, { personName: "x" }));
+    await expectRejected(incidentService.addPerson(w.bCtx, w.b7.incident, { personName: "x", employeeId: w.ids.employee }));
+  },
+  "hseAction.create": async () => {
+    await expectRejected(hseActionService.create(w.bCtx, { sourceType: "INCIDENT", sourceId: w.v7.incident, title: "x" }));
+    await expectRejected(hseActionService.create(w.bCtx, { sourceType: "INCIDENT", sourceId: w.b7.incident, title: "x", assigneeId: w.ids.memberUserId }));
+  },
+  "hseAction.markDone": () => expectNotFound(hseActionService.markDone(w.bCtx, w.v7.action, {})),
+  "hseAction.reopen": () => expectNotFound(hseActionService.reopen(w.bCtx, w.v7.action, {})),
+  "hseAction.verify": () => expectNotFound(hseActionService.verify(w.bCtx, w.v7.action)),
+  "hsePhoto.add": () => expectNotFound(hsePhotoService.add(w.bCtx, { recordType: "OBSERVATION", recordId: w.v7.observation }, { fileName: "x.jpg", bytes: new Uint8Array([1]) })),
+  "hsePhoto.download": () => expectNotFound(hsePhotoService.download(w.bCtx, w.v7.photo)),
+  "toolboxTalk.create": async () => {
+    await expectNotFound(toolboxTalkService.create(w.bCtx, { projectId: w.ids.project, heldOn: "2026-10-01", topic: "x", attendeeCount: "1" }));
+    await expectRejected(toolboxTalkService.create(w.bCtx, { projectId: w.bProject, siteId: w.ids.site, heldOn: "2026-10-01", topic: "x", attendeeCount: "1" }));
+  },
+  "riskAssessment.create": async () => {
+    await expectNotFound(riskAssessmentService.create(w.bCtx, { projectId: w.ids.project, title: "x" }));
+    await expectRejected(riskAssessmentService.create(w.bCtx, { projectId: w.bProject, title: "x", liftPlanId: w.ids.liftPlan }));
+  },
+  "riskAssessment.get": () => expectNotFound(riskAssessmentService.get(w.bCtx, w.v7.risk)),
+  "riskAssessment.update": () => expectNotFound(riskAssessmentService.update(w.bCtx, w.v7.risk, { title: "x" })),
+  "riskAssessment.addItem": () => expectNotFound(riskAssessmentService.addItem(w.bCtx, w.v7.risk, { hazard: "x", likelihood: "1", consequence: "1" })),
+  "riskAssessment.removeItem": () => expectNotFound(riskAssessmentService.removeItem(w.bCtx, w.v7.riskItem)),
+  "riskAssessment.approve": () => expectNotFound(riskAssessmentService.approve(w.bCtx, w.v7.risk)),
+  "riskAssessment.archive": () => expectNotFound(riskAssessmentService.archive(w.bCtx, w.v7.risk)),
+  "workPermit.request": async () => {
+    await expectNotFound(workPermitService.request(w.bCtx, { projectId: w.ids.project, type: "OTHER", description: "x", validFrom: "2026-11-02T07:00", validTo: "2026-11-02T08:00" }));
+    await expectRejected(workPermitService.request(w.bCtx, { projectId: w.bProject, liftPlanId: w.ids.liftPlan, type: "LIFTING", description: "x", validFrom: "2026-11-02T07:00", validTo: "2026-11-02T08:00" }));
+  },
+  "workPermit.get": () => expectNotFound(workPermitService.get(w.bCtx, w.v7.permit)),
+  "workPermit.decide": () => expectNotFound(workPermitService.decide(w.bCtx, w.v7.permit, { decision: "APPROVE" })),
+  "workPermit.close": () => expectNotFound(workPermitService.close(w.bCtx, w.v7.permit)),
+  "hseInspection.create": () => expectNotFound(hseInspectionService.create(w.bCtx, { projectId: w.ids.project, kind: "MVR", inspectedOn: "2026-10-01", correctCount: "1", incorrectCount: "0" })),
+  "hseInspection.get": () => expectNotFound(hseInspectionService.get(w.bCtx, w.v7.inspection)),
+  "clientApproval.list": async () => {
+    await expectNotFound(clientApprovalService.list(w.bCtx, w.ids.project));
+    await expectNotFound(clientApprovalService.list(w.b7.clientApprover, w.ids.project));
+  },
+  "clientApproval.get": () => expectNotFound(clientApprovalService.get(w.b7.clientApprover, w.v7.approval)),
+  "clientApproval.decide": () => expectNotFound(clientApprovalService.decide(w.b7.clientApprover, w.v7.approval, { decision: "APPROVED", contentSha256: w.v7.approvalHash })),
+  "scheduleSummary.project": async () => {
+    await expectNotFound(scheduleSummaryService.project(w.bCtx, w.ids.project));
+    await expectNotFound(scheduleSummaryService.project(w.b7.clientApprover, w.ids.project));
+  },
+  "portal.projects": async () => {
+    expect((await portalService.projects(w.b7.clientApprover)).map((p) => p.id)).toEqual([w.bProject]);
+  },
+  "portal.project": () => expectNotFound(portalService.project(w.b7.clientApprover, w.ids.project)),
+
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -898,5 +1023,13 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.contract.findUniqueOrThrow({ where: { id: w.v6.contract } })).status).toBe("ACTIVE");
     expect((await db.variation.findUniqueOrThrow({ where: { id: w.v6.variation } })).status).toBe("DRAFT");
     expect((await db.invoiceCandidate.findUniqueOrThrow({ where: { id: w.v6.candidate } })).status).toBe("EXPORTED");
+    expect((await db.hseObservation.findUniqueOrThrow({ where: { id: w.v7.observation } })).status).toBe("OPEN");
+    expect((await db.incident.findUniqueOrThrow({ where: { id: w.v7.incident } })).status).toBe("TRIAGED");
+    expect((await db.hseAction.findUniqueOrThrow({ where: { id: w.v7.action } })).status).toBe("OPEN");
+    expect((await db.riskAssessment.findUniqueOrThrow({ where: { id: w.v7.risk } })).status).toBe("DRAFT");
+    expect(await db.riskAssessmentItem.count({ where: { riskAssessmentId: w.v7.risk } })).toBe(1);
+    expect((await db.workPermit.findUniqueOrThrow({ where: { id: w.v7.permit } })).status).toBe("REQUESTED");
+    expect((await db.variationClientApproval.findUniqueOrThrow({ where: { id: w.v7.approval } })).decision).toBe("PENDING");
+    expect((await db.document.findUniqueOrThrow({ where: { id: w.ids.document } })).sharedWithClient).toBe(false);
   });
 });

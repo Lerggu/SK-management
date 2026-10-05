@@ -176,3 +176,13 @@ export const etcSchema = z.object({
 });
 export type EtcInput = z.input<typeof etcSchema>;
 
+
+// V7: client decision in the portal, bound to the snapshot hash the client saw.
+export const portalDecisionSchema = z
+  .object({
+    decision: z.enum(["APPROVED", "REJECTED"]),
+    contentSha256: z.string().regex(/^[0-9a-f]{64}$/, "validation.invalidOption"),
+    note: optionalText(1000),
+  })
+  .refine((v) => v.decision === "APPROVED" || !!v.note, { path: ["note"], message: "validation.required" });
+export type PortalDecisionInput = z.input<typeof portalDecisionSchema>;

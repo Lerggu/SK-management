@@ -32,7 +32,7 @@ module.exports = {
       comment: "Domain modules must not depend on vendor SDKs or the web framework.",
       severity: "error",
       from: { path: "^src/modules/" },
-      to: { path: "node_modules/(@aws-sdk|next-auth|@auth|next|openai|@anthropic-ai|@azure|@microsoft|react|react-dom)/" },
+      to: { path: "node_modules/(@aws-sdk|next-auth|@auth|next|nodemailer|openai|@anthropic-ai|@azure|@microsoft|react|react-dom)/" },
     },
     {
       name: "modules-no-app",
