@@ -18,6 +18,10 @@ import { bookingService } from "./logistics/booking.service";
 import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "./logistics/logistics.service";
 import { liftingAccessoryService, liftPlanService } from "./lifting/lift.service";
 import { cableDrumService, materialBatchService, materialLabelService, materialTraceService, scanService } from "./lifting/material.service";
+import { commercialDashboardService, customerService, opportunityService } from "./commercial/crm.service";
+import { quoteService } from "./commercial/quote.service";
+import { contractService, forecastService, variationService } from "./commercial/project.service";
+import { invoiceService } from "./commercial/invoice.service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -62,4 +66,13 @@ export const SERVICE_REGISTRY = {
   materialTrace: materialTraceService,
   materialLabel: materialLabelService,
   scan: scanService,
+  // V6
+  customer: customerService,
+  opportunity: opportunityService,
+  commercialDashboard: commercialDashboardService,
+  quote: quoteService,
+  contract: contractService,
+  variation: variationService,
+  forecast: forecastService,
+  invoice: invoiceService,
 } as const;

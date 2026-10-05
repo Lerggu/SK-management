@@ -1,5 +1,5 @@
 /**
- * Capability permission catalogue (V1–V5). Code checks these keys — never role
+ * Capability permission catalogue (V1–V6). Code checks these keys — never role
  * names. Roles are company-scoped records instantiated from ROLE_TEMPLATES.
  *
  * Changing this file changes authorization. Any change must ship with a
@@ -60,6 +60,14 @@ export const PERMISSIONS = {
   "lift.plan.approve": { category: "lifting", sensitive: false, description: "Approve or reject lift plans (person responsible for lifting)" },
   "material.view": { category: "material", sensitive: false, description: "View material batches, cable drums and QR labels" },
   "material.manage": { category: "material", sensitive: false, description: "Register and move material batches, cable drums and record cable pulls" },
+
+  // V6 — commercial (prices, margins and billing are sensitive)
+  "crm.view": { category: "commercial", sensitive: false, description: "View customers, contacts and the sales pipeline" },
+  "crm.manage": { category: "commercial", sensitive: false, description: "Manage customers, contacts and opportunities" },
+  "commercial.view": { category: "commercial", sensitive: true, description: "View quotes, contracts, variations and project forecasts" },
+  "commercial.manage": { category: "commercial", sensitive: true, description: "Prepare quotes, contracts, variations and forecasts" },
+  "commercial.approve": { category: "commercial", sensitive: true, description: "Approve quotes and variations" },
+  "invoice.manage": { category: "commercial", sensitive: true, description: "Generate, export and mark invoice candidates" },
 } as const satisfies Record<string, { category: string; sensitive: boolean; description: string }>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -89,6 +97,8 @@ export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "equipment.rates.view",
   "equipment.rates.manage",
   "timesheet.export",
+  "crm.view",
+  "crm.manage",
 ]);
 
 export type RoleTemplateKey =
@@ -172,6 +182,12 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "lift.plan.approve",
       "material.view",
       "material.manage",
+      "crm.view",
+      "crm.manage",
+      "commercial.view",
+      "commercial.manage",
+      "commercial.approve",
+      "invoice.manage",
     ),
   },
   {
@@ -208,6 +224,11 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "booking.manage",
       "lift.request",
       "material.view",
+      "crm.view",
+      "crm.manage",
+      "commercial.view",
+      "commercial.manage",
+      "invoice.manage",
     ),
   },
   {

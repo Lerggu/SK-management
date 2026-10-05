@@ -4,13 +4,14 @@ A multi-company construction and industrial project control platform for SK Infr
 - **V1 — Foundation:** companies, users, roles and permissions, projects and sites, workforce, equipment, documents, the audit trail and a responsive mobile/desktop UI ([report](docs/V1_REPORT.md)).
 - **V2 — Site execution & project finance foundation:** time tracking with weekly approval, payroll CSV export, the site diary with signing, budget versions, project costs and budget vs actual ([plan](docs/V2_PLAN.md), [report](docs/V2_REPORT.md)).
 - **V3 — Takt & look-ahead:** takt structure (buildings, takt areas, work packages), versioned takt plans with a locked baseline, the takt board, dependencies and constraints with readiness states, progress, MS Project XML / P6 XER import and the 2/6/12-week resource look-ahead ([plan](docs/V3_PLAN.md), [report](docs/V3_REPORT.md)).
+- **V6 — Commercial:** CRM and sales pipeline, quotes with versions and Project Director approval, contracts and milestones, variations (§21), invoice candidates from approved data with immutable CSV/JSON export, internal group invoicing at the owner's billing rate, and forecast/EAC ([plan](docs/V6_PLAN.md), [report](docs/V6_REPORT.md)).
 - **V5 — Lifting & material flow:** lift plans with checks and versioning, approved by the person responsible for lifting (new Lifting Supervisor role), lifting accessory register, rigging crew via bookings, material batches, cable drums with pulls in metres, QR label PDFs and mobile scanning ([plan](docs/V5_PLAN.md), [report](docs/V5_REPORT.md)).
 - **V4 — Logistics:** resource bookings with conflict detection (including cross-company bookings within the group), logistics requests with approval, gates, unloading and storage, deliveries in 30-minute gate slots with a mobile gate view, and takt linkage ([plan](docs/V4_PLAN.md), [report](docs/V4_REPORT.md)).
 
 - Build specification: [`docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md`](docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md)
 - Functional specification (Finnish): [`docs/specs/SK_management_master.md`](docs/specs/SK_management_master.md)
 - Architecture decisions: [`docs/adr/`](docs/adr)
-- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md), [`docs/V4_REPORT.md`](docs/V4_REPORT.md), [`docs/V5_REPORT.md`](docs/V5_REPORT.md)
+- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md), [`docs/V4_REPORT.md`](docs/V4_REPORT.md), [`docs/V5_REPORT.md`](docs/V5_REPORT.md), [`docs/V6_REPORT.md`](docs/V6_REPORT.md)
 
 ## Stack
 
@@ -58,6 +59,20 @@ Try:
 - **Materiaalit** and **Skannaa QR** as `supervisor@` on a phone. Type a code such as `KK-0001`.
 - **QR-tarrat (PDF)** to print labels.
 
+V6 demo data (SK Infra Demo):
+- **Customers:** three customers with contacts.
+- **Opportunities:** a pipeline of three.
+- **Quotes:** a won quote that became the NDC-001 contract, with milestones, and a phase-2 quote awaiting approval.
+- **Variations:** three, at different stages.
+- **Forecast:** estimates to complete.
+- **Billing:** generated invoice candidates.
+
+Try:
+- **Myynti** as `pm@skinfra.example.com`.
+- Approve the phase-2 quote as `pd@skinfra.example.com` (Project Director).
+- **Sopimus ja ennuste** on project NDC-001.
+- **Laskutus** to export a CSV.
+
 All seed data is fictional. Never put real personal data in seed files.
 
 ### Microsoft Entra ID
@@ -100,12 +115,14 @@ src/app/            UI routes, server actions, /api/v1 route handlers
   c/[companySlug]/  dashboard, projects (+finance, +takt structure), time (+approvals, export), diary, takt (+board, activities,
                     compare, import, lookahead), logistics (+gate, requests, deliveries, bookings, setup),
                     lifting (+plans, accessories), materials (+drums, batches, labels PDF), scan,
+                    sales (+customers, opportunities, quotes), billing (+exports), projects/[id]/commercial,
                     workforce, equipment, documents, settings (+calendar)
 src/modules/        domain modules: identity, companies, projects, workforce, equipment, documents,
                     timesheets, diary, finance (finance/calculations.ts = all cost formulas),
                     takt (calendar.ts, engine.ts = scheduling rules; import/ = MSPDI and XER parsers),
                     logistics (rules.ts = slots, workflows, booking conflicts),
-                    lifting (rules.ts = lift plan checks, material flow, cable pulls)
+                    lifting (rules.ts = lift plan checks, material flow, cable pulls),
+                    commercial (rules.ts = quote/variation pricing, forecast/EAC, CSV export)
                     (schemas.ts = Zod validation, repo.ts = company-scoped repository, service.ts)
 src/platform/       auth, authz, audit, db, storage, errors, config, i18n, ratelimit, labels (QR label PDF), ai (interface), integrations (interfaces)
 src/ui/             app shell, responsive navigation, shadcn/ui components

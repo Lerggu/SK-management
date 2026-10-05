@@ -33,6 +33,10 @@ import { bookingService } from "@/modules/logistics/booking.service";
 import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { liftingAccessoryService, liftPlanService } from "@/modules/lifting/lift.service";
 import { cableDrumService, materialBatchService, materialLabelService, materialTraceService, scanService } from "@/modules/lifting/material.service";
+import { commercialDashboardService, customerService, opportunityService } from "@/modules/commercial/crm.service";
+import { quoteService } from "@/modules/commercial/quote.service";
+import { contractService, forecastService, variationService } from "@/modules/commercial/project.service";
+import { invoiceService } from "@/modules/commercial/invoice.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -87,6 +91,8 @@ interface World {
     drum: string;
   };
   b5: { liftPlan: string; drum: string; batch: string };
+  v6: { customer: string; contact: string; opportunity: string; quote: string; quoteLine: string; contract: string; variation: string; candidate: string; exportBatch: string };
+  b6: { customer: string; variation: string };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
@@ -196,6 +202,20 @@ beforeAll(async () => {
   const drum = await cableDrumService.create(actx, { siteId: site.id, code: "A-CD1", cableType: "A cable", originalLengthM: "500", locationId: storage.id });
   await cableDrumService.pull(actx, drum.id, { lengthM: "20", activityId: activity.id, pulledOn: "2026-11-03" });
 
+  // ── V6 data in company A ──
+  const customer = await customerService.create(actx, { name: "A secret customer Oy", businessId: "1234567-8" });
+  const contact = await customerService.addContact(actx, customer.id, { name: "A contact" });
+  const opportunity = await opportunityService.create(actx, { customerId: customer.id, title: "A secret deal", stage: "TENDER", estimatedValue: "500000", probabilityPct: "40" });
+  const quote = await quoteService.create(actx, { customerId: customer.id, opportunityId: opportunity.id, projectId: project.id, title: "A secret quote" });
+  const quoteLine = await quoteService.addLine(actx, quote.id, { category: "LABOR", description: "A work", quantity: "10", unit: "h", unitCost: "50" });
+  const contract = await contractService.create(actx, { projectId: project.id, customerId: customer.id, contractNumber: "A-SOP-1", title: "A contract", value: "100000" });
+  await contractService.addMilestone(actx, contract.id, { title: "A milestone", amount: "25000", dueDate: "2026-10-01" });
+  const variation = await variationService.create(actx, { projectId: project.id, contractId: contract.id, title: "A secret variation" });
+  await forecastService.setEtc(actx, project.id, { category: "LABOR", etcAmount: "1000" });
+  await invoiceService.generate(actx, { projectId: project.id, to: "2026-10-31" });
+  const candidate = (await invoiceService.list(actx, { projectId: project.id })).find((c) => c.sourceType === "MILESTONE")!;
+  const invoiceExport = await invoiceService.export(actx, { kind: "CUSTOMER", projectId: project.id });
+
   // ── V3 data in company B (for cross-references) ──
   const bBuilding = await taktStructureService.createBuilding(b.ownerCtx, { siteId: bSite.id, name: "B building" });
   const bArea = await taktStructureService.createArea(b.ownerCtx, { buildingId: bBuilding.id, code: "B1", name: "B area" });
@@ -206,6 +226,8 @@ beforeAll(async () => {
   const bLift = await liftPlanService.create(b.ownerCtx, { siteId: bSite.id, title: "B lift", plannedStart: "2026-11-03T08:00", plannedEnd: "2026-11-03T09:00" });
   const bDrum = await cableDrumService.create(b.ownerCtx, { siteId: bSite.id, code: "B-CD1", cableType: "B cable", originalLengthM: "100" });
   const bBatch = await materialBatchService.create(b.ownerCtx, { siteId: bSite.id, code: "B-MB1", material: "B material", quantity: "1", unit: "pcs" });
+  const bCustomer = await customerService.create(b.ownerCtx, { name: "B customer" });
+  const bVariation = await variationService.create(b.ownerCtx, { projectId: bProject.id, title: "B variation" });
 
   w = {
     a,
@@ -259,6 +281,8 @@ beforeAll(async () => {
       drum: drum.id,
     },
     b5: { liftPlan: bLift.id, drum: bDrum.id, batch: bBatch.id },
+    v6: { customer: customer.id, contact: contact.id, opportunity: opportunity.id, quote: quote.id, quoteLine: quoteLine.id, contract: contract.id, variation: variation.id, candidate: candidate.id, exportBatch: invoiceExport.id },
+    b6: { customer: bCustomer.id, variation: bVariation.id },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
@@ -724,6 +748,94 @@ const cases: Record<string, Case> = {
     await expectNotFound(scanService.resolve(w.bCtx, { code: "A-CD1" }));
   },
 
+  // ── V6 commercial ───────────────────────────────────────────────
+  "customer.list": async () => {
+    expect((await customerService.list(w.bCtx, { includeArchived: true })).map((c) => c.id)).not.toContain(w.v6.customer);
+  },
+  "customer.get": () => expectNotFound(customerService.get(w.bCtx, w.v6.customer)),
+  "customer.create": async () => {
+    // Names are unique per company only.
+    const own = await customerService.create(w.bCtx, { name: "A secret customer Oy" });
+    expect(own.companyId).toBe(w.b.companyId);
+  },
+  "customer.update": () => expectNotFound(customerService.update(w.bCtx, w.v6.customer, { name: "x" })),
+  "customer.archive": () => expectNotFound(customerService.archive(w.bCtx, w.v6.customer)),
+  "customer.addContact": () => expectNotFound(customerService.addContact(w.bCtx, w.v6.customer, { name: "x" })),
+  "customer.archiveContact": () => expectNotFound(customerService.archiveContact(w.bCtx, w.v6.contact)),
+  "opportunity.list": async () => {
+    expect((await opportunityService.list(w.bCtx)).rows.map((o) => o.id)).not.toContain(w.v6.opportunity);
+  },
+  "opportunity.get": () => expectNotFound(opportunityService.get(w.bCtx, w.v6.opportunity)),
+  "opportunity.create": () => expectRejected(opportunityService.create(w.bCtx, { customerId: w.v6.customer, title: "x" })),
+  "opportunity.update": () => expectNotFound(opportunityService.update(w.bCtx, w.v6.opportunity, { customerId: w.b6.customer, title: "x" })),
+  "commercialDashboard.summary": async () => {
+    const s = await commercialDashboardService.summary(w.bCtx);
+    expect(s.openOpportunities).toBe(0);
+    expect(s.uninvoicedVariations?.count ?? 0).toBe(0);
+  },
+  "quote.list": async () => {
+    expect((await quoteService.list(w.bCtx)).map((q) => q.id)).not.toContain(w.v6.quote);
+  },
+  "quote.get": () => expectNotFound(quoteService.get(w.bCtx, w.v6.quote)),
+  "quote.create": async () => {
+    await expectRejected(quoteService.create(w.bCtx, { customerId: w.v6.customer, title: "x" }));
+    await expectRejected(quoteService.create(w.bCtx, { customerId: w.b6.customer, projectId: w.ids.project, title: "x" }));
+    await expectRejected(quoteService.create(w.bCtx, { customerId: w.b6.customer, opportunityId: w.v6.opportunity, title: "x" }));
+  },
+  "quote.updateDraft": () => expectNotFound(quoteService.updateDraft(w.bCtx, w.v6.quote, { marginPct: "50" })),
+  "quote.addLine": () => expectNotFound(quoteService.addLine(w.bCtx, w.v6.quote, { category: "OTHER", description: "x", quantity: "1", unit: "kpl", unitCost: "1" })),
+  "quote.removeLine": () => expectNotFound(quoteService.removeLine(w.bCtx, w.v6.quote, w.v6.quoteLine)),
+  "quote.submit": () => expectNotFound(quoteService.submit(w.bCtx, w.v6.quote)),
+  "quote.returnToDraft": () => expectNotFound(quoteService.returnToDraft(w.bCtx, w.v6.quote)),
+  "quote.decide": () => expectNotFound(quoteService.decide(w.bCtx, w.v6.quote, { decision: "APPROVE" })),
+  "quote.markSent": () => expectNotFound(quoteService.markSent(w.bCtx, w.v6.quote)),
+  "quote.recordOutcome": () => expectNotFound(quoteService.recordOutcome(w.bCtx, w.v6.quote, { outcome: "LOST", note: "x" })),
+  "quote.revise": () => expectNotFound(quoteService.revise(w.bCtx, w.v6.quote, { reason: "x" })),
+  "contract.list": () => expectNotFound(contractService.list(w.bCtx, w.ids.project)),
+  "contract.create": async () => {
+    await expectNotFound(contractService.create(w.bCtx, { projectId: w.ids.project, customerId: w.b6.customer, contractNumber: "X", title: "x", value: "1" }));
+    await expectRejected(contractService.create(w.bCtx, { projectId: w.bProject, customerId: w.v6.customer, contractNumber: "X", title: "x", value: "1" }));
+  },
+  "contract.update": () => expectNotFound(contractService.update(w.bCtx, w.v6.contract, { title: "x", closed: "on" })),
+  "contract.addMilestone": () => expectNotFound(contractService.addMilestone(w.bCtx, w.v6.contract, { title: "x", amount: "1", dueDate: "2026-10-01" })),
+  "variation.list": () => expectNotFound(variationService.list(w.bCtx, w.ids.project)),
+  "variation.get": () => expectNotFound(variationService.get(w.bCtx, w.v6.variation)),
+  "variation.create": async () => {
+    await expectNotFound(variationService.create(w.bCtx, { projectId: w.ids.project, title: "x" }));
+    await expectRejected(variationService.create(w.bCtx, { projectId: w.bProject, contractId: w.v6.contract, title: "x" }));
+  },
+  "variation.updateDraft": async () => {
+    await expectNotFound(variationService.updateDraft(w.bCtx, w.v6.variation, { title: "x", laborCost: "1" }));
+    await expectRejected(variationService.updateDraft(w.bCtx, w.b6.variation, { title: "x", laborCost: "1", evidenceDocumentId: w.ids.document }));
+  },
+  "variation.submitForReview": () => expectNotFound(variationService.submitForReview(w.bCtx, w.v6.variation)),
+  "variation.returnToDraft": () => expectNotFound(variationService.returnToDraft(w.bCtx, w.v6.variation)),
+  "variation.approveInternal": () => expectNotFound(variationService.approveInternal(w.bCtx, w.v6.variation, { decision: "APPROVE" })),
+  "variation.recordClientDecision": () => expectNotFound(variationService.recordClientDecision(w.bCtx, w.v6.variation, { decision: "REJECTED" })),
+  "variation.markExecuted": () => expectNotFound(variationService.markExecuted(w.bCtx, w.v6.variation)),
+  "variation.markReadyToInvoice": () => expectNotFound(variationService.markReadyToInvoice(w.bCtx, w.v6.variation)),
+  "forecast.get": () => expectNotFound(forecastService.get(w.bCtx, w.ids.project)),
+  "forecast.setEtc": () => expectNotFound(forecastService.setEtc(w.bCtx, w.ids.project, { category: "LABOR", etcAmount: "1" })),
+  "invoice.list": async () => {
+    await expectNotFound(invoiceService.list(w.bCtx, { projectId: w.ids.project }));
+    expect((await invoiceService.list(w.bCtx)).map((c) => c.id)).not.toContain(w.v6.candidate);
+    expect((await invoiceService.list(w.bCtx, { kind: "INTERNAL" })).map((c) => c.id)).not.toContain(w.v6.candidate);
+  },
+  "invoice.generate": () => expectNotFound(invoiceService.generate(w.bCtx, { projectId: w.ids.project, to: "2026-12-31" })),
+  "invoice.generateInternal": async () => {
+    expect((await invoiceService.generateInternal(w.bCtx, { to: "2026-12-31" })).created).toBe(0);
+  },
+  "invoice.incomingInternal": async () => {
+    expect((await invoiceService.incomingInternal(w.bCtx)).map((c) => c.id)).not.toContain(w.v6.candidate);
+  },
+  "invoice.void": () => expectNotFound(invoiceService.void(w.bCtx, w.v6.candidate)),
+  "invoice.export": () => expectNotFound(invoiceService.export(w.bCtx, { kind: "CUSTOMER", projectId: w.ids.project })),
+  "invoice.listExports": async () => {
+    expect((await invoiceService.listExports(w.bCtx)).map((b) => b.id)).not.toContain(w.v6.exportBatch);
+  },
+  "invoice.download": () => expectNotFound(invoiceService.download(w.bCtx, w.v6.exportBatch)),
+  "invoice.markInvoiced": () => expectNotFound(invoiceService.markInvoiced(w.bCtx, { ids: [w.v6.candidate], invoiceReference: "X" })),
+
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -780,5 +892,11 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.materialBatch.findUniqueOrThrow({ where: { id: w.ids.batch } })).status).toBe("RECEIVED");
     expect((await db.cableDrum.findUniqueOrThrow({ where: { id: w.ids.drum } })).remainingM.toString()).toBe("480");
     expect(await db.cablePull.count({ where: { drumId: w.ids.drum } })).toBe(1);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: w.v6.customer } })).archivedAt).toBeNull();
+    expect((await db.quoteVersion.findFirstOrThrow({ where: { quoteId: w.v6.quote } })).status).toBe("DRAFT");
+    expect(await db.quoteLine.count({ where: { id: w.v6.quoteLine } })).toBe(1);
+    expect((await db.contract.findUniqueOrThrow({ where: { id: w.v6.contract } })).status).toBe("ACTIVE");
+    expect((await db.variation.findUniqueOrThrow({ where: { id: w.v6.variation } })).status).toBe("DRAFT");
+    expect((await db.invoiceCandidate.findUniqueOrThrow({ where: { id: w.v6.candidate } })).status).toBe("EXPORTED");
   });
 });

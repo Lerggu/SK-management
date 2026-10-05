@@ -27,6 +27,10 @@ import { taktActivityService } from "@/modules/takt/activity.service";
 import { bookingService } from "@/modules/logistics/booking.service";
 import { liftingAccessoryService, liftPlanService } from "@/modules/lifting/lift.service";
 import { cableDrumService, materialBatchService } from "@/modules/lifting/material.service";
+import { customerService, opportunityService } from "@/modules/commercial/crm.service";
+import { quoteService } from "@/modules/commercial/quote.service";
+import { contractService, forecastService, variationService } from "@/modules/commercial/project.service";
+import { invoiceService } from "@/modules/commercial/invoice.service";
 import { deliveryService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { addDays, isoDateString, weekStart } from "@/modules/timesheets/rules";
 import { todayInDisplayZone } from "@/platform/i18n/config";
@@ -506,8 +510,64 @@ async function main() {
   await materialBatchService.move(supervisorCtx, brackets.id, { to: "AT_WORKFACE", activityId: byKey("KH", "A6").id });
   await materialBatchService.create(supervisorCtx, { siteId: hallA.id, code: "ME-0003", material: "Kaapelimerkit ja nippusiteet", quantity: "4", unit: "laatikko", locationId: cableStore.id });
 
+  // ── V6: commercial (SK Infra Demo) ───────────────────────────────
+  const pdCtx = await ctxFor("pd@skinfra.example.com", "sk-infra-demo");
+  const hyperscale = await customerService.create(pmCtx, { name: "Nordic Hyperscale Demo Oy", businessId: "0000001-9", address: "Esimerkkitie 1", postalCode: "90100", city: "Oulu" });
+  await customerService.addContact(pmCtx, hyperscale.id, { name: "Hanna Hankinta", title: "Hankintapäällikkö", email: "hanna.hankinta@hyperscale.example.com", phone: "+358 40 000 0001" });
+  const verkko = await customerService.create(pmCtx, { name: "Verkko Demo Oy", businessId: "0000002-7", city: "Muhos" });
+  const tuuli = await customerService.create(pmCtx, { name: "Tuulipuisto Demo Oy", businessId: "0000003-5", city: "Raahe" });
+  await opportunityService.create(pmCtx, { customerId: tuuli.id, title: "Tuulipuiston keräilyverkko 33 kV", stage: "RFQ", estimatedValue: "1850000", probabilityPct: "30", expectedCloseDate: inDays(60) });
+  await opportunityService.create(pmCtx, { customerId: verkko.id, title: "Kaapelireitti osa 2", stage: "QUALIFIED", estimatedValue: "620000", probabilityPct: "50", expectedCloseDate: inDays(45) });
+  const phase2 = await opportunityService.create(pmCtx, { customerId: hyperscale.id, title: "Data Hall B sähköasennukset", stage: "TENDER", estimatedValue: "940000", probabilityPct: "60", expectedCloseDate: inDays(30) });
+
+  // Main contract for the data center project: a won quote (PM prepared, PD approved).
+  const mainQuote = await quoteService.create(pmCtx, { customerId: hyperscale.id, projectId: ndc.id, title: "Data Hall A kaapeloinnit ja nostot" });
+  for (const [category, description, quantity, unit, unitCost] of [
+    ["LABOR", "Sähköasennustyö", "6400", "h", "44.00"],
+    ["EQUIPMENT", "Kurottaja ja kaapelirumpuvaunu", "900", "h", "38.00"],
+    ["LIFTING", "Ajoneuvonosturi, nostot", "24", "kpl", "1450.00"],
+    ["MATERIALS", "Kaapelit ja hyllyt", "1", "erä", "310000.00"],
+    ["SUBCONTRACT", "Telineet", "1", "erä", "42000.00"],
+  ] as const) await quoteService.addLine(pmCtx, mainQuote.id, { category, description, quantity, unit, unitCost });
+  await quoteService.updateDraft(pmCtx, mainQuote.id, { overheadPct: "8", riskPct: "4", marginPct: "14", validUntil: inDays(30), scope: "Kaapeloinnit, hyllyt ja nostot Data Hall A:ssa. Ei sisällä muuntajia." });
+  await quoteService.submit(pmCtx, mainQuote.id);
+  await quoteService.decide(pdCtx, mainQuote.id, { decision: "APPROVE", note: "Kate ja riskivaraus OK" });
+  await quoteService.markSent(pmCtx, mainQuote.id);
+  const won = await quoteService.recordOutcome(pmCtx, mainQuote.id, { outcome: "WON", projectId: ndc.id, contractNumber: "SOP-NDC-001", signedDate: isoDateString(addDays(today, -40)) });
+  await contractService.addMilestone(pmCtx, won.contractId!, { title: "Ennakko 15 %", amount: "120000", dueDate: isoDateString(addDays(today, -30)) });
+  await contractService.addMilestone(pmCtx, won.contractId!, { title: "Hyllyasennukset valmiit", amount: "220000", dueDate: inDays(20) });
+
+  // Phase 2 quote awaiting the Project Director's approval.
+  const phase2Quote = await quoteService.create(pmCtx, { customerId: hyperscale.id, opportunityId: phase2.id, title: "Data Hall B sähköasennukset" });
+  await quoteService.addLine(pmCtx, phase2Quote.id, { category: "LABOR", description: "Sähköasennustyö", quantity: "8200", unit: "h", unitCost: "45.00" });
+  await quoteService.addLine(pmCtx, phase2Quote.id, { category: "MATERIALS", description: "Kaapelit ja hyllyt", quantity: "1", unit: "erä", unitCost: "380000.00" });
+  await quoteService.addLine(pmCtx, phase2Quote.id, { category: "LIFTING", description: "Nostot", quantity: "30", unit: "kpl", unitCost: "1450.00" });
+  await quoteService.updateDraft(pmCtx, phase2Quote.id, { overheadPct: "8", riskPct: "5", marginPct: "15", validUntil: inDays(45) });
+  await quoteService.submit(pmCtx, phase2Quote.id);
+
+  // Variations: one approved by the client (uninvoiced), one awaiting internal approval, one ready to invoice.
+  const vo1 = await variationService.create(pmCtx, { projectId: ndc.id, contractId: won.contractId, title: "Lisäkaapelointi linja 6", cause: "Asiakkaan muutospyyntö", clientReference: "Muutospyyntö MP-03" });
+  await variationService.updateDraft(pmCtx, vo1.id, { title: "Lisäkaapelointi linja 6", cause: "Asiakkaan muutospyyntö", clientReference: "Muutospyyntö MP-03", laborCost: "8200", equipmentCost: "1400", materialsCost: "12600", markupPct: "15" });
+  await variationService.submitForReview(pmCtx, vo1.id);
+  await variationService.approveInternal(pdCtx, vo1.id, { decision: "APPROVE" });
+  await variationService.recordClientDecision(pmCtx, vo1.id, { decision: "APPROVED", clientReference: "Tilaus MP-03 / sähköposti" });
+  const vo2 = await variationService.create(pmCtx, { projectId: ndc.id, contractId: won.contractId, title: "Väliaikainen työmaavalaistus", cause: "Aikataulumuutos" });
+  await variationService.updateDraft(pmCtx, vo2.id, { title: "Väliaikainen työmaavalaistus", cause: "Aikataulumuutos", laborCost: "2400", materialsCost: "1800", markupPct: "12" });
+  await variationService.submitForReview(pmCtx, vo2.id);
+  const vo3 = await variationService.create(pmCtx, { projectId: ndc.id, contractId: won.contractId, title: "Kaapelihyllyn lisäkannakointi", cause: "Suunnitelmamuutos", clientReference: "RFI-12" });
+  await variationService.updateDraft(pmCtx, vo3.id, { title: "Kaapelihyllyn lisäkannakointi", cause: "Suunnitelmamuutos", clientReference: "RFI-12", laborCost: "3100", materialsCost: "2200", markupPct: "15" });
+  await variationService.submitForReview(pmCtx, vo3.id);
+  await variationService.approveInternal(pdCtx, vo3.id, { decision: "APPROVE" });
+  await variationService.recordClientDecision(pmCtx, vo3.id, { decision: "APPROVED", clientReference: "RFI-12 vastaus" });
+  await variationService.markExecuted(pmCtx, vo3.id);
+  await variationService.markReadyToInvoice(pmCtx, vo3.id);
+
+  // Forecast: estimate to complete per category; invoice candidates up to today.
+  for (const [category, etcAmount] of [["LABOR", "182000"], ["EQUIPMENT", "41000"], ["MATERIALS", "96000"], ["SUBCONTRACT", "18000"]] as const) await forecastService.setEtc(pmCtx, ndc.id, { category, etcAmount, note: "Kuukausiennuste" });
+  await invoiceService.generate(pmCtx, { projectId: ndc.id, to: todayIso });
+
   console.log("✔ Seed complete (fictional data).");
-  console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, client@example.com, ceo@purent.example.com …");
+  console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, pd@skinfra.example.com, client@example.com, ceo@purent.example.com …");
 }
 
 main()
