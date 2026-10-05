@@ -17,7 +17,7 @@ const VIEWS: [string, string][] = [
 ];
 
 test("capture main views", async ({ page }, testInfo) => {
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   const dir = `docs/screenshots/${testInfo.project.name}`;
   for (const [name, path] of VIEWS) {
     await page.goto(path);
@@ -97,6 +97,24 @@ test("capture main views", async ({ page }, testInfo) => {
   await page.screenshot({ path: `${dir}/materials-batch.png`, fullPage: true, caret: "initial" });
   await page.goto("/c/sk-infra-demo/scan");
   await page.screenshot({ path: `${dir}/scan.png`, fullPage: true, caret: "initial" });
+  // V6
+  await page.goto("/c/sk-infra-demo/sales");
+  await page.screenshot({ path: `${dir}/sales.png`, fullPage: true, caret: "initial" });
+  await page.goto("/c/sk-infra-demo/sales/quotes");
+  await page.screenshot({ path: `${dir}/sales-quotes.png`, fullPage: true, caret: "initial" });
+  await page.getByRole("link", { name: /Data Hall B sähköasennukset/ }).click();
+  await page.waitForURL(/quotes\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/sales-quote.png`, fullPage: true, caret: "initial" });
+  await page.goto("/c/sk-infra-demo/projects");
+  await page.getByRole("link", { name: /NDC-001/ }).first().click();
+  await page.getByRole("link", { name: "Sopimus ja ennuste" }).click();
+  await page.waitForURL(/commercial$/);
+  await page.screenshot({ path: `${dir}/project-commercial.png`, fullPage: true, caret: "initial" });
+  await page.getByRole("link", { name: /Väliaikainen työmaavalaistus/ }).click();
+  await page.waitForURL(/variations\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/variation.png`, fullPage: true, caret: "initial" });
+  await page.goto("/c/sk-infra-demo/billing");
+  await page.screenshot({ path: `${dir}/billing.png`, fullPage: true, caret: "initial" });
   await page.goto("/c/sk-infra-demo/documents");
   await page.getByRole("link", { name: /pääkaavio/ }).click();
   await page.waitForURL(/documents\/[0-9a-f-]{36}$/);

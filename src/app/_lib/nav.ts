@@ -1,6 +1,6 @@
 import type { RequestContext } from "@/platform/authz";
 
-export type NavKey = "dashboard" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "workforce" | "equipment" | "documents" | "settings";
+export type NavKey = "dashboard" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "sales" | "billing" | "workforce" | "equipment" | "documents" | "settings";
 
 export interface NavItem {
   key: NavKey;
@@ -19,6 +19,8 @@ export function navItems(ctx: RequestContext): NavItem[] {
   if (hasLogisticsAccess(ctx)) items.push({ key: "logistics", href: `${base}/logistics` });
   if (hasLogisticsAccess(ctx)) items.push({ key: "lifting", href: `${base}/lifting` });
   if (hasMaterialAccess(ctx)) items.push({ key: "materials", href: `${base}/materials` });
+  if (has("crm.view")) items.push({ key: "sales", href: `${base}/sales` });
+  if (has("invoice.manage") || [...ctx.projectGrants.values()].some((g) => g.has("invoice.manage"))) items.push({ key: "billing", href: `${base}/billing` });
   if (has("employee.view")) items.push({ key: "workforce", href: `${base}/workforce` });
   if (has("equipment.view")) items.push({ key: "equipment", href: `${base}/equipment` });
   if (has("documents.view") || anyProjectGrant) items.push({ key: "documents", href: `${base}/documents` });

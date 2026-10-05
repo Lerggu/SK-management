@@ -58,9 +58,9 @@ export type QuoteInput = z.input<typeof quoteSchema>;
 
 export const quoteDraftSchema = z.object({
   scope: optionalText(4000),
-  overheadPct: percent(),
-  riskPct: percent(),
-  marginPct: percent(99.99),
+  overheadPct: percent().default("0"),
+  riskPct: percent().default("0"),
+  marginPct: percent(99.99).default("0"),
   validUntil: optionalDate(),
 });
 export type QuoteDraftInput = z.input<typeof quoteDraftSchema>;
@@ -138,7 +138,7 @@ export const variationDraftSchema = z.object({
   materialsCost: money().default("0"),
   subcontractCost: money().default("0"),
   otherCost: money().default("0"),
-  markupPct: percent(1000),
+  markupPct: percent(1000).default("0"),
   evidenceDocumentId: optionalUuid(),
 });
 export type VariationDraftInput = z.input<typeof variationDraftSchema>;
