@@ -25,7 +25,7 @@ AI-logistiikkaohjaaja (§27) ja resurssioptimointi jätettiin omistajan valinnan
 | 5 | Vastaus erottelee FAKTAN, ENNUSTEEN ja AI-SUOSITUKSEN ja kertoo lähteet | `submit_result`-työkalun skeema ja Zod-validointi. Lähteiksi jätetään vain ajossa oikeasti dataa palauttaneet työkalut. | `ai.test.ts`: virheellinen vastaus hylätään, ja keksityt lähteet poistetaan |
 | 6 | Suositukset vaativat ihmisen päätöksen, eikä tekoäly muuta dataa | `ai_recommendations`: PROPOSED → ACCEPTED/DISMISSED kerran. Työkalut vain lukevat. | `ai.test.ts` ja E2E |
 | 7 | Kuukausikatto estää uudet ajot | Katto on yrityskohtainen (`companies.ai_monthly_budget_eur`, oletus 10 €). Kuukausi lasketaan Helsingin ajassa. Ajo jää käynnistämättä, jos kattoa on jäljellä alle 0,10 €. | `ai.test.ts`: BLOCKED_BUDGET, eikä tarjoajaa kutsuta |
-| 8 | Toimii ilman avainta; avaimen kanssa yksi live-ajo | Ilman avainta (ei tuotannossa) käytetään selvästi merkittyä testitarjoajaa. Live-ajoa varten on `pnpm ai:verify`. | Toimii ilman avainta: testit ja E2E. **Live-ajoa ei ole tehty**, koska `ANTHROPIC_API_KEY` ei ole tämän istunnon ympäristössä (ks. kohta 5). |
+| 8 | Toimii ilman avainta; avaimen kanssa yksi live-ajo | Ilman avainta (ei tuotannossa) käytetään selvästi merkittyä testitarjoajaa. Live-ajoa varten on `pnpm ai:verify`. | Toimii ilman avainta: testit ja E2E. **Live-ajo tehty 2026-10-05** (`pnpm ai:verify`, NDC-001, `claude-opus-5-5`): tila SUCCEEDED, 6 työkalukutsua, 9 781 tokenia, 0,092 €, 44 s (ks. kohta 5.1). |
 
 ### Tekoälyohjaaja käyttäjän näkökulmasta
 Projektisivulla on painike **Tekoälyohjaaja**. Se näkyy, jos käyttäjällä on `ai.use`-oikeus (toimitusjohtaja, projektijohtaja tai projektipäällikkö). Sivulla voi:
@@ -87,7 +87,12 @@ Oikeuksia on nyt 59. Uudet enumit: `AiRunKind`, `AiRunStatus`, `AiSeverity` ja `
 - **Chattiin liitetty avain:** keskustelussa aiemmin liitettyä avainta ei ole käytetty eikä tallennettu mihinkään. Sen mitätöintiä suositellaan edelleen.
 
 ## 5. Tunnetut rajoitukset
-1. **Live-verifiointi puuttuu.** API-avain (`SK_ANTHROPIC_API_KEY`) ei ole tämän istunnon ympäristössä, koska ympäristömuuttujat tulevat voimaan vasta uudessa istunnossa. Adapterin pyyntömuoto ja silmukka on testattu offline-tilassa simuloidulla rajapinnalla, mutta oikeaa kutsua ei ole tehty. Uudessa istunnossa ajetaan `pnpm db:reset && pnpm ai:verify` (muutama sentti).
+1. **Live-verifiointi tehty 2026-10-05.** `pnpm ai:verify` ajettiin seedattua kehityskantaa vasten (projekti NDC-001, käyttäjä `pm@skinfra.example.com`, avain `SK_ANTHROPIC_API_KEY`-ympäristömuuttujasta).
+   - Tulos: tila SUCCEEDED, malli `claude-opus-5-5` (tarjoaja anthropic), 44,1 s.
+   - Työkalut: `project_overview`, `schedule_status`, `cost_forecast`, `variations`, `hse_metrics`, `lookahead_shortages` (kaikki onnistuivat).
+   - Kulutus: 9 781 tokenia, arvioitu kustannus 0,092 € (noin 1 % kuukausikatosta).
+   - Vastaus: suomenkielinen yhteenveto ja 12 havaintoa (5 faktaa, 2 ennustetta, 4 AI-suositusta; 4 kriittistä). Keskeiset: sähkötahdin valmistuminen 2026-10-09 vaarassa (15/30 tehtävää valmiina, kaapelihyllyt estyneenä), 9 sähköasentajan vaje tällä viikolla, laskutus aloittamatta (laskuttamatonta 138 516 €), yksi poissaoloon johtanut tapaturma.
+   - Arvio laadusta: havainnot ovat konkreettisia, perustuvat työkalujen palauttamiin lukuihin, ja jokaisella on lähdeviitteet. Tyypit (fakta/ennuste/suositus) on eroteltu oikein, ja suositukset ovat toimenpiteitä. Malli huomasi myös itse, että kustannusennuste (EAC 395 k€ vs. budjetti 660 k€) näyttää epäuskottavan hyvältä, ja suositteli ETC:n tarkistamista; tämä on hyvä kriittinen havainto. Pieniä puutteita: valmiusaste 58 % ei vastaa suoraan lukua 15/30 (todennäköisesti painotettu luku, mutta tätä ei selitetty), ja yhden turvallisuushavainnon lähteeksi on merkitty myös `lookahead_shortages`. Promptin hienosäätö ei ole välttämätöntä.
 2. **Kuukausikaton tarkistus ei ole sarjallistettu.** Kaksi yhtäaikaista ajoa voi ylittää lähes täyden katon enintään yhden ajon verran (noin 0,1–0,3 €).
 3. **Kustannus on arvio** listahinnoista ja kiinteästä USD/EUR-kertoimesta. Tarkka laskutus näkyy Anthropicin konsolissa.
 4. **Ajo on synkroninen.** Katsaus kestää noin 10–60 sekuntia, ja sivu odottaa sen ajan; taustajonoa ei ole.
@@ -107,7 +112,7 @@ pnpm dev                               # http://localhost:3000, dev-kirjautumine
 
 ## 8. Ehdotus jatkoksi
 V8 on Build Masterin viimeinen julkaisu. Ehdotan seuraavia vaiheita:
-1. **Live-verifiointi** uudessa istunnossa, jossa on avain, ja tarvittaessa promptin hienosäätö oikeilla vastauksilla.
+1. **Promptin hienosäätö** oikeiden vastausten perusteella tarvittaessa (live-verifiointi on tehty, ks. kohta 5.1).
 2. **AI-logistiikkaohjaaja (§27)**, joka käyttää samaa tarjoajarajapintaa, tallennusta ja suositusten päätösprosessia. Tietolähteinä olisivat varauskonfliktit, toimitukset ja nostot.
 3. **Resurssioptimointi:** ehdotukset varausten siirroista. Ne jäisivät aina ihmisen hyväksyttäviksi.
 4. **Tuotantoon vienti:** RLS-roolin myöntäminen tuotannon tietokantakäyttäjälle, Entra ID -konfiguraatio, SMTP sekä avaimen hallinta salaisuuksien hallinnassa.
