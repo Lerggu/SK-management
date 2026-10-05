@@ -8,6 +8,12 @@ import { profileService } from "./identity/service";
 import { timesheetService } from "./timesheets/service";
 import { diaryService } from "./diary/service";
 import { budgetService, costService, projectFinanceService } from "./finance/service";
+import { workCalendarService } from "./takt/calendar.service";
+import { taktStructureService } from "./takt/structure.service";
+import { taktPlanService } from "./takt/plan.service";
+import { taktActivityService } from "./takt/activity.service";
+import { lookaheadService } from "./takt/lookahead.service";
+import { scheduleImportService } from "./takt/import.service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -31,4 +37,11 @@ export const SERVICE_REGISTRY = {
   budget: budgetService,
   cost: costService,
   projectFinance: projectFinanceService,
+  // V3
+  workCalendar: workCalendarService,
+  taktStructure: taktStructureService,
+  taktPlan: taktPlanService,
+  taktActivity: taktActivityService,
+  lookahead: lookaheadService,
+  scheduleImport: scheduleImportService,
 } as const;

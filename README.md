@@ -3,11 +3,12 @@
 A multi-company construction and industrial project control platform for SK Infra, Purent and other group companies. Releases in this repository:
 - **V1 — Foundation:** companies, users, roles and permissions, projects and sites, workforce, equipment, documents, the audit trail and a responsive mobile/desktop UI ([report](docs/V1_REPORT.md)).
 - **V2 — Site execution & project finance foundation:** time tracking with weekly approval, payroll CSV export, the site diary with signing, budget versions, project costs and budget vs actual ([plan](docs/V2_PLAN.md), [report](docs/V2_REPORT.md)).
+- **V3 — Takt & look-ahead:** takt structure (buildings, takt areas, work packages), versioned takt plans with a locked baseline, the takt board, dependencies and constraints with readiness states, progress, MS Project XML / P6 XER import and the 2/6/12-week resource look-ahead ([plan](docs/V3_PLAN.md), [report](docs/V3_REPORT.md)).
 
 - Build specification: [`docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md`](docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md)
 - Functional specification (Finnish): [`docs/specs/SK_management_master.md`](docs/specs/SK_management_master.md)
 - Architecture decisions: [`docs/adr/`](docs/adr)
-- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md)
+- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md)
 
 ## Stack
 
@@ -39,6 +40,8 @@ Sign in on `/sign-in` with **Kehityskirjautuminen** (dev login) and pick a demo 
 | `ceo@purent.example.com`, `pm@purent.example.com` | Purent Demo |
 
 V2 demo data: `employee@`, `supervisor@` and `site.manager@skinfra.example.com` have linked employee records. Last week's crew hours are approved, the employee has submitted hours this week, there is a signed diary (last Friday) and a draft one (today), and NDC-001 has an active budget with recorded costs. Try **Tunnit** as the employee, **Tunnit → Hyväksyntä** as the site manager, and **Projektit → NDC-001 → Talous** as the project manager or CEO.
+
+V3 demo data: Data Hall A (NDC-001) has a takt plan "Data Hall A – sähkötahti" with six takt areas and five work packages. Version 1 is the approved baseline, with progress up to today, constraints and one blocked activity. Version 2 is an open draft where cabling is shifted by two days. Try **Tahti** as `pm@` (board, compare, look-ahead, import) and as `supervisor@` (one-tap progress on a phone). The sample schedule files `tests/fixtures/schedules/data-hall-b.xml` and `.xer` can be imported.
 
 All seed data is fictional. Never put real personal data in seed files.
 
@@ -79,16 +82,18 @@ Integration and E2E tests need the docker-compose services running. `RATE_LIMIT_
 ```
 src/app/            UI routes, server actions, /api/v1 route handlers
   (auth)/sign-in    sign-in (Entra + dev login)
-  c/[companySlug]/  dashboard, projects (+finance), time (+approvals, export), diary, workforce, equipment, documents, settings
+  c/[companySlug]/  dashboard, projects (+finance, +takt structure), time (+approvals, export), diary, takt (+board, activities,
+                    compare, import, lookahead), workforce, equipment, documents, settings (+calendar)
 src/modules/        domain modules: identity, companies, projects, workforce, equipment, documents,
-                    timesheets, diary, finance (finance/calculations.ts = all cost formulas)
+                    timesheets, diary, finance (finance/calculations.ts = all cost formulas),
+                    takt (calendar.ts, engine.ts = scheduling rules; import/ = MSPDI and XER parsers)
                     (schemas.ts = Zod validation, repo.ts = company-scoped repository, service.ts)
 src/platform/       auth, authz, audit, db, storage, errors, config, i18n, ratelimit, ai (interface), integrations (interfaces)
 src/ui/             app shell, responsive navigation, shadcn/ui components
 prisma/             schema.prisma, migrations/, seed.ts
 tests/              integration/, isolation/, e2e/, helpers/
 docker/             docker-compose.yml (postgres, minio)
-docs/               adr/, specs/, screenshots/, V1_REPORT.md
+docs/               adr/, specs/, screenshots/, release plans and reports
 ```
 
 ## Security notes

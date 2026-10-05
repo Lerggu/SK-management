@@ -18,6 +18,12 @@ import { siteService as sites } from "@/modules/projects/service";
 import { timesheetService } from "@/modules/timesheets/service";
 import { diaryService } from "@/modules/diary/service";
 import { costService, projectFinanceService } from "@/modules/finance/service";
+import { workCalendarService } from "@/modules/takt/calendar.service";
+import { taktStructureService } from "@/modules/takt/structure.service";
+import { taktPlanService } from "@/modules/takt/plan.service";
+import { taktActivityService } from "@/modules/takt/activity.service";
+import { lookaheadService } from "@/modules/takt/lookahead.service";
+import { scheduleImportService } from "@/modules/takt/import.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Outcome = "✓" | "F" | "N";
@@ -47,6 +53,7 @@ interface Fixture {
   submittedEntryId: () => Promise<string>;
   draftReportId: () => Promise<string>;
   reportId: string;
+  takt: { planId: string; draftId: string; activityId: string; buildingId: string; proposedVersionId: () => Promise<string> };
 }
 
 let dayCounter = 0;
@@ -93,6 +100,18 @@ const ACTIONS: Record<string, Action> = {
   "sign site diary": async (c, f) => diaryService.sign(c, await f.draftReportId()),
   "view project finance": (c, f) => projectFinanceService.summary(c, f.projectId),
   "record project cost": (c, f) => costService.create(c, f.projectId, { category: "OTHER", entryDate: "2026-03-01", description: "Matrix", amount: "1" }),
+  // V3
+  "view takt board": (c, f) => taktPlanService.board(c, f.takt.planId),
+  "edit takt draft": (c, f) => taktPlanService.updateDraft(c, f.takt.draftId, { startDate: "2026-09-07", reason: "Matrix" }),
+  "record takt progress": (c, f) => taktActivityService.recordProgress(c, f.takt.activityId, { progressPct: "10", reportDate: "2026-09-01" }),
+  "approve takt baseline": async (c, f) => taktPlanService.approve(c, await f.takt.proposedVersionId()),
+  "import schedule": (c, f) =>
+    scheduleImportService.preview(c, f.takt.planId, { buildingId: f.takt.buildingId }, {
+      fileName: "m.xml",
+      bytes: new TextEncoder().encode(`<Project><Tasks><Task><UID>1</UID><Name>Z</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary></Task><Task><UID>2</UID><Name>T</Name><OutlineLevel>2</OutlineLevel><Start>2026-11-02T08:00:00</Start><Finish>2026-11-02T16:00:00</Finish></Task></Tasks></Project>`),
+    }),
+  "view look-ahead": (c, f) => lookaheadService.compute(c, { weeks: 6, projectId: f.projectId }),
+  "edit work calendar": (c) => workCalendarService.addHoliday(c, { date: nextDate(), name: "Matrix" }),
 };
 
 // Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI
@@ -125,6 +144,13 @@ const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
   "sign site diary":         ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N"],
   "view project finance":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
   "record project cost":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "view takt board":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
+  "edit takt draft":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N"],
+  "record takt progress":    ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N"],
+  "approve takt baseline":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N"],
+  "import schedule":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N"],
+  "view look-ahead":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
+  "edit work calendar":      ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
 };
 
 let f: Fixture;
@@ -156,6 +182,7 @@ beforeAll(async () => {
     reportId: "",
     submittedEntryId: async () => "",
     draftReportId: async () => "",
+    takt: { planId: "", draftId: "", activityId: "", buildingId: "", proposedVersionId: async () => "" },
   };
   const site = await sites.create(t.ownerCtx, project.id, { name: "Matrix site" });
   const report = await diaryService.open(t.ownerCtx, { siteId: site.id, date: "2026-02-01" });
@@ -168,6 +195,31 @@ beforeAll(async () => {
     return e.id;
   };
   f.draftReportId = async () => (await diaryService.open(t.ownerCtx, { siteId: site.id, date: nextDate() })).id;
+
+  // V3 fixtures: a baselined plan with an open draft, and fresh proposed versions on demand.
+  const building = await taktStructureService.createBuilding(t.ownerCtx, { siteId: site.id, name: "Matrix building" });
+  const area = await taktStructureService.createArea(t.ownerCtx, { buildingId: building.id, code: "M1", name: "Matrix area" });
+  const wp = await taktStructureService.createWorkPackage(t.ownerCtx, project.id, { code: "MW", name: "Matrix wagon", trade: "Matrix trade" });
+  const plan = await taktPlanService.create(t.ownerCtx, { siteId: site.id, name: "Matrix plan", startDate: "2026-09-01" });
+  const v1 = (await taktPlanService.board(t.ownerCtx, plan.id)).selected!;
+  await taktPlanService.generateTrain(t.ownerCtx, v1.id, {});
+  await taktPlanService.propose(t.ownerCtx, v1.id);
+  await taktPlanService.approve(t.ownerCtx, v1.id);
+  const draft = await taktPlanService.createDraft(t.ownerCtx, plan.id, {});
+  f.takt = {
+    planId: plan.id,
+    draftId: draft.id,
+    activityId: (await taktPlanService.board(t.ownerCtx, plan.id)).activities[0].id,
+    buildingId: building.id,
+    proposedVersionId: async () => {
+      const p = await taktPlanService.create(t.ownerCtx, { siteId: site.id, name: uniq("Plan"), startDate: "2026-11-02" });
+      const v = (await taktPlanService.board(t.ownerCtx, p.id)).selected!;
+      const a = await taktActivityService.create(t.ownerCtx, p.id, { workPackageId: wp.id, taktAreaId: area.id });
+      await taktPlanService.setAssignment(t.ownerCtx, v.id, a.id, { startCycle: 0, durationCycles: 1 });
+      await taktPlanService.propose(t.ownerCtx, v.id);
+      return v.id;
+    },
+  };
   for (const role of ROLES) {
     const assigned = role === "CEO" || role === "PROJECT_DIRECTOR" ? [] : [{ projectId: project.id }];
     const ctx = await createMember(t, role, assigned);

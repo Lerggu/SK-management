@@ -1,0 +1,24 @@
+ERMHDR	19.12	2026-10-05	Project	admin	Demo	dbxDatabaseNoName	Project Management	EUR
+%T	PROJECT
+%F	proj_id	proj_short_name
+%R	100	DHB-DEMO
+%T	PROJWBS
+%F	wbs_id	proj_id	parent_wbs_id	proj_node_flag	wbs_short_name	wbs_name
+%R	1	100		Y	DHB	Data Hall B demo
+%R	2	100	1	N	B1	Zone B1
+%R	3	100	1	N	B2	Zone B2
+%T	TASK
+%F	task_id	proj_id	wbs_id	task_code	task_name	task_type	target_start_date	target_end_date
+%R	10	100	1	A1000	Mobilisation	TT_Task	2026-11-02 08:00	2026-11-02 16:00
+%R	11	100	2	A1010	Cable trays	TT_Task	2026-11-03 08:00	2026-11-04 16:00
+%R	12	100	2	A1020	Cabling	TT_Task	2026-11-05 08:00	2026-11-06 16:00
+%R	13	100	3	A1030	Cable trays	TT_Task	2026-11-05 08:00	2026-11-06 16:00
+%R	14	100	3	A1040	Cabling	TT_Task	2026-11-09 08:00	2026-11-10 16:00
+%R	15	100	1	M1000	Handover	TT_FinMile	2026-11-13 16:00	2026-11-13 16:00
+%T	TASKPRED
+%F	task_pred_id	task_id	pred_task_id	pred_type	lag_hr_cnt
+%R	1	12	11	PR_FS	0
+%R	2	13	11	PR_FS	0
+%R	3	14	13	PR_FS	8
+%R	4	14	12	PR_SS	0
+%E

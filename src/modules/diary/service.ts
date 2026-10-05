@@ -85,11 +85,13 @@ export const diaryService = {
       report.status === "SIGNED" ? ((report.attendanceSnapshot as unknown as AttendanceRow[]) ?? []) : summarizeAttendance(await repo.attendance(report.siteId, report.reportDate));
     const perms = projectPermissions(ctx, report.projectId);
     const signer = report.signedById ? (await repo.findUsers([report.signedById]))[0] ?? null : null;
+    const taktProgress = perms.has("takt.view") ? await repo.taktProgress(report.siteId, report.reportDate) : [];
     return {
       ...report,
       attachments: report.attachments.map((a) => ({ ...a, sizeBytes: Number(a.sizeBytes) })),
       attendance,
       signer,
+      taktProgress,
       permissions: { manage: perms.has("diary.manage"), sign: perms.has("diary.sign") },
     };
   },

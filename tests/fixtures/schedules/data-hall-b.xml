@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <Name>Data Hall B demo.xml</Name>
+  <Title>Data Hall B demo</Title>
+  <MinutesPerDay>480</MinutesPerDay>
+  <Tasks>
+    <Task><UID>0</UID><ID>0</ID><Name>Data Hall B demo</Name><OutlineLevel>0</OutlineLevel><Summary>1</Summary><Start>2026-11-02T08:00:00</Start><Finish>2026-11-13T16:00:00</Finish></Task>
+    <Task><UID>1</UID><ID>1</ID><Name>Mobilisation</Name><OutlineLevel>1</OutlineLevel><Summary>0</Summary><Start>2026-11-02T08:00:00</Start><Finish>2026-11-02T16:00:00</Finish></Task>
+    <Task><UID>2</UID><ID>2</ID><Name>Zone B1</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary><Start>2026-11-03T08:00:00</Start><Finish>2026-11-06T16:00:00</Finish></Task>
+    <Task><UID>3</UID><ID>3</ID><Name>Cable trays</Name><OutlineLevel>2</OutlineLevel><Summary>0</Summary><Start>2026-11-03T08:00:00</Start><Finish>2026-11-04T16:00:00</Finish></Task>
+    <Task><UID>4</UID><ID>4</ID><Name>Cabling</Name><OutlineLevel>2</OutlineLevel><Summary>0</Summary><Start>2026-11-05T08:00:00</Start><Finish>2026-11-06T16:00:00</Finish>
+      <PredecessorLink><PredecessorUID>3</PredecessorUID><Type>1</Type><LinkLag>0</LinkLag></PredecessorLink>
+    </Task>
+    <Task><UID>5</UID><ID>5</ID><Name>Zone B2</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary><Start>2026-11-05T08:00:00</Start><Finish>2026-11-10T16:00:00</Finish></Task>
+    <Task><UID>6</UID><ID>6</ID><Name>Cable trays</Name><OutlineLevel>2</OutlineLevel><Summary>0</Summary><Start>2026-11-05T08:00:00</Start><Finish>2026-11-06T16:00:00</Finish>
+      <PredecessorLink><PredecessorUID>3</PredecessorUID><Type>1</Type><LinkLag>0</LinkLag></PredecessorLink>
+    </Task>
+    <Task><UID>7</UID><ID>7</ID><Name>Cabling</Name><OutlineLevel>2</OutlineLevel><Summary>0</Summary><Start>2026-11-09T08:00:00</Start><Finish>2026-11-10T16:00:00</Finish>
+      <PredecessorLink><PredecessorUID>6</PredecessorUID><Type>1</Type><LinkLag>4800</LinkLag></PredecessorLink>
+      <PredecessorLink><PredecessorUID>4</PredecessorUID><Type>3</Type><LinkLag>0</LinkLag></PredecessorLink>
+    </Task>
+    <Task><UID>8</UID><ID>8</ID><Name>Handover</Name><OutlineLevel>1</OutlineLevel><Summary>0</Summary><Milestone>1</Milestone><Start>2026-11-13T16:00:00</Start><Finish>2026-11-13T16:00:00</Finish></Task>
+  </Tasks>
+</Project>

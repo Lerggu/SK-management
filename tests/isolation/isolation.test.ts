@@ -23,6 +23,12 @@ import { profileService } from "@/modules/identity/service";
 import { timesheetService } from "@/modules/timesheets/service";
 import { diaryService } from "@/modules/diary/service";
 import { budgetService, costService, projectFinanceService } from "@/modules/finance/service";
+import { workCalendarService } from "@/modules/takt/calendar.service";
+import { taktStructureService } from "@/modules/takt/structure.service";
+import { taktPlanService } from "@/modules/takt/plan.service";
+import { taktActivityService } from "@/modules/takt/activity.service";
+import { lookaheadService } from "@/modules/takt/lookahead.service";
+import { scheduleImportService } from "@/modules/takt/import.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -54,7 +60,20 @@ interface World {
     activeBudget: string;
     cost: string;
     exportBatch: string;
+    holiday: string;
+    building: string;
+    area: string;
+    workPackage: string;
+    plan: string;
+    baseline: string;
+    draft: string;
+    activity: string;
+    activity2: string;
+    dependency: string;
+    constraint: string;
+    scheduleImport: string;
   };
+  b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
   bDocument: string;
@@ -120,6 +139,40 @@ beforeAll(async () => {
   const budgetLine = (await budgetService.listVersions(actx, project.id)).find((v) => v.id === draftBudget.id)!.lines[0];
   const cost = await costService.create(actx, project.id, { category: "MATERIALS", entryDate: "2026-03-02", description: "A cable", amount: "500" });
 
+  // ── V3 data in company A ──
+  await workCalendarService.addHoliday(actx, { date: "2026-11-20", name: "A secret day" });
+  const holiday = (await workCalendarService.get(actx)).holidays.find((h) => h.name === "A secret day")!;
+  const building = await taktStructureService.createBuilding(actx, { siteId: site.id, name: "A building" });
+  const area = await taktStructureService.createArea(actx, { buildingId: building.id, code: "A1", name: "A area 1" });
+  await taktStructureService.createArea(actx, { buildingId: building.id, code: "A2", name: "A area 2" });
+  const wp = await taktStructureService.createWorkPackage(actx, project.id, { code: "AW", name: "A wagon", trade: "A-secret-trade", defaultCrewSize: "2", defaultDurationCycles: "1" });
+  const plan = await taktPlanService.create(actx, { siteId: site.id, name: "A plan", startDate: "2026-11-02" });
+  const v1 = (await taktPlanService.board(actx, plan.id)).selected!;
+  await taktPlanService.generateTrain(actx, v1.id, {});
+  await taktPlanService.propose(actx, v1.id);
+  await taktPlanService.approve(actx, v1.id);
+  const draft = await taktPlanService.createDraft(actx, plan.id, { reason: "A change" });
+  const acts = (await taktPlanService.board(actx, plan.id)).activities;
+  const activity = acts.find((x) => x.taktArea.code === "A1")!;
+  const activity2 = acts.find((x) => x.taktArea.code === "A2")!;
+  const dependency = await taktActivityService.addDependency(actx, { predecessorId: activity.id, successorId: activity2.id });
+  const constraint = await taktActivityService.addConstraint(actx, activity.id, { type: "PERMIT", description: "A permit" });
+  const scheduleImport = await scheduleImportService.preview(actx, plan.id, { buildingId: building.id, areaLevel: "1" }, {
+    fileName: "a.xml",
+    bytes: new TextEncoder().encode(
+      `<Project><Tasks><Task><UID>1</UID><Name>A zone</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary></Task><Task><UID>2</UID><Name>A task</Name><OutlineLevel>2</OutlineLevel><Start>2026-11-02T08:00:00</Start><Finish>2026-11-02T16:00:00</Finish></Task></Tasks></Project>`,
+    ),
+  });
+
+
+  // ── V3 data in company B (for cross-references) ──
+  const bBuilding = await taktStructureService.createBuilding(b.ownerCtx, { siteId: bSite.id, name: "B building" });
+  const bArea = await taktStructureService.createArea(b.ownerCtx, { buildingId: bBuilding.id, code: "B1", name: "B area" });
+  const bWp = await taktStructureService.createWorkPackage(b.ownerCtx, bProject.id, { code: "BW", name: "B wagon" });
+  const bPlan = await taktPlanService.create(b.ownerCtx, { siteId: bSite.id, name: "B plan", startDate: "2026-11-02" });
+  const bVersion = (await taktPlanService.board(b.ownerCtx, bPlan.id)).selected!;
+  const bActivity = await taktActivityService.create(b.ownerCtx, bPlan.id, { workPackageId: bWp.id, taktAreaId: bArea.id });
+
   w = {
     a,
     b,
@@ -149,7 +202,20 @@ beforeAll(async () => {
       activeBudget: activeBudget.id,
       cost: cost.id,
       exportBatch: exportBatch.batchId,
+      holiday: holiday.id!,
+      building: building.id,
+      area: area.id,
+      workPackage: wp.id,
+      plan: plan.id,
+      baseline: v1.id,
+      draft: draft.id,
+      activity: activity.id,
+      activity2: activity2.id,
+      dependency: dependency.id,
+      constraint: constraint.id,
+      scheduleImport: scheduleImport.id,
     },
+    b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
     bDocument: bDocument.id,
@@ -377,6 +443,102 @@ const cases: Record<string, Case> = {
     expect(own.comparison.total.actual.toString()).toBe("0");
   },
 
+  // ── V3 takt ─────────────────────────────────────────────────────
+  "workCalendar.get": async () => {
+    const cal = await workCalendarService.get(w.bCtx);
+    expect(cal.holidays.map((h) => h.id)).not.toContain(w.ids.holiday);
+    expect(cal.holidays.map((h) => h.name)).not.toContain("A secret day");
+  },
+  "workCalendar.updateWeekdays": async () => {
+    await workCalendarService.updateWeekdays(w.bCtx, { workingWeekdays: [1, 2, 3, 4] });
+    expect((await workCalendarService.get(w.a.ownerCtx)).workingWeekdays).toEqual([1, 2, 3, 4, 5]);
+  },
+  "workCalendar.addHoliday": async () => {
+    await workCalendarService.addHoliday(w.bCtx, { date: "2026-11-21", name: "B day" });
+    expect((await workCalendarService.get(w.a.ownerCtx)).holidays.map((h) => h.name)).not.toContain("B day");
+  },
+  "workCalendar.removeHoliday": () => expectNotFound(workCalendarService.removeHoliday(w.bCtx, w.ids.holiday)),
+  "workCalendar.addFinnishHolidays": async () => {
+    const before = (await workCalendarService.get(w.a.ownerCtx)).holidays.length;
+    await workCalendarService.addFinnishHolidays(w.bCtx, { year: 2031 });
+    expect((await workCalendarService.get(w.a.ownerCtx)).holidays).toHaveLength(before);
+  },
+  "taktStructure.overview": () => expectNotFound(taktStructureService.overview(w.bCtx, w.ids.project)),
+  "taktStructure.createBuilding": () => expectNotFound(taktStructureService.createBuilding(w.bCtx, { siteId: w.ids.site, name: "Intruder" })),
+  "taktStructure.archiveBuilding": () => expectNotFound(taktStructureService.archiveBuilding(w.bCtx, w.ids.building)),
+  "taktStructure.createArea": () => expectNotFound(taktStructureService.createArea(w.bCtx, { buildingId: w.ids.building, code: "X", name: "X" })),
+  "taktStructure.updateArea": () => expectNotFound(taktStructureService.updateArea(w.bCtx, w.ids.area, { code: "X", name: "X" })),
+  "taktStructure.archiveArea": () => expectNotFound(taktStructureService.archiveArea(w.bCtx, w.ids.area)),
+  "taktStructure.createWorkPackage": async () => {
+    await expectNotFound(taktStructureService.createWorkPackage(w.bCtx, w.ids.project, { code: "X", name: "X" }));
+    await expectRejected(taktStructureService.createWorkPackage(w.bCtx, w.bProject, { code: "XE", name: "X", equipmentTypeId: w.ids.equipmentType, equipmentCount: "1" }));
+  },
+  "taktStructure.updateWorkPackage": () => expectNotFound(taktStructureService.updateWorkPackage(w.bCtx, w.ids.workPackage, { code: "X", name: "X" })),
+  "taktStructure.archiveWorkPackage": () => expectNotFound(taktStructureService.archiveWorkPackage(w.bCtx, w.ids.workPackage)),
+  "taktPlan.list": async () => {
+    const plans = await taktPlanService.list(w.bCtx);
+    expect(plans.map((p) => p.id)).not.toContain(w.ids.plan);
+  },
+  "taktPlan.create": () => expectNotFound(taktPlanService.create(w.bCtx, { siteId: w.ids.site, name: "Intruder", startDate: "2026-11-02" })),
+  "taktPlan.board": async () => {
+    await expectNotFound(taktPlanService.board(w.bCtx, w.ids.plan));
+    await expectNotFound(taktPlanService.board(w.bCtx, w.b3.plan, { versionId: w.ids.baseline }));
+  },
+  "taktPlan.createDraft": () => expectNotFound(taktPlanService.createDraft(w.bCtx, w.ids.plan, {})),
+  "taktPlan.updateDraft": () => expectNotFound(taktPlanService.updateDraft(w.bCtx, w.ids.draft, { startDate: "2026-12-01" })),
+  "taktPlan.discardDraft": () => expectNotFound(taktPlanService.discardDraft(w.bCtx, w.ids.draft)),
+  "taktPlan.propose": () => expectNotFound(taktPlanService.propose(w.bCtx, w.ids.draft)),
+  "taktPlan.returnToDraft": () => expectNotFound(taktPlanService.returnToDraft(w.bCtx, w.ids.draft, { note: "x" })),
+  "taktPlan.approve": () => expectNotFound(taktPlanService.approve(w.bCtx, w.ids.draft)),
+  "taktPlan.compare": async () => {
+    await expectNotFound(taktPlanService.compare(w.bCtx, w.ids.plan, { versionId: w.ids.draft }));
+    await expectNotFound(taktPlanService.compare(w.bCtx, w.b3.plan, { versionId: w.ids.draft }));
+  },
+  "taktPlan.generateTrain": () => expectNotFound(taktPlanService.generateTrain(w.bCtx, w.ids.draft, {})),
+  "taktPlan.setAssignment": async () => {
+    await expectNotFound(taktPlanService.setAssignment(w.bCtx, w.ids.draft, w.ids.activity, { startCycle: 1, durationCycles: 1 }));
+    await expectNotFound(taktPlanService.setAssignment(w.bCtx, w.b3.version, w.ids.activity, { startCycle: 1, durationCycles: 1 }));
+  },
+  "taktPlan.removeAssignment": async () => {
+    await expectNotFound(taktPlanService.removeAssignment(w.bCtx, w.ids.draft, w.ids.activity));
+    await expectNotFound(taktPlanService.removeAssignment(w.bCtx, w.b3.version, w.ids.activity));
+  },
+  "taktPlan.shiftWorkPackage": async () => {
+    await expectNotFound(taktPlanService.shiftWorkPackage(w.bCtx, w.ids.draft, w.ids.workPackage, { days: 1 }));
+    await expectNotFound(taktPlanService.shiftWorkPackage(w.bCtx, w.b3.version, w.ids.workPackage, { days: 1 }));
+  },
+  "taktActivity.get": () => expectNotFound(taktActivityService.get(w.bCtx, w.ids.activity)),
+  "taktActivity.listForWeek": () => expectNotFound(taktActivityService.listForWeek(w.bCtx, w.ids.plan)),
+  "taktActivity.create": async () => {
+    await expectNotFound(taktActivityService.create(w.bCtx, w.ids.plan, { workPackageId: w.ids.workPackage, taktAreaId: w.ids.area }));
+    await expectRejected(taktActivityService.create(w.bCtx, w.b3.plan, { workPackageId: w.ids.workPackage, taktAreaId: w.ids.area }));
+  },
+  "taktActivity.update": () => expectNotFound(taktActivityService.update(w.bCtx, w.ids.activity, { name: "x", crewSize: "1" })),
+  "taktActivity.archive": () => expectNotFound(taktActivityService.archive(w.bCtx, w.ids.activity)),
+  "taktActivity.addDependency": async () => {
+    await expectNotFound(taktActivityService.addDependency(w.bCtx, { predecessorId: w.ids.activity2, successorId: w.ids.activity }));
+    await expectRejected(taktActivityService.addDependency(w.bCtx, { predecessorId: w.ids.activity, successorId: w.b3.activity }));
+  },
+  "taktActivity.removeDependency": () => expectNotFound(taktActivityService.removeDependency(w.bCtx, w.ids.dependency)),
+  "taktActivity.addConstraint": () => expectNotFound(taktActivityService.addConstraint(w.bCtx, w.ids.activity, { type: "OTHER", description: "x" })),
+  "taktActivity.clearConstraint": () => expectNotFound(taktActivityService.clearConstraint(w.bCtx, w.ids.constraint)),
+  "taktActivity.recordProgress": () => expectNotFound(taktActivityService.recordProgress(w.bCtx, w.ids.activity, { progressPct: "50", reportDate: "2026-09-01" })),
+  "taktActivity.setBlocked": () => expectNotFound(taktActivityService.setBlocked(w.bCtx, w.ids.activity, { blocked: true, delayReason: "x" })),
+  "lookahead.compute": async () => {
+    await expectNotFound(lookaheadService.compute(w.bCtx, { weeks: 2, projectId: w.ids.project }));
+    const own = await lookaheadService.compute(w.bCtx, { weeks: 12, from: "2026-11-02" });
+    expect(own.rows.map((r) => r.label)).not.toContain("A-secret-trade");
+    expect(own.projects.map((p) => p.id)).not.toContain(w.ids.project);
+  },
+  "scheduleImport.preview": async () => {
+    await expectNotFound(scheduleImportService.preview(w.bCtx, w.ids.plan, { buildingId: w.ids.building }, { fileName: "x.xml", bytes: new Uint8Array([1]) }));
+    await expectRejected(scheduleImportService.preview(w.bCtx, w.b3.plan, { buildingId: w.ids.building }, { fileName: "x.xml", bytes: new Uint8Array([1]) }));
+  },
+  "scheduleImport.get": () => expectNotFound(scheduleImportService.get(w.bCtx, w.ids.scheduleImport)),
+  "scheduleImport.download": () => expectNotFound(scheduleImportService.download(w.bCtx, w.ids.scheduleImport)),
+  "scheduleImport.discard": () => expectNotFound(scheduleImportService.discard(w.bCtx, w.ids.scheduleImport)),
+  "scheduleImport.apply": () => expectNotFound(scheduleImportService.apply(w.bCtx, w.ids.scheduleImport)),
+
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -418,5 +580,10 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.dailyReport.findUniqueOrThrow({ where: { id: w.ids.report } })).status).toBe("DRAFT");
     expect((await db.budget.findUniqueOrThrow({ where: { id: w.ids.budget } })).status).toBe("DRAFT");
     expect((await db.costEntry.findUniqueOrThrow({ where: { id: w.ids.cost } })).archivedAt).toBeNull();
+    expect((await db.taktPlanVersion.findUniqueOrThrow({ where: { id: w.ids.draft } })).status).toBe("DRAFT");
+    expect((await db.taktPlanVersion.findUniqueOrThrow({ where: { id: w.ids.baseline } })).status).toBe("BASELINE");
+    expect((await db.taktActivity.findUniqueOrThrow({ where: { id: w.ids.activity } })).progressPct).toBe(0);
+    expect((await db.scheduleImport.findUniqueOrThrow({ where: { id: w.ids.scheduleImport } })).status).toBe("PREVIEW");
+    expect(await db.activityDependency.count({ where: { planId: w.ids.plan } })).toBe(1);
   });
 });
