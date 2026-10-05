@@ -28,6 +28,10 @@ import { bookingService } from "@/modules/logistics/booking.service";
 import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { liftingAccessoryService, liftPlanService } from "@/modules/lifting/lift.service";
 import { cableDrumService, materialBatchService, materialLabelService } from "@/modules/lifting/material.service";
+import { customerService } from "@/modules/commercial/crm.service";
+import { quoteService } from "@/modules/commercial/quote.service";
+import { contractService, forecastService, variationService } from "@/modules/commercial/project.service";
+import { invoiceService } from "@/modules/commercial/invoice.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Outcome = "✓" | "F" | "N";
@@ -62,6 +66,7 @@ interface Fixture {
   logistics: { gateId: string; requestedId: () => Promise<string>; slot: () => string };
   lift: { draftPlanId: string; submittedPlanId: () => Promise<string>; approvedPlanId: () => Promise<string> };
   material: { drumId: string };
+  v6: { customerId: string; submittedQuoteId: () => Promise<string>; reviewVariationId: () => Promise<string> };
 }
 
 let dayCounter = 0;
@@ -139,6 +144,19 @@ const ACTIONS: Record<string, Action> = {
   "register material batch": (c, f) => materialBatchService.create(c, { siteId: f.siteId, code: uniq("MB"), material: "Matrix", quantity: "1", unit: "pcs" }),
   "record cable pull": (c, f) => cableDrumService.pull(c, f.material.drumId, { lengthM: "1", pulledOn: "2027-03-01" }),
   "print QR labels": (c, f) => materialLabelService.pdf(c, { kind: "drum", siteId: f.siteId }, "http://localhost", { title: "Matrix", footer: "Matrix" }),
+  // V6
+  "view customers": (c) => customerService.list(c),
+  "manage customers": (c) => customerService.create(c, { name: uniq("Asiakas") }),
+  "view quotes": (c) => quoteService.list(c),
+  "prepare quote": (c, f) => quoteService.create(c, { customerId: f.v6.customerId, title: uniq("Tarjous") }),
+  "approve quote": async (c, f) => quoteService.decide(c, await f.v6.submittedQuoteId(), { decision: "APPROVE" }),
+  "view project commercial": (c, f) => forecastService.get(c, f.projectId),
+  "view unassigned project commercial": (c, f) => forecastService.get(c, f.unassignedProjectId),
+  "create variation": (c, f) => variationService.create(c, { projectId: f.projectId, title: uniq("Lisätyö") }),
+  "approve variation": async (c, f) => variationService.approveInternal(c, await f.v6.reviewVariationId(), { decision: "APPROVE" }),
+  "generate invoice candidates": (c, f) => invoiceService.generate(c, { projectId: f.projectId, to: "2026-12-31" }),
+  "export invoices": (c, f) => invoiceService.export(c, { kind: "CUSTOMER", projectId: f.projectId, includeExported: "on" }),
+  "internal invoicing": (c) => invoiceService.generateInternal(c, { to: "2026-12-31" }),
 };
 
 // Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI LIFT
@@ -196,6 +214,19 @@ const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
   "register material batch": ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F"],
   "record cable pull":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F"],
   "print QR labels":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
+  // V6 — prices, margins and billing never reach external roles
+  "view customers":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "manage customers":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view quotes":             ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "prepare quote":           ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "approve quote":           ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view project commercial": ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view unassigned project commercial":["✓", "✓", "N", "N", "N", "N", "N", "N", "N", "N", "N"],
+  "create variation":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "approve variation":       ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "generate invoice candidates":["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "export invoices":         ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "internal invoicing":      ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
 };
 
 let f: Fixture;
@@ -231,6 +262,7 @@ beforeAll(async () => {
     logistics: { gateId: "", requestedId: async () => "", slot: () => "" },
     lift: { draftPlanId: "", submittedPlanId: async () => "", approvedPlanId: async () => "" },
     material: { drumId: "" },
+    v6: { customerId: "", submittedQuoteId: async () => "", reviewVariationId: async () => "" },
   };
   const site = await sites.create(t.ownerCtx, project.id, { name: "Matrix site" });
   const report = await diaryService.open(t.ownerCtx, { siteId: site.id, date: "2026-02-01" });
@@ -294,6 +326,26 @@ beforeAll(async () => {
     },
   };
   f.material = { drumId: (await cableDrumService.create(t.ownerCtx, { siteId: site.id, code: "M-CD1", cableType: "Matrix cable", originalLengthM: "100000" })).id };
+  // V6 fixtures: owner-prepared quotes and variations awaiting approval; a billable milestone.
+  const customer = await customerService.create(t.ownerCtx, { name: "Matrix Asiakas Oy" });
+  const contract = await contractService.create(t.ownerCtx, { projectId: project.id, customerId: customer.id, contractNumber: "M-SOP", title: "Matrix", value: "100000" });
+  await contractService.addMilestone(t.ownerCtx, contract.id, { title: "Ennakko", amount: "10000", dueDate: "2026-09-01" });
+  await invoiceService.generate(t.ownerCtx, { projectId: project.id, to: "2026-12-31" });
+  f.v6 = {
+    customerId: customer.id,
+    submittedQuoteId: async () => {
+      const q = await quoteService.create(t.ownerCtx, { customerId: customer.id, title: uniq("Q") });
+      await quoteService.addLine(t.ownerCtx, q.id, { category: "LABOR", description: "Työ", quantity: "10", unit: "h", unitCost: "50" });
+      await quoteService.submit(t.ownerCtx, q.id);
+      return q.id;
+    },
+    reviewVariationId: async () => {
+      const v = await variationService.create(t.ownerCtx, { projectId: project.id, title: uniq("V") });
+      await variationService.updateDraft(t.ownerCtx, v.id, { title: v.title, laborCost: "1000", markupPct: "10" });
+      await variationService.submitForReview(t.ownerCtx, v.id);
+      return v.id;
+    },
+  };
   for (const role of ROLES) {
     const assigned = role === "CEO" || role === "PROJECT_DIRECTOR" ? [] : [{ projectId: project.id }];
     const ctx = await createMember(t, role, assigned);

@@ -171,7 +171,7 @@ model Company {
   updatedById     String?   @map("updated_by") @db.Uuid
   archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
 
-  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   memberships        CompanyMembership[]
   roles              Role[]
   projects           Project[]
@@ -187,8 +187,8 @@ model Company {
   budgets            Budget[]
   costEntries        CostEntry[]
   workCalendars      WorkCalendar[]
-  bookings           ResourceBooking[]   @relation("BookingCompany")
-  ownedBookings      ResourceBooking[]   @relation("BookingOwner")
+  bookings           ResourceBooking[]    @relation("BookingCompany")
+  ownedBookings      ResourceBooking[]    @relation("BookingOwner")
   logisticsRequests  LogisticsRequest[]
   logisticsLocations LogisticsLocation[]
   deliveries         Delivery[]
@@ -196,6 +196,10 @@ model Company {
   liftPlans          LiftPlan[]
   materialBatches    MaterialBatch[]
   cableDrums         CableDrum[]
+  customers          Customer[]
+  candidates         InvoiceCandidate[]   @relation("CandidateCompany")
+  billedCandidates   InvoiceCandidate[]   @relation("CandidateBillTo")
+  invoiceExports     InvoiceExportBatch[]
 
   @@index([organizationId])
   @@map("companies")
@@ -435,6 +439,8 @@ model Project {
   code         String
   name         String
   customerName String?       @map("customer_name")
+  /// V6: CRM customer (customer_name stays for older projects).
+  customerId   String?       @map("customer_id") @db.Uuid
   description  String?
   status       ProjectStatus @default(PLANNED)
   startDate    DateTime?     @map("start_date") @db.Date
@@ -445,16 +451,22 @@ model Project {
   updatedById  String?       @map("updated_by") @db.Uuid
   archivedAt   DateTime?     @map("archived_at") @db.Timestamptz(6)
 
-  company      Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  sites        Site[]
-  memberships  ProjectMembership[]
-  equipment    Equipment[]
-  documents    Document[]
-  timeEntries  TimeEntry[]
-  budgets      Budget[]
-  costEntries  CostEntry[]
-  workPackages WorkPackage[]
-  bookings     ResourceBooking[]
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  sites             Site[]
+  memberships       ProjectMembership[]
+  equipment         Equipment[]
+  documents         Document[]
+  timeEntries       TimeEntry[]
+  budgets           Budget[]
+  costEntries       CostEntry[]
+  workPackages      WorkPackage[]
+  bookings          ResourceBooking[]
+  customer          Customer?           @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  quotes            Quote[]
+  contracts         Contract[]
+  variations        Variation[]
+  invoiceCandidates InvoiceCandidate[]
+  costForecasts     CostForecast[]
 
   @@unique([companyId, id])
   @@unique([companyId, code])
@@ -683,6 +695,7 @@ model Document {
   versions         DocumentVersion[]
   links            DocumentLink[]
   liftPlanVersions LiftPlanVersion[]
+  variations       Variation[]
 
   @@unique([companyId, id])
   @@index([companyId, projectId])
@@ -1943,4 +1956,409 @@ model CablePull {
 
   @@index([companyId, drumId, pulledOn])
   @@map("cable_pulls")
+}
+
+// ───────────────────────────────────────────────────────── V6 Commercial
+
+model Customer {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  companyId   String    @map("company_id") @db.Uuid
+  name        String
+  businessId  String?   @map("business_id")
+  address     String?
+  postalCode  String?   @map("postal_code")
+  city        String?
+  notes       String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?   @map("updated_by") @db.Uuid
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  company       Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  contacts      Contact[]
+  opportunities Opportunity[]
+  quotes        Quote[]
+  contracts     Contract[]
+  projects      Project[]
+  candidates    InvoiceCandidate[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, name])
+  @@map("customers")
+}
+
+model Contact {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  companyId   String    @map("company_id") @db.Uuid
+  customerId  String    @map("customer_id") @db.Uuid
+  name        String
+  title       String?
+  email       String?
+  phone       String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?   @map("updated_by") @db.Uuid
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  customer Customer @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, customerId])
+  @@map("contacts")
+}
+
+enum OpportunityStage {
+  LEAD
+  QUALIFIED
+  RFQ
+  TENDER
+  NEGOTIATION
+  WON
+  LOST
+}
+
+model Opportunity {
+  id                String           @id @default(uuid(7)) @db.Uuid
+  companyId         String           @map("company_id") @db.Uuid
+  customerId        String           @map("customer_id") @db.Uuid
+  title             String
+  stage             OpportunityStage @default(LEAD)
+  estimatedValue    Decimal?         @map("estimated_value") @db.Decimal(14, 2)
+  currency          String           @default("EUR") @db.Char(3)
+  probabilityPct    Int?             @map("probability_pct")
+  expectedCloseDate DateTime?        @map("expected_close_date") @db.Date
+  ownerUserId       String?          @map("owner_user_id") @db.Uuid
+  lostReason        String?          @map("lost_reason")
+  notes             String?
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById       String?          @map("created_by") @db.Uuid
+  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById       String?          @map("updated_by") @db.Uuid
+  archivedAt        DateTime?        @map("archived_at") @db.Timestamptz(6)
+
+  customer Customer @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  quotes   Quote[]
+
+  @@unique([companyId, id])
+  @@index([companyId, stage])
+  @@map("opportunities")
+}
+
+model Quote {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  companyId     String    @map("company_id") @db.Uuid
+  customerId    String    @map("customer_id") @db.Uuid
+  opportunityId String?   @map("opportunity_id") @db.Uuid
+  projectId     String?   @map("project_id") @db.Uuid
+  quoteNumber   String    @map("quote_number")
+  title         String
+  currency      String    @default("EUR") @db.Char(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?   @map("created_by") @db.Uuid
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById   String?   @map("updated_by") @db.Uuid
+  archivedAt    DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  customer    Customer       @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  opportunity Opportunity?   @relation(fields: [companyId, opportunityId], references: [companyId, id], onDelete: Restrict)
+  project     Project?       @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  versions    QuoteVersion[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, quoteNumber])
+  @@map("quotes")
+}
+
+enum QuoteVersionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  SENT
+  WON
+  LOST
+  SUPERSEDED
+}
+
+/// Quote content. Everything except the status is frozen once submitted;
+/// a change is a new version (DB trigger).
+model QuoteVersion {
+  id            String             @id @default(uuid(7)) @db.Uuid
+  companyId     String             @map("company_id") @db.Uuid
+  quoteId       String             @map("quote_id") @db.Uuid
+  versionNumber Int                @map("version_number")
+  status        QuoteVersionStatus @default(DRAFT)
+  scope         String?
+  overheadPct   Decimal            @default(0) @map("overhead_pct") @db.Decimal(5, 2)
+  riskPct       Decimal            @default(0) @map("risk_pct") @db.Decimal(5, 2)
+  marginPct     Decimal            @default(0) @map("margin_pct") @db.Decimal(5, 2)
+  validUntil    DateTime?          @map("valid_until") @db.Date
+  changeReason  String?            @map("change_reason")
+  submittedAt   DateTime?          @map("submitted_at") @db.Timestamptz(6)
+  submittedById String?            @map("submitted_by") @db.Uuid
+  decidedAt     DateTime?          @map("decided_at") @db.Timestamptz(6)
+  decidedById   String?            @map("decided_by") @db.Uuid
+  decisionNote  String?            @map("decision_note")
+  sentAt        DateTime?          @map("sent_at") @db.Timestamptz(6)
+  outcomeAt     DateTime?          @map("outcome_at") @db.Timestamptz(6)
+  outcomeNote   String?            @map("outcome_note")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?            @map("created_by") @db.Uuid
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById   String?            @map("updated_by") @db.Uuid
+
+  quote    Quote       @relation(fields: [companyId, quoteId], references: [companyId, id], onDelete: Restrict)
+  lines    QuoteLine[]
+  contract Contract?
+
+  @@unique([companyId, id])
+  @@unique([quoteId, versionNumber])
+  @@map("quote_versions")
+}
+
+enum QuoteLineCategory {
+  LABOR
+  EQUIPMENT
+  LIFTING
+  TRANSPORT
+  MATERIALS
+  TRAVEL
+  ACCOMMODATION
+  SUBCONTRACT
+  OTHER
+}
+
+model QuoteLine {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  companyId   String            @map("company_id") @db.Uuid
+  versionId   String            @map("version_id") @db.Uuid
+  category    QuoteLineCategory
+  description String
+  quantity    Decimal           @db.Decimal(12, 2)
+  unit        String
+  unitCost    Decimal           @map("unit_cost") @db.Decimal(14, 2)
+  sortOrder   Int               @default(0) @map("sort_order")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?           @map("created_by") @db.Uuid
+
+  version QuoteVersion @relation(fields: [companyId, versionId], references: [companyId, id], onDelete: Restrict)
+
+  @@index([companyId, versionId])
+  @@map("quote_lines")
+}
+
+enum ContractStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Contract {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  companyId      String         @map("company_id") @db.Uuid
+  customerId     String         @map("customer_id") @db.Uuid
+  projectId      String         @map("project_id") @db.Uuid
+  quoteVersionId String?        @map("quote_version_id") @db.Uuid
+  contractNumber String         @map("contract_number")
+  title          String
+  value          Decimal        @db.Decimal(14, 2)
+  currency       String         @default("EUR") @db.Char(3)
+  signedDate     DateTime?      @map("signed_date") @db.Date
+  retentionNote  String?        @map("retention_note")
+  status         ContractStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById    String?        @map("created_by") @db.Uuid
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById    String?        @map("updated_by") @db.Uuid
+
+  customer     Customer            @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  project      Project             @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  quoteVersion QuoteVersion?       @relation(fields: [companyId, quoteVersionId], references: [companyId, id], onDelete: Restrict)
+  milestones   ContractMilestone[]
+  variations   Variation[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, projectId, id])
+  @@unique([companyId, contractNumber])
+  @@unique([companyId, quoteVersionId])
+  @@map("contracts")
+}
+
+model ContractMilestone {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  contractId  String   @map("contract_id") @db.Uuid
+  title       String
+  amount      Decimal  @db.Decimal(14, 2)
+  dueDate     DateTime @map("due_date") @db.Date
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?  @map("created_by") @db.Uuid
+
+  contract Contract @relation(fields: [companyId, contractId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@map("contract_milestones")
+}
+
+/// Build Master §21 lifecycle.
+enum VariationStatus {
+  DRAFT
+  INTERNAL_REVIEW
+  SUBMITTED_TO_CLIENT
+  APPROVED
+  REJECTED
+  EXECUTED
+  READY_TO_INVOICE
+  INVOICED
+}
+
+model Variation {
+  id                 String          @id @default(uuid(7)) @db.Uuid
+  companyId          String          @map("company_id") @db.Uuid
+  projectId          String          @map("project_id") @db.Uuid
+  contractId         String?         @map("contract_id") @db.Uuid
+  number             Int
+  title              String
+  description        String?
+  cause              String?
+  clientReference    String?         @map("client_reference")
+  status             VariationStatus @default(DRAFT)
+  laborCost          Decimal         @default(0) @map("labor_cost") @db.Decimal(14, 2)
+  equipmentCost      Decimal         @default(0) @map("equipment_cost") @db.Decimal(14, 2)
+  materialsCost      Decimal         @default(0) @map("materials_cost") @db.Decimal(14, 2)
+  subcontractCost    Decimal         @default(0) @map("subcontract_cost") @db.Decimal(14, 2)
+  otherCost          Decimal         @default(0) @map("other_cost") @db.Decimal(14, 2)
+  markupPct          Decimal         @default(0) @map("markup_pct") @db.Decimal(5, 2)
+  salesPrice         Decimal         @default(0) @map("sales_price") @db.Decimal(14, 2)
+  currency           String          @default("EUR") @db.Char(3)
+  evidenceDocumentId String?         @map("evidence_document_id") @db.Uuid
+  submittedAt        DateTime?       @map("submitted_at") @db.Timestamptz(6)
+  submittedById      String?         @map("submitted_by") @db.Uuid
+  internalApprovedAt DateTime?       @map("internal_approved_at") @db.Timestamptz(6)
+  internalApprovedBy String?         @map("internal_approved_by") @db.Uuid
+  clientDecisionAt   DateTime?       @map("client_decision_at") @db.Timestamptz(6)
+  decisionNote       String?         @map("decision_note")
+  executedAt         DateTime?       @map("executed_at") @db.Timestamptz(6)
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById        String?         @map("created_by") @db.Uuid
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById        String?         @map("updated_by") @db.Uuid
+
+  project          Project   @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  contract         Contract? @relation(fields: [companyId, projectId, contractId], references: [companyId, projectId, id], onDelete: Restrict)
+  evidenceDocument Document? @relation(fields: [companyId, evidenceDocumentId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@unique([projectId, number])
+  @@index([companyId, status])
+  @@map("variations")
+}
+
+enum InvoiceSourceType {
+  LABOR
+  EQUIPMENT
+  VARIATION
+  MILESTONE
+  INTERNAL_BOOKING
+}
+
+enum InvoiceCandidateStatus {
+  OPEN
+  EXPORTED
+  INVOICED
+  VOID
+}
+
+/// A billable line from approved data. At most one non-void candidate per
+/// source (partial unique index), so nothing is billed twice. INTERNAL_BOOKING candidates are billed by the
+/// owning company to the booking company (owner decision 2).
+model InvoiceCandidate {
+  id               String                 @id @default(uuid(7)) @db.Uuid
+  companyId        String                 @map("company_id") @db.Uuid
+  projectId        String?                @map("project_id") @db.Uuid
+  customerId       String?                @map("customer_id") @db.Uuid
+  billToCompanyId  String?                @map("bill_to_company_id") @db.Uuid
+  sourceType       InvoiceSourceType      @map("source_type")
+  sourceId         String                 @map("source_id") @db.Uuid
+  description      String
+  quantity         Decimal                @db.Decimal(12, 2)
+  unit             String
+  unitPrice        Decimal                @map("unit_price") @db.Decimal(14, 2)
+  amount           Decimal                @db.Decimal(14, 2)
+  currency         String                 @default("EUR") @db.Char(3)
+  periodDate       DateTime               @map("period_date") @db.Date
+  status           InvoiceCandidateStatus @default(OPEN)
+  exportBatchId    String?                @map("export_batch_id") @db.Uuid
+  invoicedAt       DateTime?              @map("invoiced_at") @db.Timestamptz(6)
+  invoicedById     String?                @map("invoiced_by") @db.Uuid
+  invoiceReference String?                @map("invoice_reference")
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById      String?                @map("created_by") @db.Uuid
+  updatedAt        DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById      String?                @map("updated_by") @db.Uuid
+
+  company       Company             @relation("CandidateCompany", fields: [companyId], references: [id], onDelete: Restrict)
+  billToCompany Company?            @relation("CandidateBillTo", fields: [billToCompanyId], references: [id], onDelete: Restrict)
+  project       Project?            @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  customer      Customer?           @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  exportBatch   InvoiceExportBatch? @relation(fields: [companyId, exportBatchId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, sourceType, sourceId])
+  @@index([companyId, status, periodDate])
+  @@map("invoice_candidates")
+}
+
+enum InvoiceExportKind {
+  CUSTOMER
+  INTERNAL
+}
+
+enum ExportFormat {
+  CSV
+  JSON
+}
+
+/// Immutable export file (owner decision 1: file export). Append-only.
+model InvoiceExportBatch {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  companyId   String            @map("company_id") @db.Uuid
+  kind        InvoiceExportKind
+  format      ExportFormat
+  fileName    String            @map("file_name")
+  content     String
+  sha256      String            @db.Char(64)
+  rowCount    Int               @map("row_count")
+  total       Decimal           @db.Decimal(14, 2)
+  currency    String            @default("EUR") @db.Char(3)
+  reexport    Boolean           @default(false)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?           @map("created_by") @db.Uuid
+
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  candidates InvoiceCandidate[]
+
+  @@unique([companyId, id])
+  @@index([companyId, createdAt])
+  @@map("invoice_export_batches")
+}
+
+/// Estimate to complete per cost category; append-only, latest per
+/// category counts (forecast/EAC, Build Master §22).
+model CostForecast {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  companyId   String       @map("company_id") @db.Uuid
+  projectId   String       @map("project_id") @db.Uuid
+  category    CostCategory
+  etcAmount   Decimal      @map("etc_amount") @db.Decimal(14, 2)
+  currency    String       @default("EUR") @db.Char(3)
+  note        String?
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?      @map("created_by") @db.Uuid
+
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+
+  @@index([companyId, projectId, category, createdAt])
+  @@map("cost_forecasts")
 }
