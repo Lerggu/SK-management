@@ -79,6 +79,7 @@ export async function resolveRequestContext(params: {
     permissions: resolved.permissions,
     projectAccess: resolved.projectAccess,
     external: resolved.external,
+    externalParties: resolved.externalParties,
     projectGrants: resolved.projectGrants,
   };
 }

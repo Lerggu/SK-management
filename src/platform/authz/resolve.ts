@@ -1,5 +1,6 @@
 import {
   COMPANY_ONLY_PERMISSIONS,
+  EXTERNAL_ONLY_PERMISSIONS,
   EXTERNAL_TEMPLATE_KEYS,
   SENSITIVE_PERMISSIONS,
   isPermissionKey,
@@ -25,6 +26,30 @@ export interface ResolvedPermissions {
   external: boolean;
   /** Per-project grants from project roles (company-only permissions removed). */
   projectGrants: ReadonlyMap<string, ReadonlySet<PermissionKey>>;
+  /** External parties the member represents (empty for internal members). */
+  externalParties: ReadonlySet<ExternalParty>;
+}
+
+export type ExternalParty = "CLIENT" | "SUBCONTRACTOR";
+
+const PARTY_BY_TEMPLATE: Readonly<Record<string, ExternalParty>> = {
+  CLIENT: "CLIENT",
+  CLIENT_APPROVER: "CLIENT",
+  SUBCONTRACTOR: "SUBCONTRACTOR",
+};
+
+/**
+ * The external parties a member represents (V7 document sharing and
+ * portals), from their company roles and project roles.
+ */
+export function externalParties(companyRoles: readonly RoleGrant[], projectRoles: readonly ProjectRoleGrant[] = []): ReadonlySet<ExternalParty> {
+  const out = new Set<ExternalParty>();
+  if (!companyRoles.some(isExternal)) return out;
+  for (const r of [...companyRoles, ...projectRoles.map((p) => p.role)]) {
+    const party = r.templateKey ? PARTY_BY_TEMPLATE[r.templateKey] : undefined;
+    if (party) out.add(party);
+  }
+  return out;
 }
 
 function isExternal(role: RoleGrant): boolean {
@@ -40,6 +65,9 @@ function isExternal(role: RoleGrant): boolean {
  * - Members holding an external role (Client/Subcontractor), or receiving an
  *   external project role, never get sensitive (cost/rate) permissions, even
  *   if a role was misconfigured to include them.
+ * - External-only permissions (portals, client approval) are kept only for
+ *   members holding an external company role: an internal user never acts
+ *   on the client's behalf, even if given an external project role.
  * - Unknown permission keys are ignored.
  */
 export function resolvePermissions(companyRoles: readonly RoleGrant[], projectRoles: readonly ProjectRoleGrant[] = []): ResolvedPermissions {
@@ -52,6 +80,7 @@ export function resolvePermissions(companyRoles: readonly RoleGrant[], projectRo
     for (const p of role.permissions) {
       if (!isPermissionKey(p)) continue;
       if (external && SENSITIVE_PERMISSIONS.has(p)) continue;
+      if (!external && EXTERNAL_ONLY_PERMISSIONS.has(p)) continue;
       permissions.add(p);
     }
   }
@@ -66,10 +95,11 @@ export function resolvePermissions(companyRoles: readonly RoleGrant[], projectRo
       if (!isPermissionKey(p)) continue;
       if (COMPANY_ONLY_PERMISSIONS.has(p)) continue;
       if (stripSensitive && SENSITIVE_PERMISSIONS.has(p)) continue;
+      if (!external && EXTERNAL_ONLY_PERMISSIONS.has(p)) continue;
       set.add(p);
     }
     projectGrants.set(projectId, set);
   }
 
-  return { permissions, projectAccess, external, projectGrants };
+  return { permissions, projectAccess, external, projectGrants, externalParties: externalParties(companyRoles, projectRoles) };
 }

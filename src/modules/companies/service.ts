@@ -3,6 +3,7 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "@
 import { writeAudit } from "@/platform/audit";
 import { parseInput } from "@/platform/http/validation";
 import {
+  EXTERNAL_ONLY_PERMISSIONS,
   EXTERNAL_TEMPLATE_KEYS,
   ROLE_TEMPLATES,
   SENSITIVE_PERMISSIONS,
@@ -287,8 +288,13 @@ export const companyAdminService = {
       const repo = new CompanyScopedRepo(tx, ctx.company.id);
       const role = await repo.findRole(roleId);
       if (!role) throw new NotFoundError();
-      if (role.templateKey && EXTERNAL_TEMPLATE_KEYS.has(role.templateKey) && keys.some((k) => SENSITIVE_PERMISSIONS.has(k))) {
+      const externalRole = role.templateKey !== null && EXTERNAL_TEMPLATE_KEYS.has(role.templateKey);
+      if (externalRole && keys.some((k) => SENSITIVE_PERMISSIONS.has(k))) {
         throw new ValidationError({ permissionKeys: ["validation.externalSensitive"] });
+      }
+      // V7: portal and client-approval permissions belong to external roles only.
+      if (!externalRole && keys.some((k) => EXTERNAL_ONLY_PERMISSIONS.has(k))) {
+        throw new ValidationError({ permissionKeys: ["validation.externalOnly"] });
       }
       const before = role.permissions.map((p) => p.permissionKey).sort();
       await repo.replaceRolePermissions(role.id, keys, ctx.user.id);

@@ -226,6 +226,7 @@ model User {
   sessions                Session[]
   organizationMemberships OrganizationMembership[]
   companyMemberships      CompanyMembership[]
+  emailSignInTokens       EmailSignInToken[]
 
   @@map("users")
 }
@@ -328,6 +329,7 @@ model CompanyMembership {
   user               User                @relation(fields: [userId], references: [id], onDelete: Restrict)
   roles              MembershipRole[]
   projectMemberships ProjectMembership[]
+  hseActions         HseAction[]
 
   @@unique([companyId, id])
   @@unique([companyId, userId])
@@ -451,7 +453,7 @@ model Project {
   updatedById  String?       @map("updated_by") @db.Uuid
   archivedAt   DateTime?     @map("archived_at") @db.Timestamptz(6)
 
-  company           Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company           Company                   @relation(fields: [companyId], references: [id], onDelete: Restrict)
   sites             Site[]
   memberships       ProjectMembership[]
   equipment         Equipment[]
@@ -461,12 +463,21 @@ model Project {
   costEntries       CostEntry[]
   workPackages      WorkPackage[]
   bookings          ResourceBooking[]
-  customer          Customer?           @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  customer          Customer?                 @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
   quotes            Quote[]
   contracts         Contract[]
   variations        Variation[]
   invoiceCandidates InvoiceCandidate[]
   costForecasts     CostForecast[]
+  hseObservations   HseObservation[]
+  incidents         Incident[]
+  hseActions        HseAction[]
+  toolboxTalks      ToolboxTalk[]
+  riskAssessments   RiskAssessment[]
+  workPermits       WorkPermit[]
+  hseInspections    HseInspection[]
+  hsePhotos         HsePhoto[]
+  clientApprovals   VariationClientApproval[]
 
   @@unique([companyId, id])
   @@unique([companyId, code])
@@ -509,6 +520,12 @@ model Site {
   liftPlans          LiftPlan[]
   materialBatches    MaterialBatch[]
   cableDrums         CableDrum[]
+  hseObservations    HseObservation[]
+  incidents          Incident[]
+  toolboxTalks       ToolboxTalk[]
+  riskAssessments    RiskAssessment[]
+  workPermits        WorkPermit[]
+  hseInspections     HseInspection[]
 
   @@unique([companyId, id])
   @@unique([companyId, projectId, id])
@@ -544,10 +561,11 @@ model Employee {
   updatedById      String?        @map("updated_by") @db.Uuid
   archivedAt       DateTime?      @map("archived_at") @db.Timestamptz(6)
 
-  company     Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  rates       EmployeeRate[]
-  timeEntries TimeEntry[]
-  bookings    ResourceBooking[]
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  rates           EmployeeRate[]
+  timeEntries     TimeEntry[]
+  bookings        ResourceBooking[]
+  incidentPersons IncidentPerson[]
 
   @@unique([companyId, id])
   @@unique([companyId, employeeNumber])
@@ -674,20 +692,23 @@ model EquipmentRate {
 // ─────────────────────────────────────────────────────────────── Documents
 
 model Document {
-  id             String           @id @default(uuid(7)) @db.Uuid
-  companyId      String           @map("company_id") @db.Uuid
-  projectId      String?          @map("project_id") @db.Uuid
-  siteId         String?          @map("site_id") @db.Uuid
-  title          String
-  documentNumber String?          @map("document_number")
-  category       DocumentCategory @default(OTHER)
-  description    String?
-  ownerUserId    String?          @map("owner_user_id") @db.Uuid
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdById    String?          @map("created_by") @db.Uuid
-  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  updatedById    String?          @map("updated_by") @db.Uuid
-  archivedAt     DateTime?        @map("archived_at") @db.Timestamptz(6)
+  id                       String           @id @default(uuid(7)) @db.Uuid
+  companyId                String           @map("company_id") @db.Uuid
+  projectId                String?          @map("project_id") @db.Uuid
+  siteId                   String?          @map("site_id") @db.Uuid
+  title                    String
+  documentNumber           String?          @map("document_number")
+  category                 DocumentCategory @default(OTHER)
+  description              String?
+  ownerUserId              String?          @map("owner_user_id") @db.Uuid
+  /// V7: external visibility (approved versions only). Default internal.
+  sharedWithClient         Boolean          @default(false) @map("shared_with_client")
+  sharedWithSubcontractors Boolean          @default(false) @map("shared_with_subcontractors")
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById              String?          @map("created_by") @db.Uuid
+  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById              String?          @map("updated_by") @db.Uuid
+  archivedAt               DateTime?        @map("archived_at") @db.Timestamptz(6)
 
   company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
   project          Project?          @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
@@ -1749,12 +1770,16 @@ model LiftPlan {
   updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById    String?        @map("updated_by") @db.Uuid
 
-  company  Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  site     Site              @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
-  request  LogisticsRequest? @relation(fields: [companyId, siteId, requestId], references: [companyId, siteId, id], onDelete: Restrict)
-  activity TaktActivity?     @relation(fields: [companyId, siteId, activityId], references: [companyId, siteId, id], onDelete: Restrict)
-  versions LiftPlanVersion[]
-  bookings ResourceBooking[]
+  company         Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site            Site              @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  request         LogisticsRequest? @relation(fields: [companyId, siteId, requestId], references: [companyId, siteId, id], onDelete: Restrict)
+  activity        TaktActivity?     @relation(fields: [companyId, siteId, activityId], references: [companyId, siteId, id], onDelete: Restrict)
+  versions        LiftPlanVersion[]
+  bookings        ResourceBooking[]
+  hseObservations HseObservation[]
+  incidents       Incident[]
+  riskAssessments RiskAssessment[]
+  workPermits     WorkPermit[]
 
   @@unique([companyId, id])
   @@index([companyId, siteId, plannedStart])
@@ -2245,9 +2270,10 @@ model Variation {
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById        String?         @map("updated_by") @db.Uuid
 
-  project          Project   @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
-  contract         Contract? @relation(fields: [companyId, projectId, contractId], references: [companyId, projectId, id], onDelete: Restrict)
-  evidenceDocument Document? @relation(fields: [companyId, evidenceDocumentId], references: [companyId, id], onDelete: Restrict)
+  project          Project                   @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  contract         Contract?                 @relation(fields: [companyId, projectId, contractId], references: [companyId, projectId, id], onDelete: Restrict)
+  evidenceDocument Document?                 @relation(fields: [companyId, evidenceDocumentId], references: [companyId, id], onDelete: Restrict)
+  clientApprovals  VariationClientApproval[]
 
   @@unique([companyId, id])
   @@unique([projectId, number])
@@ -2361,4 +2387,471 @@ model CostForecast {
 
   @@index([companyId, projectId, category, createdAt])
   @@map("cost_forecasts")
+}
+
+// ─────────────────────────────────────────────────────────────── V7: HSE
+// Build Master §23. Integrity rules (state machines, approver ≠ author,
+// frozen approved risk assessments, append-only photos) live in the
+// v7_integrity migration. docs/adr/0021-hse-workflows.md.
+
+enum HseObservationKind {
+  SAFETY_OBSERVATION
+  NEAR_MISS
+}
+
+enum HseCategory {
+  PPE
+  HOUSEKEEPING
+  WORK_AT_HEIGHT
+  LIFTING
+  EXCAVATION
+  ELECTRICAL
+  TRAFFIC
+  MACHINERY
+  ENVIRONMENT
+  OTHER
+}
+
+enum HseSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum HseObservationStatus {
+  OPEN
+  TRIAGED
+  CLOSED
+}
+
+/// Safety observation or near miss. Reported by anyone with hse.create
+/// (employees and subcontractors too); triaged and closed with hse.manage.
+model HseObservation {
+  id                 String               @id @default(uuid(7)) @db.Uuid
+  companyId          String               @map("company_id") @db.Uuid
+  projectId          String               @map("project_id") @db.Uuid
+  siteId             String?              @map("site_id") @db.Uuid
+  number             Int
+  kind               HseObservationKind
+  category           HseCategory          @default(OTHER)
+  severity           HseSeverity          @default(LOW)
+  title              String
+  description        String?
+  location           String?
+  occurredAt         DateTime             @map("occurred_at") @db.Timestamptz(6)
+  liftPlanId         String?              @map("lift_plan_id") @db.Uuid
+  status             HseObservationStatus @default(OPEN)
+  reportedByExternal Boolean              @default(false) @map("reported_by_external")
+  triagedAt          DateTime?            @map("triaged_at") @db.Timestamptz(6)
+  triagedById        String?              @map("triaged_by") @db.Uuid
+  closedAt           DateTime?            @map("closed_at") @db.Timestamptz(6)
+  closedById         String?              @map("closed_by") @db.Uuid
+  closeNote          String?              @map("close_note")
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById        String?              @map("created_by") @db.Uuid
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById        String?              @map("updated_by") @db.Uuid
+
+  project  Project   @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site     Site?     @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  liftPlan LiftPlan? @relation(fields: [companyId, liftPlanId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@unique([projectId, number])
+  @@index([companyId, projectId, status])
+  @@map("hse_observations")
+}
+
+enum IncidentType {
+  INJURY
+  PROPERTY_DAMAGE
+  ENVIRONMENTAL
+  DANGEROUS_OCCURRENCE
+}
+
+/// FIRST_AID < MEDICAL_TREATMENT < LOST_TIME < SERIOUS. Lost-time and serious
+/// incidents must be investigated (hse.investigate) before closing.
+enum IncidentSeverity {
+  FIRST_AID
+  MEDICAL_TREATMENT
+  LOST_TIME
+  SERIOUS
+}
+
+enum IncidentStatus {
+  REPORTED
+  TRIAGED
+  INVESTIGATING
+  CLOSED
+}
+
+model Incident {
+  id                     String           @id @default(uuid(7)) @db.Uuid
+  companyId              String           @map("company_id") @db.Uuid
+  projectId              String           @map("project_id") @db.Uuid
+  siteId                 String?          @map("site_id") @db.Uuid
+  number                 Int
+  type                   IncidentType
+  severity               IncidentSeverity
+  title                  String
+  description            String?
+  location               String?
+  occurredAt             DateTime         @map("occurred_at") @db.Timestamptz(6)
+  liftPlanId             String?          @map("lift_plan_id") @db.Uuid
+  status                 IncidentStatus   @default(REPORTED)
+  reportedByExternal     Boolean          @default(false) @map("reported_by_external")
+  immediateActions       String?          @map("immediate_actions")
+  triagedAt              DateTime?        @map("triaged_at") @db.Timestamptz(6)
+  triagedById            String?          @map("triaged_by") @db.Uuid
+  investigationStartedAt DateTime?        @map("investigation_started_at") @db.Timestamptz(6)
+  investigatorId         String?          @map("investigator_id") @db.Uuid
+  rootCause              String?          @map("root_cause")
+  lostDays               Int?             @map("lost_days")
+  closedAt               DateTime?        @map("closed_at") @db.Timestamptz(6)
+  closedById             String?          @map("closed_by") @db.Uuid
+  closeNote              String?          @map("close_note")
+  notifiedAt             DateTime?        @map("notified_at") @db.Timestamptz(6)
+  createdAt              DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById            String?          @map("created_by") @db.Uuid
+  updatedAt              DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById            String?          @map("updated_by") @db.Uuid
+
+  project  Project          @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site     Site?            @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  liftPlan LiftPlan?        @relation(fields: [companyId, liftPlanId], references: [companyId, id], onDelete: Restrict)
+  persons  IncidentPerson[]
+
+  @@unique([companyId, id])
+  @@unique([projectId, number])
+  @@index([companyId, projectId, status])
+  @@map("incidents")
+}
+
+/// Injured-person details: personal (health) data. Readable only with
+/// hse.personal.view; masked in audit deltas; never shown to external parties.
+model IncidentPerson {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  companyId         String   @map("company_id") @db.Uuid
+  incidentId        String   @map("incident_id") @db.Uuid
+  employeeId        String?  @map("employee_id") @db.Uuid
+  personName        String   @map("person_name")
+  employerName      String?  @map("employer_name")
+  injuryDescription String?  @map("injury_description")
+  bodyPart          String?  @map("body_part")
+  absenceDays       Int?     @map("absence_days")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById       String?  @map("created_by") @db.Uuid
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById       String?  @map("updated_by") @db.Uuid
+
+  incident Incident  @relation(fields: [companyId, incidentId], references: [companyId, id], onDelete: Restrict)
+  employee Employee? @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, incidentId])
+  @@map("incident_persons")
+}
+
+enum HseRecordType {
+  OBSERVATION
+  INCIDENT
+  INSPECTION
+  RISK_ASSESSMENT
+}
+
+enum HseActionStatus {
+  OPEN
+  DONE
+  VERIFIED
+}
+
+/// Corrective action. Incident actions are verified (approved) with
+/// hse.action.approve (Project Manager); other actions with hse.manage.
+model HseAction {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  companyId    String          @map("company_id") @db.Uuid
+  projectId    String          @map("project_id") @db.Uuid
+  sourceType   HseRecordType   @map("source_type")
+  sourceId     String          @map("source_id") @db.Uuid
+  title        String
+  description  String?
+  assigneeId   String?         @map("assignee_id") @db.Uuid
+  dueDate      DateTime?       @map("due_date") @db.Date
+  status       HseActionStatus @default(OPEN)
+  doneAt       DateTime?       @map("done_at") @db.Timestamptz(6)
+  doneById     String?         @map("done_by") @db.Uuid
+  doneNote     String?         @map("done_note")
+  verifiedAt   DateTime?       @map("verified_at") @db.Timestamptz(6)
+  verifiedById String?         @map("verified_by") @db.Uuid
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById  String?         @map("created_by") @db.Uuid
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById  String?         @map("updated_by") @db.Uuid
+
+  project  Project            @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  assignee CompanyMembership? @relation(fields: [companyId, assigneeId], references: [companyId, userId], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, projectId, status])
+  @@index([companyId, sourceType, sourceId])
+  @@map("hse_actions")
+}
+
+model ToolboxTalk {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  projectId     String   @map("project_id") @db.Uuid
+  siteId        String?  @map("site_id") @db.Uuid
+  heldOn        DateTime @map("held_on") @db.Date
+  topic         String
+  presenter     String?
+  attendeeCount Int      @map("attendee_count")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?  @map("created_by") @db.Uuid
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById   String?  @map("updated_by") @db.Uuid
+
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site    Site?   @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, projectId, heldOn])
+  @@map("toolbox_talks")
+}
+
+enum RiskAssessmentStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+/// Risk assessment. Approved by another hse.manage holder; frozen after
+/// approval (items included) by DB triggers.
+model RiskAssessment {
+  id              String               @id @default(uuid(7)) @db.Uuid
+  companyId       String               @map("company_id") @db.Uuid
+  projectId       String               @map("project_id") @db.Uuid
+  siteId          String?              @map("site_id") @db.Uuid
+  title           String
+  workDescription String?              @map("work_description")
+  liftPlanId      String?              @map("lift_plan_id") @db.Uuid
+  status          RiskAssessmentStatus @default(DRAFT)
+  approvedAt      DateTime?            @map("approved_at") @db.Timestamptz(6)
+  approvedById    String?              @map("approved_by") @db.Uuid
+  archivedAt      DateTime?            @map("archived_at") @db.Timestamptz(6)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById     String?              @map("created_by") @db.Uuid
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById     String?              @map("updated_by") @db.Uuid
+
+  project  Project              @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site     Site?                @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  liftPlan LiftPlan?            @relation(fields: [companyId, liftPlanId], references: [companyId, id], onDelete: Restrict)
+  items    RiskAssessmentItem[]
+
+  @@unique([companyId, id])
+  @@index([companyId, projectId, status])
+  @@map("risk_assessments")
+}
+
+model RiskAssessmentItem {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  companyId           String   @map("company_id") @db.Uuid
+  riskAssessmentId    String   @map("risk_assessment_id") @db.Uuid
+  position            Int
+  hazard              String
+  likelihood          Int
+  consequence         Int
+  controls            String?
+  residualLikelihood  Int?     @map("residual_likelihood")
+  residualConsequence Int?     @map("residual_consequence")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  riskAssessment RiskAssessment @relation(fields: [companyId, riskAssessmentId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, riskAssessmentId])
+  @@map("risk_assessment_items")
+}
+
+enum PermitType {
+  HOT_WORK
+  CONFINED_SPACE
+  EXCAVATION
+  ELECTRICAL
+  WORK_AT_HEIGHT
+  LIFTING
+  OTHER
+}
+
+enum PermitStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  CLOSED
+}
+
+/// Permit to work. Requested with hse.create (subcontractors too), decided
+/// with permit.approve by someone other than the requester (DB trigger).
+model WorkPermit {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  companyId           String       @map("company_id") @db.Uuid
+  projectId           String       @map("project_id") @db.Uuid
+  siteId              String?      @map("site_id") @db.Uuid
+  number              Int
+  type                PermitType
+  description         String
+  location            String?
+  contractor          String?
+  precautions         String?
+  validFrom           DateTime     @map("valid_from") @db.Timestamptz(6)
+  validTo             DateTime     @map("valid_to") @db.Timestamptz(6)
+  liftPlanId          String?      @map("lift_plan_id") @db.Uuid
+  status              PermitStatus @default(REQUESTED)
+  requestedByExternal Boolean      @default(false) @map("requested_by_external")
+  decidedAt           DateTime?    @map("decided_at") @db.Timestamptz(6)
+  decidedById         String?      @map("decided_by") @db.Uuid
+  decisionNote        String?      @map("decision_note")
+  closedAt            DateTime?    @map("closed_at") @db.Timestamptz(6)
+  closedById          String?      @map("closed_by") @db.Uuid
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById         String?      @map("created_by") @db.Uuid
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById         String?      @map("updated_by") @db.Uuid
+
+  project  Project   @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site     Site?     @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  liftPlan LiftPlan? @relation(fields: [companyId, liftPlanId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@unique([projectId, number])
+  @@index([companyId, projectId, status])
+  @@map("work_permits")
+}
+
+enum HseInspectionKind {
+  MVR
+  TR
+  GENERAL
+}
+
+/// Site safety inspection. MVR/TR index = 100 × correct / (correct + incorrect).
+model HseInspection {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  companyId      String            @map("company_id") @db.Uuid
+  projectId      String            @map("project_id") @db.Uuid
+  siteId         String?           @map("site_id") @db.Uuid
+  kind           HseInspectionKind
+  inspectedOn    DateTime          @map("inspected_on") @db.Date
+  correctCount   Int               @map("correct_count")
+  incorrectCount Int               @map("incorrect_count")
+  notes          String?
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById    String?           @map("created_by") @db.Uuid
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById    String?           @map("updated_by") @db.Uuid
+
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site    Site?   @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, projectId, inspectedOn])
+  @@map("hse_inspections")
+}
+
+/// Photo attached to an HSE record. Append-only (DB trigger); stored through
+/// the S3 adapter; the record must exist in the same company and project.
+model HsePhoto {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  companyId   String        @map("company_id") @db.Uuid
+  projectId   String        @map("project_id") @db.Uuid
+  recordType  HseRecordType @map("record_type")
+  recordId    String        @map("record_id") @db.Uuid
+  fileName    String        @map("file_name")
+  contentType String        @map("content_type")
+  sizeBytes   BigInt        @map("size_bytes")
+  sha256      String        @db.Char(64)
+  storageKey  String        @map("storage_key")
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?       @map("created_by") @db.Uuid
+
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, recordType, recordId])
+  @@map("hse_photos")
+}
+
+// ─────────────────────────────────────────────────────────────── V7: Portals
+
+enum ClientApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ClientApprovalChannel {
+  PORTAL
+  RECORDED
+}
+
+/// Frozen version of a variation sent to the client (owner decision 2).
+/// Snapshot and hash are immutable; the decision is set once (DB trigger).
+/// At most one PENDING row per variation (partial unique index).
+model VariationClientApproval {
+  id            String                 @id @default(uuid(7)) @db.Uuid
+  companyId     String                 @map("company_id") @db.Uuid
+  projectId     String                 @map("project_id") @db.Uuid
+  variationId   String                 @map("variation_id") @db.Uuid
+  snapshot      Json
+  contentSha256 String                 @map("content_sha256") @db.Char(64)
+  sentAt        DateTime               @default(now()) @map("sent_at") @db.Timestamptz(6)
+  sentById      String?                @map("sent_by") @db.Uuid
+  decision      ClientApprovalDecision @default(PENDING)
+  channel       ClientApprovalChannel?
+  decidedAt     DateTime?              @map("decided_at") @db.Timestamptz(6)
+  decidedById   String?                @map("decided_by") @db.Uuid
+  decisionNote  String?                @map("decision_note")
+  decisionIp    String?                @map("decision_ip")
+
+  variation Variation @relation(fields: [companyId, variationId], references: [companyId, id], onDelete: Restrict)
+  project   Project   @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, projectId, decision])
+  @@index([companyId, variationId])
+  @@map("variation_client_approvals")
+}
+
+/// E-mail sign-in link for external users (owner decision 1). Only the
+/// SHA-256 of the token is stored; single use, 15 minutes.
+model EmailSignInToken {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenSha256 String    @unique @map("token_sha256") @db.Char(64)
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt  DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdIp   String?   @map("created_ip")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("email_sign_in_tokens")
+}
+
+/// Development/test mailbox. Written only by the dev mailer, which is
+/// hard-disabled in production (like the dev login).
+model DevMailOutbox {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  to        String
+  subject   String
+  bodyText  String   @map("body_text")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([to, createdAt])
+  @@map("dev_mail_outbox")
 }

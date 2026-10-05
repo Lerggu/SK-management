@@ -15,6 +15,7 @@ function ctx(perms: PermissionKey[], access: "ALL" | "ASSIGNED", grants: Record<
     permissions: new Set(perms),
     projectAccess: access,
     external: false,
+    externalParties: new Set(),
     projectGrants: new Map(Object.entries(grants).map(([k, v]) => [k, new Set(v)])),
   };
 }
