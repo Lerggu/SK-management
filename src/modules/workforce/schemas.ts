@@ -19,6 +19,7 @@ export const employeeSchema = z
     startDate: optionalDate(),
     endDate: optionalDate(),
     notes: optionalText(2000),
+    shareableInGroup: flag(),
   })
   .refine((v) => !v.startDate || !v.endDate || v.endDate >= v.startDate, { path: ["endDate"], message: "validation.endBeforeStart" });
 export type EmployeeInput = z.input<typeof employeeSchema>;

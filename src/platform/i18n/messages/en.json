@@ -55,7 +55,8 @@
     "companies": "Companies",
     "allCompanies": "All companies",
     "time": "Hours",
-    "takt": "Takt"
+    "takt": "Takt",
+    "logistics": "Logistics"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -179,7 +180,8 @@
     "statuses": {
       "ACTIVE": "Active",
       "INACTIVE": "Inactive"
-    }
+    },
+    "shareableInGroup": "Shareable with group companies (by booking)"
   },
   "rates": {
     "title": "Rates",
@@ -253,7 +255,8 @@
       "IN_USE": "In use",
       "MAINTENANCE": "In maintenance",
       "OUT_OF_SERVICE": "Out of service"
-    }
+    },
+    "shareableInGroup": "Shareable with group companies (by booking)"
   },
   "documents": {
     "title": "Documents",
@@ -364,7 +367,8 @@
       "time": "Hours",
       "diary": "Site diary",
       "finance": "Finance",
-      "takt": "Takt planning"
+      "takt": "Takt planning",
+      "logistics": "Logistics and bookings"
     },
     "permissions": {
       "company_manage": "Edit company settings",
@@ -397,7 +401,12 @@
       "takt_view": "View takt plans, the takt board and the look-ahead",
       "takt_manage": "Edit takt structure and draft versions, import schedules",
       "takt_progress_update": "Record progress, constraints and delays",
-      "takt_baseline_approve": "Approve the baseline"
+      "takt_baseline_approve": "Approve the baseline",
+      "logistics_view": "View the logistics board, deliveries, requests and bookings",
+      "logistics_request": "Create logistics requests",
+      "logistics_approve": "Review and approve logistics requests, manage gates and storage",
+      "booking_manage": "Book resources and decide booking requests for own resources",
+      "delivery_manage": "Schedule deliveries and record gate check-in and unloading"
     },
     "calendar": "Work calendar"
   },
@@ -504,7 +513,19 @@
       "activity_constraint_clear": "Constraint cleared",
       "schedule_import_preview": "Schedule uploaded for preview",
       "schedule_import_apply": "Schedule import applied",
-      "schedule_import_discard": "Schedule import discarded"
+      "schedule_import_discard": "Schedule import discarded",
+      "resource_booking_create": "Resource booked",
+      "resource_booking_approve": "Booking approved",
+      "resource_booking_reject": "Booking rejected",
+      "resource_booking_cancel": "Booking cancelled",
+      "logistics_location_create": "Gate/location added",
+      "logistics_location_archive": "Gate/location archived",
+      "logistics_request_create": "Logistics request created",
+      "logistics_request_transition": "Logistics request status changed",
+      "delivery_create": "Delivery scheduled",
+      "delivery_reschedule": "Delivery rescheduled",
+      "delivery_status": "Delivery status changed",
+      "delivery_cancel": "Delivery cancelled"
     }
   },
   "errors": {
@@ -584,7 +605,16 @@
     "scheduleNoTasks": "No tasks were found at the selected WBS level",
     "importNotPending": "The import has already been processed",
     "color": "Colour as #RRGGBB",
-    "nonZero": "The value cannot be zero"
+    "nonZero": "The value cannot be zero",
+    "time": "Time as HH:MM",
+    "dateTime": "Enter a date and time",
+    "slotAlignment": "Start on the hour or half hour (30-min slots)",
+    "gateClosed": "The gate is closed at the selected time",
+    "slotTaken": "The gate slot is already booked",
+    "deliveryArrived": "A delivery that has arrived cannot be moved",
+    "bookingNotPending": "The booking is not awaiting a decision",
+    "bookingNotActive": "The booking is no longer active",
+    "conflictsNotAccepted": "The booking has conflicts – acknowledge them to approve"
   },
   "time": {
     "title": "Hours",
@@ -943,7 +973,7 @@
     "legend": "Legend",
     "today": "Today",
     "lookaheadTitle": "Look-ahead",
-    "lookaheadHint": "Weekly resource demand from unfinished activities in approved baselines. Peak = highest simultaneous demand in the week. Capacity = the company's own active people by trade and available equipment by type. No bookings are made (V4–V5).",
+    "lookaheadHint": "Weekly resource demand from unfinished activities in approved baselines. Peak = highest simultaneous demand in the week. Capacity = the company's own active people by trade and available equipment by type. \"Booked\" = approved resource bookings (including from other group companies).",
     "weeks": {
       "2": "2 weeks (operational)",
       "6": "6 weeks (resources)",
@@ -987,6 +1017,166 @@
     "activitiesN": "{count} activities",
     "noVersion": "No version",
     "planStart": "Starts {date}",
-    "unscheduled": "Unscheduled activities"
+    "unscheduled": "Unscheduled activities",
+    "logistics": "Logistics",
+    "noLogistics": "No deliveries, requests or bookings.",
+    "requirements": "Resource requirement (baseline)",
+    "bookResource": "Book a resource",
+    "booked": "booked {count}"
+  },
+  "logistics": {
+    "title": "Logistics",
+    "board": "Logistics board",
+    "site": "Site",
+    "date": "Date",
+    "show": "Show",
+    "noSites": "No sites with logistics access.",
+    "gateView": "Gate view",
+    "gateViewHint": "Today's arrivals. Record the status with one tap.",
+    "bookings": "Resource bookings",
+    "setup": "Gates and storage",
+    "gates": "Gates",
+    "noGates": "No gates on this site. Add one under Gates and storage.",
+    "slotHint": "Deliveries are booked in 30-minute slots; one delivery per gate at a time.",
+    "deliveries": "Deliveries",
+    "noDeliveries": "No deliveries on this day.",
+    "newDelivery": "New delivery",
+    "gate": "Gate",
+    "unloading": "Unloading point",
+    "storage": "Storage location",
+    "supplier": "Supplier",
+    "carrier": "Carrier",
+    "vehicle": "Vehicle (reg.)",
+    "material": "Material",
+    "quantity": "Quantity",
+    "weightKg": "Weight (kg)",
+    "startTime": "Starts at",
+    "slots": "Duration (30-min slots)",
+    "activity": "Takt activity",
+    "activityHint": "The linked activity gets a material constraint that clears when the material is on site.",
+    "request": "Logistics request",
+    "notes": "Notes",
+    "schedule": "Schedule",
+    "reschedule": "Reschedule",
+    "deliveryStatuses": {
+      "PLANNED": "Planned",
+      "CONFIRMED": "Confirmed",
+      "ARRIVED_GATE": "At the gate",
+      "CHECKED_IN": "Checked in",
+      "UNLOADING": "Unloading",
+      "STORED": "Stored",
+      "MOVED_TO_WORKFACE": "At the workface",
+      "INSTALLED": "Installed",
+      "CANCELLED": "Cancelled"
+    },
+    "advanceTo": {
+      "CONFIRMED": "Confirm",
+      "ARRIVED_GATE": "Arrived at gate",
+      "CHECKED_IN": "Check in",
+      "UNLOADING": "Start unloading",
+      "STORED": "Stored",
+      "MOVED_TO_WORKFACE": "To the workface",
+      "INSTALLED": "Installed",
+      "CANCELLED": "Cancel"
+    },
+    "requests": "Logistics requests",
+    "noRequests": "No requests.",
+    "newRequest": "New logistics request",
+    "serviceType": "Service",
+    "serviceTypes": {
+      "DELIVERY": "Delivery",
+      "LIFT": "Lift",
+      "INTERNAL_MOVE": "Internal move",
+      "WASTE_REMOVAL": "Waste removal",
+      "OTHER": "Other"
+    },
+    "requestTitle": "Title",
+    "requestedStart": "Start",
+    "requestedEnd": "End",
+    "loadDescription": "Load description",
+    "dimensions": "Dimensions",
+    "pickup": "Pickup",
+    "destination": "Destination",
+    "equipmentType": "Required equipment",
+    "priority": "Priority",
+    "priorities": {
+      "LOW": "Low",
+      "NORMAL": "Normal",
+      "HIGH": "High",
+      "CRITICAL": "Critical"
+    },
+    "submitNow": "Submit for review now",
+    "createRequest": "Save request",
+    "requestStatuses": {
+      "DRAFT": "Draft",
+      "REQUESTED": "Requested",
+      "REVIEW": "In review",
+      "APPROVED": "Approved",
+      "SCHEDULED": "Scheduled",
+      "IN_PROGRESS": "In progress",
+      "COMPLETE": "Complete",
+      "CANCELLED": "Cancelled"
+    },
+    "transitionTo": {
+      "DRAFT": "Return to draft",
+      "REQUESTED": "Submit",
+      "REVIEW": "Start review",
+      "APPROVED": "Approve",
+      "SCHEDULED": "Mark scheduled",
+      "IN_PROGRESS": "Start",
+      "COMPLETE": "Complete",
+      "CANCELLED": "Cancel request"
+    },
+    "decisionNote": "Note",
+    "approvers": "Approvers: Logistics Coordinator or Site Manager (Project Director and CEO in all projects).",
+    "linkedDeliveries": "Deliveries",
+    "myBookings": "Bookings",
+    "incoming": "Requests from group companies",
+    "incomingHint": "Other group companies request your resources. Ownership, costs and permissions stay with your company.",
+    "noBookings": "No bookings.",
+    "newBooking": "New booking",
+    "project": "Project",
+    "resources": "Resources",
+    "resourcesHint": "Pick one or more (a crew). Group resources need the owning company's approval.",
+    "ownResources": "Own resources",
+    "groupResources": "Shared group resources",
+    "startsAt": "Starts",
+    "endsAt": "Ends",
+    "book": "Book",
+    "bookingStatuses": {
+      "REQUESTED": "Awaiting decision",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "owner": "Owner",
+    "bookedBy": "Booked by",
+    "conflicts": "Conflicts",
+    "conflictCodes": {
+      "OVERLAP": "Overlapping booking",
+      "RESOURCE_INACTIVE": "Resource unavailable",
+      "INSPECTION_DUE": "Inspection due",
+      "TRADE_MISMATCH": "Trade does not match",
+      "TYPE_MISMATCH": "Equipment type does not match"
+    },
+    "conflictsAccepted": "Conflicts acknowledged",
+    "acceptConflicts": "I acknowledge the conflicts",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancelBooking": "Cancel booking",
+    "conflictHint": "Conflicts are never resolved automatically: decide whether to approve.",
+    "locationKinds": {
+      "GATE": "Gate",
+      "UNLOADING": "Unloading point",
+      "STORAGE": "Storage location"
+    },
+    "kind": "Type",
+    "name": "Name",
+    "opens": "Opens",
+    "closes": "Closes",
+    "addLocation": "Add",
+    "hours": "{opens}–{closes}",
+    "openLogistics": "Logistics",
+    "none": "–"
   }
 }

@@ -29,6 +29,8 @@ import { taktPlanService } from "@/modules/takt/plan.service";
 import { taktActivityService } from "@/modules/takt/activity.service";
 import { lookaheadService } from "@/modules/takt/lookahead.service";
 import { scheduleImportService } from "@/modules/takt/import.service";
+import { bookingService } from "@/modules/logistics/booking.service";
+import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -72,6 +74,10 @@ interface World {
     dependency: string;
     constraint: string;
     scheduleImport: string;
+    gate: string;
+    logisticsRequest: string;
+    delivery: string;
+    booking: string;
   };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
@@ -165,6 +171,13 @@ beforeAll(async () => {
   });
 
 
+  // ── V4 data in company A ──
+  const gate = await logisticsLocationService.create(actx, { siteId: site.id, kind: "GATE", name: "A gate", opens: "06:00", closes: "18:00" });
+  const logisticsRequest = await logisticsRequestService.create(actx, { siteId: site.id, activityId: activity.id, serviceType: "DELIVERY", title: "A secret delivery", requestedStart: "2026-11-02T07:00", requestedEnd: "2026-11-02T08:00", submit: "on" });
+  const delivery = await deliveryService.create(actx, { siteId: site.id, gateId: gate.id, supplier: "A supplier", material: "A material", date: "2026-11-02", startTime: "07:00" });
+  const [booking] = await bookingService.create(actx, { resources: [`EQUIPMENT:${equipment.id}`], projectId: project.id, startsAt: "2026-11-02T07:00", endsAt: "2026-11-02T15:00" });
+  await equipmentService.update(actx, equipment.id, { equipmentTypeId: type.id, assetNumber: "A-EQ", name: "A crane 1", currentProjectId: project.id, shareableInGroup: "on" });
+
   // ── V3 data in company B (for cross-references) ──
   const bBuilding = await taktStructureService.createBuilding(b.ownerCtx, { siteId: bSite.id, name: "B building" });
   const bArea = await taktStructureService.createArea(b.ownerCtx, { buildingId: bBuilding.id, code: "B1", name: "B area" });
@@ -214,6 +227,10 @@ beforeAll(async () => {
       dependency: dependency.id,
       constraint: constraint.id,
       scheduleImport: scheduleImport.id,
+      gate: gate.id,
+      logisticsRequest: logisticsRequest.id,
+      delivery: delivery.id,
+      booking: booking.id,
     },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
@@ -539,6 +556,53 @@ const cases: Record<string, Case> = {
   "scheduleImport.discard": () => expectNotFound(scheduleImportService.discard(w.bCtx, w.ids.scheduleImport)),
   "scheduleImport.apply": () => expectNotFound(scheduleImportService.apply(w.bCtx, w.ids.scheduleImport)),
 
+  // ── V4 logistics ────────────────────────────────────────────────
+  "booking.resourceOptions": async () => {
+    await expectNotFound(bookingService.resourceOptions(w.bCtx, w.ids.project));
+    // A's crane is shareable, but B is in another organization: never offered.
+    const own = await bookingService.resourceOptions(w.bCtx, w.bProject);
+    expect(JSON.stringify(own)).not.toContain(w.ids.equipment);
+  },
+  "booking.list": async () => {
+    await expectNotFound(bookingService.list(w.bCtx, { projectId: w.ids.project }));
+    expect((await bookingService.list(w.bCtx)).map((b) => b.id)).not.toContain(w.ids.booking);
+  },
+  "booking.incoming": async () => {
+    expect((await bookingService.incoming(w.bCtx)).map((b) => b.id)).not.toContain(w.ids.booking);
+  },
+  "booking.get": () => expectNotFound(bookingService.get(w.bCtx, w.ids.booking)),
+  "booking.create": async () => {
+    await expectNotFound(bookingService.create(w.bCtx, { resources: [`EQUIPMENT:${w.ids.equipment}`], projectId: w.ids.project, startsAt: "2026-11-03T07:00", endsAt: "2026-11-03T15:00" }));
+    await expectRejected(bookingService.create(w.bCtx, { resources: [`EQUIPMENT:${w.ids.equipment}`], projectId: w.bProject, startsAt: "2026-11-03T07:00", endsAt: "2026-11-03T15:00" }));
+    await expectRejected(bookingService.create(w.bCtx, { resources: [`EMPLOYEE:${w.ids.employee}`], projectId: w.bProject, activityId: w.ids.activity, startsAt: "2026-11-03T07:00", endsAt: "2026-11-03T15:00" }));
+  },
+  "booking.decide": () => expectNotFound(bookingService.decide(w.bCtx, w.ids.booking, { decision: "REJECT" })),
+  "booking.cancel": () => expectNotFound(bookingService.cancel(w.bCtx, w.ids.booking)),
+  "logisticsLocation.list": () => expectNotFound(logisticsLocationService.list(w.bCtx, w.ids.site)),
+  "logisticsLocation.create": () => expectNotFound(logisticsLocationService.create(w.bCtx, { siteId: w.ids.site, kind: "STORAGE", name: "Intruder" })),
+  "logisticsLocation.archive": () => expectNotFound(logisticsLocationService.archive(w.bCtx, w.ids.gate)),
+  "logisticsRequest.list": async () => {
+    await expectNotFound(logisticsRequestService.list(w.bCtx, { siteId: w.ids.site }));
+    expect((await logisticsRequestService.list(w.bCtx)).map((r) => r.id)).not.toContain(w.ids.logisticsRequest);
+  },
+  "logisticsRequest.get": () => expectNotFound(logisticsRequestService.get(w.bCtx, w.ids.logisticsRequest)),
+  "logisticsRequest.create": async () => {
+    await expectNotFound(logisticsRequestService.create(w.bCtx, { siteId: w.ids.site, serviceType: "OTHER", title: "x", requestedStart: "2026-11-02T07:00", requestedEnd: "2026-11-02T08:00" }));
+    await expectRejected(logisticsRequestService.create(w.bCtx, { siteId: w.bSite, activityId: w.ids.activity, serviceType: "OTHER", title: "x", requestedStart: "2026-11-02T07:00", requestedEnd: "2026-11-02T08:00" }));
+  },
+  "logisticsRequest.transition": () => expectNotFound(logisticsRequestService.transition(w.bCtx, w.ids.logisticsRequest, { to: "CANCELLED" })),
+  "delivery.get": () => expectNotFound(deliveryService.get(w.bCtx, w.ids.delivery)),
+  "delivery.create": async () => {
+    await expectNotFound(deliveryService.create(w.bCtx, { siteId: w.ids.site, gateId: w.ids.gate, supplier: "x", material: "x", date: "2026-11-02", startTime: "09:00" }));
+    await expectRejected(deliveryService.create(w.bCtx, { siteId: w.bSite, gateId: w.ids.gate, supplier: "x", material: "x", date: "2026-11-02", startTime: "09:00" }));
+  },
+  "delivery.reschedule": () => expectNotFound(deliveryService.reschedule(w.bCtx, w.ids.delivery, { gateId: w.ids.gate, date: "2026-11-02", startTime: "10:00", slots: 1 })),
+  "delivery.advance": () => expectNotFound(deliveryService.advance(w.bCtx, w.ids.delivery, { to: "CANCELLED" })),
+  "logisticsBoard.sites": async () => {
+    expect((await logisticsBoardService.sites(w.bCtx)).map((x) => x.id)).not.toContain(w.ids.site);
+  },
+  "logisticsBoard.day": () => expectNotFound(logisticsBoardService.day(w.bCtx, { siteId: w.ids.site, date: "2026-11-02" })),
+
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -585,5 +649,9 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.taktActivity.findUniqueOrThrow({ where: { id: w.ids.activity } })).progressPct).toBe(0);
     expect((await db.scheduleImport.findUniqueOrThrow({ where: { id: w.ids.scheduleImport } })).status).toBe("PREVIEW");
     expect(await db.activityDependency.count({ where: { planId: w.ids.plan } })).toBe(1);
+    expect((await db.delivery.findUniqueOrThrow({ where: { id: w.ids.delivery } })).status).toBe("PLANNED");
+    expect((await db.resourceBooking.findUniqueOrThrow({ where: { id: w.ids.booking } })).status).toBe("APPROVED");
+    expect((await db.logisticsRequest.findUniqueOrThrow({ where: { id: w.ids.logisticsRequest } })).status).toBe("REQUESTED");
+    expect(await db.resourceBooking.count({ where: { equipmentId: w.ids.equipment } })).toBe(1);
   });
 });

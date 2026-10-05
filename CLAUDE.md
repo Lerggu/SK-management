@@ -8,9 +8,9 @@ This file is the standing brief for Claude Code in this repository. Read it at t
 
 Read both fully before any architectural change. If this file and the Build Master conflict, the Build Master wins, except where the owner-approved decisions below are more specific.
 
-## Current release: V3 — Takt & Look-ahead (APPROVED by owner 2026-10-05)
-V1 — Foundation (`docs/V1_REPORT.md`) and V2 — Site Execution & Project Finance (`docs/V2_REPORT.md`) are complete. V3 scope and owner decisions: `docs/V3_PLAN.md`.
-Do not implement V4–V8 functionality. Do not start V4 without explicit owner approval.
+## Current release: V4 — Logistics (APPROVED by owner 2026-10-05)
+V1 — Foundation (`docs/V1_REPORT.md`), V2 — Site Execution & Project Finance (`docs/V2_REPORT.md`) and V3 — Takt & Look-ahead (`docs/V3_REPORT.md`) are complete. V4 scope and owner decisions: `docs/V4_PLAN.md`.
+Do not implement V5–V8 functionality. Do not start V5 without explicit owner approval.
 
 ## Owner requirements (binding)
 1. Finnish is the default UI language; English is available from V1 (i18n from day one, no hard-coded UI strings).

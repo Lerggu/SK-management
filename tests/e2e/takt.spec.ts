@@ -50,7 +50,7 @@ test.describe("takt planning: structure → train → baseline → import → co
     await page.getByLabel("Aikataulutiedosto").setInputFiles(join(__dirname, "../fixtures/schedules/data-hall-b.xml"));
     await page.getByRole("button", { name: "Lataa ja esikatsele" }).click();
     await expect(page.getByTestId("import-counts")).toContainText("6 tehtävää: 4 kohdistettu");
-    await page.screenshot({ path: `docs/screenshots/${testInfo.project.name}/takt-import-preview.png`, fullPage: true });
+    await page.screenshot({ path: `docs/screenshots/${testInfo.project.name}/takt-import-preview.png`, fullPage: true, caret: "initial" });
     await page.getByRole("button", { name: "Tuo luonnosversioon" }).click();
     await expect(page.getByTestId("versions").locator('[data-version="2"]')).toContainText("Luonnos");
     await expect(page.getByTestId("takt-board")).toContainText("Zone B1");

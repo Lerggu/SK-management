@@ -37,6 +37,7 @@ export const equipmentSchema = z
     meterHours: optionalDecimal(9, 1),
     nextInspectionDate: optionalDate(),
     notes: optionalText(2000),
+    shareableInGroup: flag(),
   })
   .refine((v) => !v.currentSiteId || v.currentProjectId, { path: ["currentSiteId"], message: "validation.siteRequiresProject" });
 export type EquipmentInput = z.input<typeof equipmentSchema>;

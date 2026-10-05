@@ -14,6 +14,8 @@ import { taktPlanService } from "./takt/plan.service";
 import { taktActivityService } from "./takt/activity.service";
 import { lookaheadService } from "./takt/lookahead.service";
 import { scheduleImportService } from "./takt/import.service";
+import { bookingService } from "./logistics/booking.service";
+import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "./logistics/logistics.service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -44,4 +46,10 @@ export const SERVICE_REGISTRY = {
   taktActivity: taktActivityService,
   lookahead: lookaheadService,
   scheduleImport: scheduleImportService,
+  // V4
+  booking: bookingService,
+  logisticsLocation: logisticsLocationService,
+  logisticsRequest: logisticsRequestService,
+  delivery: deliveryService,
+  logisticsBoard: logisticsBoardService,
 } as const;

@@ -9,6 +9,8 @@ export const USERS = {
   supervisor: "supervisor@skinfra.example.com",
   siteManager: "site.manager@skinfra.example.com",
   pm: "pm@skinfra.example.com",
+  logistics: "logistics@skinfra.example.com",
+  purentCeo: "ceo@purent.example.com",
 } as const;
 
 export const authFile = (user: keyof typeof USERS) => `tests/e2e/.auth/${user}.json`;
@@ -45,4 +47,12 @@ export async function navigate(page: Page, testInfo: TestInfo, label: string) {
 
 export function acceptDialogs(page: Page) {
   page.on("dialog", (d) => d.accept());
+}
+
+/** Opens the logistics board for a site (sites are chosen with the GET picker). */
+export async function openLogisticsBoard(page: Page, site = "NDC-001 · Data Hall A") {
+  await page.goto("/c/sk-infra-demo/logistics");
+  await page.getByTestId("site-day-picker").getByLabel("Työmaa").selectOption({ label: site });
+  await page.getByTestId("site-day-picker").getByRole("button", { name: "Näytä" }).click();
+  await expect(page).toHaveURL(/site=/);
 }

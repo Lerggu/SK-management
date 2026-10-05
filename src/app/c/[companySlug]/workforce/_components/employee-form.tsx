@@ -23,6 +23,7 @@ export async function EmployeeForm({
     startDate: Date | null;
     endDate: Date | null;
     notes: string | null;
+    shareableInGroup?: boolean;
   };
 }) {
   const t = await getTranslations("workforce");
@@ -41,6 +42,10 @@ export async function EmployeeForm({
       <TextField name="endDate" label={t("endDate")} type="date" defaultValue={isoDate(employee?.endDate)} />
       <SelectField name="status" label={t("status")} defaultValue={employee?.status ?? "ACTIVE"} options={RESOURCE_STATUSES.map((v) => ({ value: v, label: t(`statuses.${v}`) }))} />
       <TextareaField name="notes" label={t("notes")} defaultValue={employee?.notes} className="sm:col-span-2" />
+      <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2 md:min-h-0">
+        <input type="checkbox" name="shareableInGroup" defaultChecked={employee?.shareableInGroup ?? false} className="size-5 accent-primary md:size-4" />
+        {t("shareableInGroup")}
+      </label>
       <div className="sm:col-span-2">
         <SubmitButton>{employee ? tc("save") : tc("create")}</SubmitButton>
       </div>

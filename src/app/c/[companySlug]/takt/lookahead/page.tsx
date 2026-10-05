@@ -101,12 +101,13 @@ export default async function LookaheadPage({ params, searchParams }: Props) {
                         {r.cells.map((c) => (
                           <td
                             key={c.weekStart}
-                            title={t("peakTitle", { peak: c.peak, days: c.days, shortage: c.shortage })}
+                            title={`${t("peakTitle", { peak: c.peak, days: c.days, shortage: c.shortage })} · ${t("booked", { count: c.booked })}`}
                             className={cn("py-2 text-center tabular-nums", c.peak === 0 && "text-muted-foreground", c.shortage > 0 && "bg-red-50 font-semibold text-red-800")}
                             data-shortage={c.shortage > 0 || undefined}
                           >
                             {c.peak || "·"}
                             {c.shortage > 0 && <span className="block text-[10px]">−{c.shortage}</span>}
+                            {c.booked > 0 && <span className="block text-[10px] font-normal text-emerald-800">{t("booked", { count: c.booked })}</span>}
                           </td>
                         ))}
                       </tr>
