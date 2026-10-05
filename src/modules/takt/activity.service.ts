@@ -2,7 +2,7 @@ import { readClient, runInTransaction } from "@/platform/db";
 import { NotFoundError, ValidationError } from "@/platform/errors";
 import { writeAudit } from "@/platform/audit";
 import { dateOnly, parseInput } from "@/platform/http/validation";
-import type { RequestContext } from "@/platform/authz";
+import { projectPermissions, type RequestContext } from "@/platform/authz";
 import { shiftDays, toIsoDate } from "./calendar";
 import { applyProgress, mondayOf } from "./engine";
 import { requireTakt, taktPermissions, today } from "./access";
@@ -65,6 +65,8 @@ export const taktActivityService = {
     const users = await repo.findUsers([...new Set([...activity.progress.map((p) => p.createdById), ...activity.constraints.map((c) => c.clearedById)].filter((x): x is string => !!x))]);
     const status = statuses.get(activity.id) ?? { status: "NOT_READY" as const, reasons: [] };
     const planActivities = (await repo.listActivities(plan.id)).filter((a) => a.id !== activity.id);
+    const logistics = projectPermissions(ctx, plan.projectId).has("logistics.view") ? await repo.activityLogistics(activity.id) : null;
+    const requirements = await repo.activityRequirements(activity.id);
     return {
       activity: { ...activity, progress: activity.progress.map((p) => ({ ...p, by: users.find((u) => u.id === p.createdById) ?? null })) },
       plan,
@@ -74,7 +76,9 @@ export const taktActivityService = {
       openSpan: await spanIn(open),
       equipmentTypes: await repo.listEquipmentTypes(),
       otherActivities: planActivities.map((a) => ({ id: a.id, label: `${a.taktArea.code} · ${a.workPackage.code} ${a.name}` })).sort((x, y) => x.label.localeCompare(y.label)),
-      permissions: taktPermissions(ctx, plan.projectId),
+      permissions: { ...taktPermissions(ctx, plan.projectId), book: projectPermissions(ctx, plan.projectId).has("booking.manage") },
+      logistics,
+      requirements,
       today: toIsoDate(today()),
     };
   },

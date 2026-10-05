@@ -1,4 +1,6 @@
-# V4 — Logistics: plan (DRAFT, awaiting owner approval)
+# V4 — Logistics: plan
+
+- Approved by the owner: 2026-10-05 ("saa aloittaa V4"; decisions below, recommendations accepted)
 
 - Scope: Build Master §10 (resource scheduling), §11 (logistics control), §12 (delivery management), §38 (V4).
 - Out of scope: lift plans, rigging, material and cable drum tracking, QR workflows (V5); internal invoicing between companies (V6); AI suggestions (V8).

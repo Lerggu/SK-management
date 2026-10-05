@@ -126,7 +126,7 @@ export function AppShell(props: ShellProps) {
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="flex flex-col gap-1 px-4 pt-5 pb-4">
-          <Image src="/brand/sk-infra-logo-light.svg" alt="SK Infra" width={172} height={40} priority unoptimized className="h-10 w-auto self-start" />
+          <Image src="/brand/sk-infra-logo-light.svg" alt="SK Infra" width={172} height={40} priority unoptimized className="h-10 w-auto self-start" style={{ width: "auto" }} />
           <span className="text-xs font-medium uppercase tracking-[0.2em] text-white/70">{labels.appName}</span>
         </div>
         <div className="px-3 pb-3">

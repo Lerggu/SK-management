@@ -24,6 +24,8 @@ import { taktPlanService } from "@/modules/takt/plan.service";
 import { taktActivityService } from "@/modules/takt/activity.service";
 import { lookaheadService } from "@/modules/takt/lookahead.service";
 import { scheduleImportService } from "@/modules/takt/import.service";
+import { bookingService } from "@/modules/logistics/booking.service";
+import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Outcome = "✓" | "F" | "N";
@@ -54,6 +56,7 @@ interface Fixture {
   draftReportId: () => Promise<string>;
   reportId: string;
   takt: { planId: string; draftId: string; activityId: string; buildingId: string; proposedVersionId: () => Promise<string> };
+  logistics: { gateId: string; requestedId: () => Promise<string>; slot: () => string };
 }
 
 let dayCounter = 0;
@@ -112,6 +115,13 @@ const ACTIONS: Record<string, Action> = {
     }),
   "view look-ahead": (c, f) => lookaheadService.compute(c, { weeks: 6, projectId: f.projectId }),
   "edit work calendar": (c) => workCalendarService.addHoliday(c, { date: nextDate(), name: "Matrix" }),
+  // V4
+  "view logistics board": (c, f) => logisticsBoardService.day(c, { siteId: f.siteId, date: "2026-11-02" }),
+  "create logistics request": (c, f) => logisticsRequestService.create(c, { siteId: f.siteId, serviceType: "DELIVERY", title: "Matrix", requestedStart: "2026-11-02T07:00", requestedEnd: "2026-11-02T08:00", submit: "on" }),
+  "approve logistics request": async (c, f) => logisticsRequestService.transition(c, await f.logistics.requestedId(), { to: "APPROVED" }),
+  "manage gates": (c, f) => logisticsLocationService.create(c, { siteId: f.siteId, kind: "STORAGE", name: uniq("Varasto") }),
+  "book resource": (c, f) => bookingService.create(c, { resources: [`EQUIPMENT:${f.equipmentId}`], projectId: f.projectId, startsAt: "2026-12-01T07:00", endsAt: "2026-12-01T08:00" }),
+  "schedule delivery": (c, f) => deliveryService.create(c, { siteId: f.siteId, gateId: f.logistics.gateId, supplier: "Matrix", material: "Matrix", date: f.logistics.slot(), startTime: "07:00" }),
 };
 
 // Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI
@@ -151,6 +161,12 @@ const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
   "import schedule":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N"],
   "view look-ahead":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
   "edit work calendar":      ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view logistics board":    ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
+  "create logistics request":["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "N", "N"],
+  "approve logistics request":["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N"],
+  "manage gates":            ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N"],
+  "book resource":           ["✓", "✓", "✓", "✓", "F", "✓", "F", "F", "N", "N"],
+  "schedule delivery":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N"],
 };
 
 let f: Fixture;
@@ -183,6 +199,7 @@ beforeAll(async () => {
     submittedEntryId: async () => "",
     draftReportId: async () => "",
     takt: { planId: "", draftId: "", activityId: "", buildingId: "", proposedVersionId: async () => "" },
+    logistics: { gateId: "", requestedId: async () => "", slot: () => "" },
   };
   const site = await sites.create(t.ownerCtx, project.id, { name: "Matrix site" });
   const report = await diaryService.open(t.ownerCtx, { siteId: site.id, date: "2026-02-01" });
@@ -206,6 +223,14 @@ beforeAll(async () => {
   await taktPlanService.propose(t.ownerCtx, v1.id);
   await taktPlanService.approve(t.ownerCtx, v1.id);
   const draft = await taktPlanService.createDraft(t.ownerCtx, plan.id, {});
+  const gate = await logisticsLocationService.create(t.ownerCtx, { siteId: site.id, kind: "GATE", name: "Matrix gate", opens: "06:00", closes: "18:00" });
+  let deliveryDay = 0;
+  f.logistics = {
+    gateId: gate.id,
+    requestedId: async () => (await logisticsRequestService.create(t.ownerCtx, { siteId: site.id, serviceType: "DELIVERY", title: uniq("R"), requestedStart: "2026-11-02T07:00", requestedEnd: "2026-11-02T08:00", submit: "on" })).id,
+    // A fresh day per call keeps gate slots free.
+    slot: () => new Date(Date.UTC(2027, 0, 1 + deliveryDay++)).toISOString().slice(0, 10),
+  };
   f.takt = {
     planId: plan.id,
     draftId: draft.id,

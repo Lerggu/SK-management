@@ -1,10 +1,11 @@
-import { ChartGantt, Clock, FileText, FolderKanban, LayoutDashboard, Settings, Truck, Users } from "lucide-react";
+import { ChartGantt, Clock, FileText, PackageCheck, FolderKanban, LayoutDashboard, Settings, Truck, Users } from "lucide-react";
 
 export const NAV_ICONS = {
   dashboard: LayoutDashboard,
   projects: FolderKanban,
   time: Clock,
   takt: ChartGantt,
+  logistics: PackageCheck,
   workforce: Users,
   equipment: Truck,
   documents: FileText,

@@ -24,6 +24,8 @@ import { budgetService, costService } from "@/modules/finance/service";
 import { taktStructureService } from "@/modules/takt/structure.service";
 import { taktPlanService } from "@/modules/takt/plan.service";
 import { taktActivityService } from "@/modules/takt/activity.service";
+import { bookingService } from "@/modules/logistics/booking.service";
+import { deliveryService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { addDays, isoDateString, weekStart } from "@/modules/timesheets/rules";
 import { todayInDisplayZone } from "@/platform/i18n/config";
 
@@ -396,7 +398,56 @@ async function main() {
   await employeeService.addRate(purentCeo, purentEmp.id, { rateType: "COST", amount: "36.00", validFrom: "2026-01-01" });
   await employeeService.create(purentCeo, { employeeNumber: "P-002", firstName: "Laura", lastName: "Leikki", trade: "Työnjohto", jobTitle: "Foreman" });
   const forklift = await equipmentTypeService.create(purentCeo, { name: "Trukki", category: "FORKLIFT" });
-  await equipmentService.create(purentCeo, { equipmentTypeId: forklift.id, assetNumber: "PU-EQ-01", name: "Forklift 2.5 t", manufacturer: "Linde", nextInspectionDate: "2026-11-30" });
+  // Shared with the group: SK Infra may book it (Purent approves; ownership stays with Purent).
+  const purentForklift = await equipmentService.create(purentCeo, { equipmentTypeId: forklift.id, assetNumber: "PU-EQ-01", name: "Forklift 2.5 t", manufacturer: "Linde", nextInspectionDate: "2026-11-30", shareableInGroup: "on" });
+
+  // ── V4: logistics at Data Hall A (SK Infra Demo) ──────────────────
+  const logCtx = await ctxFor("logistics@skinfra.example.com", "sk-infra-demo");
+  const tomorrowIso = isoDateString(addDays(today, 1));
+  const gate1 = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "GATE", name: "Portti 1 (pohjoinen)", opens: "06:00", closes: "18:00" });
+  const gate2 = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "GATE", name: "Portti 2 (itä)", opens: "07:00", closes: "15:00" });
+  const unloadA = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "UNLOADING", name: "Purkualue A" });
+  const cableStore = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "STORAGE", name: "Kaapelivarasto" });
+  await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "STORAGE", name: "Kenttävarasto" });
+
+  const drumRequest = await logisticsRequestService.create(supervisorCtx, {
+    siteId: hallA.id,
+    activityId: byKey("KA", "A5").id,
+    serviceType: "DELIVERY",
+    title: "Kaapelirummut 4 kpl (AXMK 4×240)",
+    requestedStart: `${todayIso}T09:00`,
+    requestedEnd: `${todayIso}T10:00`,
+    weightKg: "8400",
+    priority: "HIGH",
+    pickup: "Kaapeli Demo Oy, Vantaa",
+    destination: "Kaapelivarasto",
+    equipmentTypeId: types.CRANE,
+    submit: "on",
+  });
+  await logisticsRequestService.transition(logCtx, drumRequest.id, { to: "APPROVED", note: "Portti 1 klo 9, nosturi varattu" });
+  await logisticsRequestService.create(supervisorCtx, {
+    siteId: hallA.id,
+    activityId: byKey("KH", "A6").id,
+    serviceType: "LIFT",
+    title: "Kaapelihyllynippujen nosto 2. kerrokseen",
+    requestedStart: `${tomorrowIso}T07:00`,
+    requestedEnd: `${tomorrowIso}T09:00`,
+    weightKg: "1200",
+    submit: "on",
+  });
+
+  const scaffolding = await deliveryService.create(logCtx, { siteId: hallA.id, gateId: gate1.id, unloadingId: unloadA.id, supplier: "Teline Demo Oy", vehicle: "ABC-123", material: "Telinetarvikkeet", quantity: "2 lavaa", date: todayIso, startTime: "07:00", slots: "1" });
+  for (const to of ["ARRIVED_GATE", "CHECKED_IN", "UNLOADING", "STORED"]) await deliveryService.advance(logCtx, scaffolding.id, { to });
+  const drums = await deliveryService.create(logCtx, { siteId: hallA.id, gateId: gate1.id, unloadingId: unloadA.id, storageId: cableStore.id, requestId: drumRequest.id, supplier: "Kaapeli Demo Oy", carrier: "Kuljetus Demo Oy", vehicle: "XYZ-789", material: "Kaapelirummut 4 kpl", quantity: "4 rumpua", weightKg: "8400", date: todayIso, startTime: "09:00", slots: "2" });
+  await deliveryService.advance(logCtx, drums.id, { to: "CONFIRMED" });
+  await deliveryService.create(logCtx, { siteId: hallA.id, gateId: gate2.id, activityId: byKey("KH", "A6").id, supplier: "Hylly Demo Oy", material: "Kaapelihyllyt 200 m", quantity: "200 m", date: todayIso, startTime: "11:00", slots: "1" });
+
+  // Bookings: crane for today (approved), an overlapping request (conflict), a crew for tomorrow, Purent's forklift.
+  await bookingService.create(pmCtx, { resources: [`EQUIPMENT:${createdEquipment[0].id}`], projectId: ndc.id, activityId: byKey("KA", "A5").id, startsAt: `${todayIso}T07:00`, endsAt: `${todayIso}T15:30`, note: "Kaapelirumpujen purku" });
+  await bookingService.create(pmCtx, { resources: [`EQUIPMENT:${createdEquipment[0].id}`], projectId: ndc.id, activityId: byKey("KH", "A6").id, startsAt: `${todayIso}T13:00`, endsAt: `${todayIso}T17:00`, note: "Hyllynippujen nosto" });
+  const electricians = createdEmployees.filter((e) => e.trade === "Sähköasentaja").map((e) => `EMPLOYEE:${e.id}`);
+  await bookingService.create(pmCtx, { resources: electricians, projectId: ndc.id, activityId: byKey("KA", "A6").id, startsAt: `${tomorrowIso}T07:00`, endsAt: `${tomorrowIso}T15:30` });
+  await bookingService.create(pmCtx, { resources: [`EQUIPMENT:${purentForklift.id}`], projectId: ndc.id, siteId: hallA.id, startsAt: `${tomorrowIso}T07:00`, endsAt: `${tomorrowIso}T15:30`, note: "Kenttävaraston siirrot" });
 
   console.log("✔ Seed complete (fictional data).");
   console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, client@example.com, ceo@purent.example.com …");

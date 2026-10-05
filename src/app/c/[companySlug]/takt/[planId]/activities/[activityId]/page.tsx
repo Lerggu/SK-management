@@ -22,6 +22,8 @@ import {
   updateActivityAction,
 } from "../../../actions";
 import { taktPlanService } from "@/modules/takt/plan.service";
+import { bookingService } from "@/modules/logistics/booking.service";
+import { createBookingAction } from "../../../../logistics/actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("takt"))("activity") };
@@ -41,6 +43,9 @@ export default async function ActivityPage({ params }: Props) {
   const draft = board?.versions.find((x) => x.status === "DRAFT") ?? null;
   const draftAssignment = draft && board?.selected?.id === draft.id ? board.activities.find((x) => x.id === a.id)?.assignment : null;
   const base = `/c/${companySlug}/takt/${planId}`;
+  const [tl, resourceOptions] = await Promise.all([getTranslations("logistics"), perms.book ? bookingService.resourceOptions(ctx, d.plan.projectId).catch(() => null) : Promise.resolve(null)]);
+  const lg = `/c/${companySlug}/logistics`;
+  const dtf = (x: Date) => format.dateTime(x, { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
   const depLabel = (x: { taktArea: { code: string }; workPackage: { code: string; name: string }; name: string }) => `${x.taktArea.code} · ${x.workPackage.code} ${x.name}`;
 
   return (
@@ -234,6 +239,76 @@ export default async function ActivityPage({ params }: Props) {
                 {t("archiveActivity")}
               </ActionButton>
             </div>
+          </Section>
+        )}
+
+        {d.logistics && (
+          <Section title={t("logistics")}>
+            {d.requirements.length > 0 && (
+              <div className="mb-4">
+                <h3 className="mb-1 text-sm font-semibold">{t("requirements")}</h3>
+                <ul className="flex flex-wrap gap-2 text-sm" data-testid="activity-requirements">
+                  {d.requirements.map((r) => (
+                    <li key={r.id} className="rounded-md bg-muted px-2 py-1">
+                      {r.quantity} × {r.kind === "TRADE" ? r.trade : r.equipmentType?.name} · {fmtDate(format, r.startDate)}–{fmtDate(format, r.endDate)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {d.logistics.requests.length + d.logistics.deliveries.length + d.logistics.bookings.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("noLogistics")}</p>
+            ) : (
+              <ul className="divide-y text-sm" data-testid="activity-logistics">
+                {d.logistics.requests.map((r) => (
+                  <li key={r.id} className="flex min-h-11 flex-wrap items-center gap-2 py-1">
+                    <StatusBadge status={r.status === "COMPLETE" ? "COMPLETED" : r.status} label={tl(`requestStatuses.${r.status}`)} />
+                    <a href={`${lg}/requests/${r.id}`} className="font-medium hover:underline">{r.title}</a>
+                    <span className="text-muted-foreground">{tl(`serviceTypes.${r.serviceType}`)} · {dtf(r.requestedStart)}</span>
+                  </li>
+                ))}
+                {d.logistics.deliveries.map((x) => (
+                  <li key={x.id} className="flex min-h-11 flex-wrap items-center gap-2 py-1">
+                    <StatusBadge status={x.status === "INSTALLED" ? "COMPLETED" : x.status} label={tl(`deliveryStatuses.${x.status}`)} />
+                    <a href={`${lg}/deliveries/${x.id}`} className="font-medium hover:underline">{x.material}</a>
+                    <span className="text-muted-foreground">{x.supplier} · {dtf(x.slotStart)}</span>
+                  </li>
+                ))}
+                {d.logistics.bookings.map((b) => (
+                  <li key={b.id} className="flex min-h-11 flex-wrap items-center gap-2 py-1">
+                    <StatusBadge status={b.status === "REQUESTED" ? "PENDING_APPROVAL" : b.status} label={tl(`bookingStatuses.${b.status}`)} />
+                    <span className="font-medium">{b.employee ? `${b.employee.lastName} ${b.employee.firstName}` : `${b.equipment!.assetNumber} ${b.equipment!.name}`}</span>
+                    <span className="text-muted-foreground">{dtf(b.startsAt)}–{dtf(b.endsAt)} · {b.ownerCompany.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {resourceOptions && (
+              <ActionForm action={createBookingAction.bind(null, companySlug)} className="mt-4 space-y-3 border-t pt-4" data-testid="activity-booking-form">
+                <h3 className="text-sm font-semibold">{t("bookResource")}</h3>
+                <input type="hidden" name="projectId" value={d.plan.projectId} />
+                <input type="hidden" name="activityId" value={a.id} />
+                {d.requirements.length > 0 && (
+                  <SelectField name="requirementId" label={t("requirements")} placeholder="–" options={d.requirements.map((r) => ({ value: r.id, label: `${r.quantity} × ${r.kind === "TRADE" ? r.trade : r.equipmentType?.name}` }))} />
+                )}
+                <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border p-2">
+                  {[...resourceOptions.own, ...resourceOptions.group].map((o) => (
+                    <label key={o.value} className="flex min-h-11 cursor-pointer items-center gap-3 rounded px-2 hover:bg-muted md:min-h-9">
+                      <input type="checkbox" name="resources" value={o.value} className="size-5 accent-primary md:size-4" />
+                      <span className="text-sm">
+                        {o.label}
+                        <span className="text-muted-foreground">{o.detail ? ` · ${o.detail}` : ""}{"owner" in o ? ` · ${o.owner}` : ""}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <TextField name="startsAt" label={tl("startsAt")} type="datetime-local" defaultValue={`${d.baselineSpan?.start ?? d.today}T07:00`} required />
+                  <TextField name="endsAt" label={tl("endsAt")} type="datetime-local" defaultValue={`${d.baselineSpan?.end ?? d.today}T15:30`} required />
+                  <SubmitButton variant="outline">{tl("book")}</SubmitButton>
+                </div>
+              </ActionForm>
+            )}
           </Section>
         )}
 

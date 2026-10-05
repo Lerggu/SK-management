@@ -55,7 +55,8 @@
     "companies": "Yritykset",
     "allCompanies": "Kaikki yritykset",
     "time": "Tunnit",
-    "takt": "Tahti"
+    "takt": "Tahti",
+    "logistics": "Logistiikka"
   },
   "auth": {
     "signInTitle": "Kirjaudu sisään",
@@ -179,7 +180,8 @@
     "statuses": {
       "ACTIVE": "Aktiivinen",
       "INACTIVE": "Ei aktiivinen"
-    }
+    },
+    "shareableInGroup": "Jaettavissa konsernin yrityksille (varauksella)"
   },
   "rates": {
     "title": "Hinnat",
@@ -253,7 +255,8 @@
       "IN_USE": "Käytössä",
       "MAINTENANCE": "Huollossa",
       "OUT_OF_SERVICE": "Poistettu käytöstä"
-    }
+    },
+    "shareableInGroup": "Jaettavissa konsernin yrityksille (varauksella)"
   },
   "documents": {
     "title": "Dokumentit",
@@ -364,7 +367,8 @@
       "time": "Tunnit",
       "diary": "Työmaapäiväkirja",
       "finance": "Talous",
-      "takt": "Tahtiohjaus"
+      "takt": "Tahtiohjaus",
+      "logistics": "Logistiikka ja varaukset"
     },
     "permissions": {
       "company_manage": "Muokkaa yrityksen asetuksia",
@@ -397,7 +401,12 @@
       "takt_view": "Näkee tahtisuunnitelmat, tahtitaulun ja look-aheadin",
       "takt_manage": "Muokkaa tahtirakennetta ja luonnosversioita, tuo aikatauluja",
       "takt_progress_update": "Kirjaa edistymisen, rajoitteet ja viivästykset",
-      "takt_baseline_approve": "Hyväksyy baselinen"
+      "takt_baseline_approve": "Hyväksyy baselinen",
+      "logistics_view": "Näkee logistiikkataulun, toimitukset, pyynnöt ja varaukset",
+      "logistics_request": "Tekee logistiikkapyyntöjä",
+      "logistics_approve": "Käsittelee ja hyväksyy logistiikkapyynnöt, hallitsee portit ja varastot",
+      "booking_manage": "Varaa resursseja ja päättää omien resurssien varauspyynnöistä",
+      "delivery_manage": "Aikatauluttaa toimitukset ja kirjaa portti- ja purkutapahtumat"
     },
     "calendar": "Työkalenteri"
   },
@@ -504,7 +513,19 @@
       "activity_constraint_clear": "Rajoite poistettu",
       "schedule_import_preview": "Aikataulu tuotu esikatseluun",
       "schedule_import_apply": "Aikataulun tuonti hyväksytty",
-      "schedule_import_discard": "Aikataulun tuonti hylätty"
+      "schedule_import_discard": "Aikataulun tuonti hylätty",
+      "resource_booking_create": "Resurssi varattu",
+      "resource_booking_approve": "Varaus hyväksytty",
+      "resource_booking_reject": "Varaus hylätty",
+      "resource_booking_cancel": "Varaus peruttu",
+      "logistics_location_create": "Portti/paikka lisätty",
+      "logistics_location_archive": "Portti/paikka arkistoitu",
+      "logistics_request_create": "Logistiikkapyyntö luotu",
+      "logistics_request_transition": "Logistiikkapyynnön tila muuttui",
+      "delivery_create": "Toimitus aikataulutettu",
+      "delivery_reschedule": "Toimitus siirretty",
+      "delivery_status": "Toimituksen tila muuttui",
+      "delivery_cancel": "Toimitus peruttu"
     }
   },
   "errors": {
@@ -584,7 +605,16 @@
     "scheduleNoTasks": "Tiedostosta ei löytynyt tehtäviä valitulla WBS-tasolla",
     "importNotPending": "Tuonti on jo käsitelty",
     "color": "Väri muodossa #RRGGBB",
-    "nonZero": "Arvo ei voi olla nolla"
+    "nonZero": "Arvo ei voi olla nolla",
+    "time": "Kellonaika muodossa HH:MM",
+    "dateTime": "Anna päivä ja kellonaika",
+    "slotAlignment": "Aloitus tasan tai puoli (30 min ikkunat)",
+    "gateClosed": "Portti on suljettuna valittuna aikana",
+    "slotTaken": "Portin aikaikkuna on jo varattu",
+    "deliveryArrived": "Saapunutta toimitusta ei voi siirtää",
+    "bookingNotPending": "Varaus ei odota päätöstä",
+    "bookingNotActive": "Varaus on jo päättynyt",
+    "conflictsNotAccepted": "Varauksella on ristiriitoja – kuittaa ne hyväksyäksesi"
   },
   "time": {
     "title": "Tunnit",
@@ -943,7 +973,7 @@
     "legend": "Selite",
     "today": "Tänään",
     "lookaheadTitle": "Look-ahead",
-    "lookaheadHint": "Resurssitarve hyväksyttyjen baselinejen keskeneräisistä tehtävistä viikoittain. Huippu = suurin yhtäaikainen tarve viikon aikana. Kapasiteetti = yrityksen omat aktiiviset henkilöt ammatin mukaan ja käytettävissä oleva kalusto tyypin mukaan. Varauksia ei tehdä (V4–V5).",
+    "lookaheadHint": "Resurssitarve hyväksyttyjen baselinejen keskeneräisistä tehtävistä viikoittain. Huippu = suurin yhtäaikainen tarve viikon aikana. Kapasiteetti = yrityksen omat aktiiviset henkilöt ammatin mukaan ja käytettävissä oleva kalusto tyypin mukaan. \"Varattu\" = hyväksytyt resurssivaraukset (myös konsernin muilta yrityksiltä).",
     "weeks": {
       "2": "2 viikkoa (operatiivinen)",
       "6": "6 viikkoa (resurssit)",
@@ -987,6 +1017,166 @@
     "activitiesN": "{count} tehtävää",
     "noVersion": "Ei versiota",
     "planStart": "Alkaa {date}",
-    "unscheduled": "Ajoittamattomat tehtävät"
+    "unscheduled": "Ajoittamattomat tehtävät",
+    "logistics": "Logistiikka",
+    "noLogistics": "Ei toimituksia, pyyntöjä tai varauksia.",
+    "requirements": "Resurssitarve (baseline)",
+    "bookResource": "Varaa resurssi",
+    "booked": "varattu {count}"
+  },
+  "logistics": {
+    "title": "Logistiikka",
+    "board": "Logistiikkataulu",
+    "site": "Työmaa",
+    "date": "Päivä",
+    "show": "Näytä",
+    "noSites": "Ei työmaita, joihin sinulla on logistiikkaoikeus.",
+    "gateView": "Porttinäkymä",
+    "gateViewHint": "Päivän saapuvat toimitukset. Kirjaa tila yhdellä napautuksella.",
+    "bookings": "Resurssivaraukset",
+    "setup": "Portit ja varastot",
+    "gates": "Portit",
+    "noGates": "Työmaalle ei ole määritetty portteja. Lisää portti kohdassa Portit ja varastot.",
+    "slotHint": "Toimitukset varataan 30 minuutin ikkunoihin. Yhteen porttiin mahtuu yksi toimitus kerrallaan.",
+    "deliveries": "Toimitukset",
+    "noDeliveries": "Ei toimituksia tälle päivälle.",
+    "newDelivery": "Uusi toimitus",
+    "gate": "Portti",
+    "unloading": "Purkupaikka",
+    "storage": "Varastopaikka",
+    "supplier": "Toimittaja",
+    "carrier": "Kuljetusliike",
+    "vehicle": "Ajoneuvo (rek.)",
+    "material": "Materiaali",
+    "quantity": "Määrä",
+    "weightKg": "Paino (kg)",
+    "startTime": "Alkaa klo",
+    "slots": "Kesto (30 min ikkunoita)",
+    "activity": "Takt-tehtävä",
+    "activityHint": "Linkitetty tehtävä saa materiaalirajoitteen, joka kuitataan kun materiaali on työmaalla.",
+    "request": "Logistiikkapyyntö",
+    "notes": "Lisätiedot",
+    "schedule": "Aikatauluta",
+    "reschedule": "Siirrä",
+    "deliveryStatuses": {
+      "PLANNED": "Suunniteltu",
+      "CONFIRMED": "Vahvistettu",
+      "ARRIVED_GATE": "Portilla",
+      "CHECKED_IN": "Kirjattu sisään",
+      "UNLOADING": "Purussa",
+      "STORED": "Varastossa",
+      "MOVED_TO_WORKFACE": "Työkohteessa",
+      "INSTALLED": "Asennettu",
+      "CANCELLED": "Peruttu"
+    },
+    "advanceTo": {
+      "CONFIRMED": "Vahvista",
+      "ARRIVED_GATE": "Saapui portille",
+      "CHECKED_IN": "Kirjaa sisään",
+      "UNLOADING": "Aloita purku",
+      "STORED": "Varastoon",
+      "MOVED_TO_WORKFACE": "Työkohteeseen",
+      "INSTALLED": "Asennettu",
+      "CANCELLED": "Peru"
+    },
+    "requests": "Logistiikkapyynnöt",
+    "noRequests": "Ei pyyntöjä.",
+    "newRequest": "Uusi logistiikkapyyntö",
+    "serviceType": "Palvelu",
+    "serviceTypes": {
+      "DELIVERY": "Toimitus",
+      "LIFT": "Nosto",
+      "INTERNAL_MOVE": "Siirto työmaalla",
+      "WASTE_REMOVAL": "Jätehuolto",
+      "OTHER": "Muu"
+    },
+    "requestTitle": "Otsikko",
+    "requestedStart": "Alkaa",
+    "requestedEnd": "Päättyy",
+    "loadDescription": "Kuorman kuvaus",
+    "dimensions": "Mitat",
+    "pickup": "Nouto",
+    "destination": "Määränpää",
+    "equipmentType": "Tarvittava kalusto",
+    "priority": "Kiireellisyys",
+    "priorities": {
+      "LOW": "Matala",
+      "NORMAL": "Normaali",
+      "HIGH": "Korkea",
+      "CRITICAL": "Kriittinen"
+    },
+    "submitNow": "Lähetä heti käsittelyyn",
+    "createRequest": "Tallenna pyyntö",
+    "requestStatuses": {
+      "DRAFT": "Luonnos",
+      "REQUESTED": "Pyydetty",
+      "REVIEW": "Käsittelyssä",
+      "APPROVED": "Hyväksytty",
+      "SCHEDULED": "Aikataulutettu",
+      "IN_PROGRESS": "Käynnissä",
+      "COMPLETE": "Valmis",
+      "CANCELLED": "Peruttu"
+    },
+    "transitionTo": {
+      "DRAFT": "Palauta luonnokseksi",
+      "REQUESTED": "Lähetä",
+      "REVIEW": "Ota käsittelyyn",
+      "APPROVED": "Hyväksy",
+      "SCHEDULED": "Merkitse aikataulutetuksi",
+      "IN_PROGRESS": "Aloita",
+      "COMPLETE": "Valmis",
+      "CANCELLED": "Peru pyyntö"
+    },
+    "decisionNote": "Huomio",
+    "approvers": "Hyväksyjät: logistiikkakoordinaattori tai työmaapäällikkö (projektijohtaja ja toimitusjohtaja kaikissa projekteissa).",
+    "linkedDeliveries": "Toimitukset",
+    "myBookings": "Varaukset",
+    "incoming": "Pyynnöt konsernin yrityksiltä",
+    "incomingHint": "Toiset konsernin yritykset pyytävät käyttöön resurssejanne. Omistajuus, kustannukset ja oikeudet pysyvät yritykselläsi.",
+    "noBookings": "Ei varauksia.",
+    "newBooking": "Uusi varaus",
+    "project": "Projekti",
+    "resources": "Resurssit",
+    "resourcesHint": "Valitse yksi tai useampi (porukka). Konsernin resurssit vaativat omistajayrityksen hyväksynnän.",
+    "ownResources": "Omat resurssit",
+    "groupResources": "Konsernin jaetut resurssit",
+    "startsAt": "Alkaa",
+    "endsAt": "Päättyy",
+    "book": "Varaa",
+    "bookingStatuses": {
+      "REQUESTED": "Odottaa päätöstä",
+      "APPROVED": "Hyväksytty",
+      "REJECTED": "Hylätty",
+      "CANCELLED": "Peruttu"
+    },
+    "owner": "Omistaja",
+    "bookedBy": "Varaaja",
+    "conflicts": "Ristiriidat",
+    "conflictCodes": {
+      "OVERLAP": "Päällekkäinen varaus",
+      "RESOURCE_INACTIVE": "Resurssi ei käytettävissä",
+      "INSPECTION_DUE": "Tarkastus erääntyy",
+      "TRADE_MISMATCH": "Ammatti ei vastaa tarvetta",
+      "TYPE_MISMATCH": "Kalustotyyppi ei vastaa tarvetta"
+    },
+    "conflictsAccepted": "Ristiriidat kuitattu",
+    "acceptConflicts": "Kuittaan ristiriidat",
+    "approve": "Hyväksy",
+    "reject": "Hylkää",
+    "cancelBooking": "Peru varaus",
+    "conflictHint": "Ristiriitoja ei ratkaista automaattisesti: päätä itse, hyväksytäänkö varaus.",
+    "locationKinds": {
+      "GATE": "Portti",
+      "UNLOADING": "Purkupaikka",
+      "STORAGE": "Varastopaikka"
+    },
+    "kind": "Tyyppi",
+    "name": "Nimi",
+    "opens": "Avautuu",
+    "closes": "Sulkeutuu",
+    "addLocation": "Lisää",
+    "hours": "{opens}–{closes}",
+    "openLogistics": "Logistiikka",
+    "none": "–"
   }
 }

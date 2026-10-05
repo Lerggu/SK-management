@@ -2,7 +2,8 @@ import { readClient } from "@/platform/db";
 import { NotFoundError } from "@/platform/errors";
 import { parseInput } from "@/platform/http/validation";
 import { canAccessProject, projectPermissions, type RequestContext } from "@/platform/authz";
-import { shiftDays, toIsoDate } from "./calendar";
+import { parseIsoDate, shiftDays, toIsoDate } from "./calendar";
+import { utcToZoned } from "@/platform/i18n/time";
 import { mondayOf, weeklyDemand } from "./engine";
 import { toWorkingCalendar, today, visibleTaktProjects } from "./access";
 import { TaktRepo } from "./repo";
@@ -11,8 +12,8 @@ import { lookaheadSchema, type LookaheadInput } from "./schemas";
 /**
  * Look-ahead (2-week operational, 6-week resource, 12-week forecast): demand
  * from baseline resource requirements of activities not yet complete, per
- * trade and equipment type, against the company's own active capacity.
- * No bookings are made (V4–V5).
+ * trade and equipment type, against the company's own active capacity and
+ * the resources it has booked (V4).
  */
 export const lookaheadService = {
   async compute(ctx: RequestContext, input: LookaheadInput) {
@@ -28,13 +29,24 @@ export const lookaheadService = {
     const to = shiftDays(from, data.weeks * 7 - 1);
     const calendarRow = await repo.findDefaultCalendar();
     const cal = calendarRow ? toWorkingCalendar(calendarRow) : { workingWeekdays: [1, 2, 3, 4, 5], holidays: new Set<string>() };
-    const [requirements, tradeCapacity, equipmentCapacity, equipmentTypes, plans] = await Promise.all([
+    const [requirements, tradeCapacity, equipmentCapacity, equipmentTypes, plans, bookings] = await Promise.all([
       repo.baselineRequirements(projectIds, from, to),
       repo.tradeCapacity(),
       repo.equipmentCapacity(),
       repo.listEquipmentTypes(),
       repo.listPlans(visibleTaktProjects(ctx)),
+      repo.approvedBookings(from, shiftDays(to, 1)),
     ]);
+    // Booked capacity (V4): approved bookings of this company per trade / equipment type.
+    const booked = weeklyDemand(
+      cal,
+      bookings
+        .map((b) => ({ kind: b.employee ? ("TRADE" as const) : ("EQUIPMENT_TYPE" as const), key: b.employee ? (b.employee.trade ?? "").toLowerCase() : b.equipment!.equipmentTypeId, quantity: 1, start: parseIsoDate(utcToZoned(b.startsAt).date), end: parseIsoDate(utcToZoned(new Date(b.endsAt.getTime() - 1)).date) }))
+        .filter((b) => b.key),
+      from,
+      data.weeks,
+    );
+    const bookedFor = (kind: string, key: string) => booked.rows.find((r) => r.kind === kind && r.key === (kind === "TRADE" ? key.toLowerCase() : key))?.cells;
     const demand = weeklyDemand(
       cal,
       requirements.map((r) => ({ kind: r.kind, key: r.kind === "TRADE" ? r.trade! : r.equipmentTypeId!, quantity: r.quantity, start: r.startDate, end: r.endDate })),
@@ -54,7 +66,7 @@ export const lookaheadService = {
           lifting: type?.category === "CRANE" || type?.category === "LIFTING_ACCESSORY",
           capacity,
           activities,
-          cells: row.cells.map((c) => ({ ...c, shortage: Math.max(0, c.peak - capacity) })),
+          cells: row.cells.map((c, i) => ({ ...c, shortage: Math.max(0, c.peak - capacity), booked: bookedFor(row.kind, row.key)?.[i]?.peak ?? 0 })),
         };
       })
       .sort((a, b) => a.kind.localeCompare(b.kind) || a.label.localeCompare(b.label));

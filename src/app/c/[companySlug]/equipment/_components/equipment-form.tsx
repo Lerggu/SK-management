@@ -29,6 +29,7 @@ export async function EquipmentForm({
     meterHours: { toString(): string } | null;
     nextInspectionDate: Date | null;
     notes: string | null;
+    shareableInGroup?: boolean;
   };
 }) {
   const [t, tc, types, projects] = await Promise.all([getTranslations("equipment"), getTranslations("common"), equipmentTypeService.list(ctx), projectService.list(ctx)]);
@@ -53,6 +54,10 @@ export async function EquipmentForm({
       <TextField name="serialNumber" label={t("serialNumber")} defaultValue={equipment?.serialNumber} />
       <TextField name="registrationNumber" label={t("registrationNumber")} defaultValue={equipment?.registrationNumber} autoCapitalize="characters" />
       <TextareaField name="notes" label={t("notes")} defaultValue={equipment?.notes} className="sm:col-span-2" />
+      <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2 md:min-h-0">
+        <input type="checkbox" name="shareableInGroup" defaultChecked={equipment?.shareableInGroup ?? false} className="size-5 accent-primary md:size-4" />
+        {t("shareableInGroup")}
+      </label>
       <div className="sm:col-span-2">
         <SubmitButton>{equipment ? tc("save") : tc("create")}</SubmitButton>
       </div>

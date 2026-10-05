@@ -31,6 +31,7 @@ function toEmployeeView(ctx: RequestContext, e: EmployeeRow, rates?: RateRow[]) 
     startDate: e.startDate,
     endDate: e.endDate,
     notes: e.notes,
+    shareableInGroup: e.shareableInGroup,
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
     archivedAt: e.archivedAt,

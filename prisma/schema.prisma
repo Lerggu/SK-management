@@ -171,22 +171,27 @@ model Company {
   updatedById     String?   @map("updated_by") @db.Uuid
   archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
 
-  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  memberships    CompanyMembership[]
-  roles          Role[]
-  projects       Project[]
-  sites          Site[]
-  employees      Employee[]
-  employeeRates  EmployeeRate[]
-  equipmentTypes EquipmentType[]
-  equipment      Equipment[]
-  equipmentRates EquipmentRate[]
-  documents      Document[]
-  timeEntries    TimeEntry[]
-  dailyReports   DailyReport[]
-  budgets        Budget[]
-  costEntries    CostEntry[]
-  workCalendars  WorkCalendar[]
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  memberships        CompanyMembership[]
+  roles              Role[]
+  projects           Project[]
+  sites              Site[]
+  employees          Employee[]
+  employeeRates      EmployeeRate[]
+  equipmentTypes     EquipmentType[]
+  equipment          Equipment[]
+  equipmentRates     EquipmentRate[]
+  documents          Document[]
+  timeEntries        TimeEntry[]
+  dailyReports       DailyReport[]
+  budgets            Budget[]
+  costEntries        CostEntry[]
+  workCalendars      WorkCalendar[]
+  bookings           ResourceBooking[]   @relation("BookingCompany")
+  ownedBookings      ResourceBooking[]   @relation("BookingOwner")
+  logisticsRequests  LogisticsRequest[]
+  logisticsLocations LogisticsLocation[]
+  deliveries         Delivery[]
 
   @@index([organizationId])
   @@map("companies")
@@ -445,6 +450,7 @@ model Project {
   budgets      Budget[]
   costEntries  CostEntry[]
   workPackages WorkPackage[]
+  bookings     ResourceBooking[]
 
   @@unique([companyId, id])
   @@unique([companyId, code])
@@ -471,15 +477,19 @@ model Site {
   updatedById String?    @map("updated_by") @db.Uuid
   archivedAt  DateTime?  @map("archived_at") @db.Timestamptz(6)
 
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  project      Project       @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
-  equipment    Equipment[]
-  documents    Document[]
-  timeEntries  TimeEntry[]
-  dailyReports DailyReport[]
-  costEntries  CostEntry[]
-  buildings    Building[]
-  taktPlans    TaktPlan[]
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project            Project             @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  equipment          Equipment[]
+  documents          Document[]
+  timeEntries        TimeEntry[]
+  dailyReports       DailyReport[]
+  costEntries        CostEntry[]
+  buildings          Building[]
+  taktPlans          TaktPlan[]
+  bookings           ResourceBooking[]
+  logisticsRequests  LogisticsRequest[]
+  logisticsLocations LogisticsLocation[]
+  deliveries         Delivery[]
 
   @@unique([companyId, id])
   @@unique([companyId, projectId, id])
@@ -492,30 +502,33 @@ model Site {
 // status. Cross-company use will be a booking, never a change of company_id.
 
 model Employee {
-  id             String         @id @default(uuid(7)) @db.Uuid
-  companyId      String         @map("company_id") @db.Uuid
-  employeeNumber String         @map("employee_number")
-  firstName      String         @map("first_name")
-  lastName       String         @map("last_name")
-  email          String?
-  phone          String?
-  jobTitle       String?        @map("job_title")
-  trade          String?
-  employmentType EmploymentType @default(EMPLOYEE) @map("employment_type")
-  status         ResourceStatus @default(ACTIVE)
-  userId         String?        @map("user_id") @db.Uuid
-  startDate      DateTime?      @map("start_date") @db.Date
-  endDate        DateTime?      @map("end_date") @db.Date
-  notes          String?
-  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdById    String?        @map("created_by") @db.Uuid
-  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
-  updatedById    String?        @map("updated_by") @db.Uuid
-  archivedAt     DateTime?      @map("archived_at") @db.Timestamptz(6)
+  id               String         @id @default(uuid(7)) @db.Uuid
+  companyId        String         @map("company_id") @db.Uuid
+  employeeNumber   String         @map("employee_number")
+  firstName        String         @map("first_name")
+  lastName         String         @map("last_name")
+  email            String?
+  phone            String?
+  jobTitle         String?        @map("job_title")
+  trade            String?
+  employmentType   EmploymentType @default(EMPLOYEE) @map("employment_type")
+  status           ResourceStatus @default(ACTIVE)
+  userId           String?        @map("user_id") @db.Uuid
+  startDate        DateTime?      @map("start_date") @db.Date
+  endDate          DateTime?      @map("end_date") @db.Date
+  notes            String?
+  /// V4: may be booked by other companies of the same organization.
+  shareableInGroup Boolean        @default(false) @map("shareable_in_group")
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById      String?        @map("created_by") @db.Uuid
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById      String?        @map("updated_by") @db.Uuid
+  archivedAt       DateTime?      @map("archived_at") @db.Timestamptz(6)
 
-  company     Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company     Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
   rates       EmployeeRate[]
   timeEntries TimeEntry[]
+  bookings    ResourceBooking[]
 
   @@unique([companyId, id])
   @@unique([companyId, employeeNumber])
@@ -562,11 +575,12 @@ model EquipmentType {
   updatedById String?           @map("updated_by") @db.Uuid
   archivedAt  DateTime?         @map("archived_at") @db.Timestamptz(6)
 
-  company        Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  equipment      Equipment[]
-  workPackages   WorkPackage[]
-  taktActivities TaktActivity[]
-  requirements   ResourceRequirement[]
+  company           Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  equipment         Equipment[]
+  workPackages      WorkPackage[]
+  taktActivities    TaktActivity[]
+  requirements      ResourceRequirement[]
+  logisticsRequests LogisticsRequest[]
 
   @@unique([companyId, id])
   @@unique([companyId, name])
@@ -590,6 +604,8 @@ model Equipment {
   meterHours         Decimal?        @map("meter_hours") @db.Decimal(10, 1)
   nextInspectionDate DateTime?       @map("next_inspection_date") @db.Date
   notes              String?
+  /// V4: may be booked by other companies of the same organization.
+  shareableInGroup   Boolean         @default(false) @map("shareable_in_group")
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   createdById        String?         @map("created_by") @db.Uuid
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -602,6 +618,7 @@ model Equipment {
   currentSite    Site?              @relation(fields: [companyId, currentProjectId, currentSiteId], references: [companyId, projectId, id], onDelete: Restrict)
   rates          EquipmentRate[]
   diaryEntries   DailyReportEntry[]
+  bookings       ResourceBooking[]
 
   @@unique([companyId, id])
   @@unique([companyId, assetNumber])
@@ -1207,19 +1224,23 @@ model TaktActivity {
   updatedById     String?           @map("updated_by") @db.Uuid
   archivedAt      DateTime?         @map("archived_at") @db.Timestamptz(6)
 
-  plan          TaktPlan              @relation(fields: [companyId, projectId, siteId, planId], references: [companyId, projectId, siteId, id], onDelete: Restrict)
-  taktArea      TaktArea              @relation(fields: [companyId, siteId, taktAreaId], references: [companyId, siteId, id], onDelete: Restrict)
-  workPackage   WorkPackage           @relation(fields: [companyId, projectId, workPackageId], references: [companyId, projectId, id], onDelete: Restrict)
-  equipmentType EquipmentType?        @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
-  assignments   TaktAssignment[]
-  predecessors  ActivityDependency[]  @relation("DependencySuccessor")
-  successors    ActivityDependency[]  @relation("DependencyPredecessor")
-  constraints   ActivityConstraint[]
-  progress      ActivityProgress[]
-  requirements  ResourceRequirement[]
+  plan              TaktPlan              @relation(fields: [companyId, projectId, siteId, planId], references: [companyId, projectId, siteId, id], onDelete: Restrict)
+  taktArea          TaktArea              @relation(fields: [companyId, siteId, taktAreaId], references: [companyId, siteId, id], onDelete: Restrict)
+  workPackage       WorkPackage           @relation(fields: [companyId, projectId, workPackageId], references: [companyId, projectId, id], onDelete: Restrict)
+  equipmentType     EquipmentType?        @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  assignments       TaktAssignment[]
+  predecessors      ActivityDependency[]  @relation("DependencySuccessor")
+  successors        ActivityDependency[]  @relation("DependencyPredecessor")
+  constraints       ActivityConstraint[]
+  progress          ActivityProgress[]
+  requirements      ResourceRequirement[]
+  bookings          ResourceBooking[]
+  logisticsRequests LogisticsRequest[]
+  deliveries        Delivery[]
 
   @@unique([companyId, id])
   @@unique([companyId, planId, id])
+  @@unique([companyId, siteId, id])
   @@unique([planId, workPackageId, taktAreaId])
   @@index([companyId, planId])
   @@map("takt_activities")
@@ -1305,7 +1326,8 @@ model ActivityConstraint {
   updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById String?          @map("updated_by") @db.Uuid
 
-  activity TaktActivity @relation(fields: [companyId, planId, activityId], references: [companyId, planId, id], onDelete: Restrict)
+  activity   TaktActivity @relation(fields: [companyId, planId, activityId], references: [companyId, planId, id], onDelete: Restrict)
+  deliveries Delivery[]
 
   @@unique([companyId, id])
   @@index([companyId, planId, status])
@@ -1352,9 +1374,10 @@ model ResourceRequirement {
   endDate         DateTime        @map("end_date") @db.Date
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  version       TaktPlanVersion @relation(fields: [companyId, planId, versionId], references: [companyId, planId, id], onDelete: Restrict)
-  activity      TaktActivity    @relation(fields: [companyId, planId, activityId], references: [companyId, planId, id], onDelete: Restrict)
-  equipmentType EquipmentType?  @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  version       TaktPlanVersion   @relation(fields: [companyId, planId, versionId], references: [companyId, planId, id], onDelete: Restrict)
+  activity      TaktActivity      @relation(fields: [companyId, planId, activityId], references: [companyId, planId, id], onDelete: Restrict)
+  equipmentType EquipmentType?    @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  bookings      ResourceBooking[]
 
   @@unique([companyId, id])
   @@index([companyId, versionId])
@@ -1398,4 +1421,224 @@ model ScheduleImport {
   @@unique([companyId, id])
   @@index([companyId, planId])
   @@map("schedule_imports")
+}
+
+// ─────────────────────────────────────────────────────────────── V4 — Logistics
+// Bookings are the only way a resource is used by another company: the
+// resource keeps its owning company (owner_company_id); the booking belongs
+// to the booking company (company_id). Both must be in the same organization
+// (DB trigger). See docs/adr/0014-resource-bookings.md.
+
+enum BookingResourceKind {
+  EMPLOYEE
+  EQUIPMENT
+}
+
+enum BookingStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model ResourceBooking {
+  id                String              @id @default(uuid(7)) @db.Uuid
+  companyId         String              @map("company_id") @db.Uuid
+  ownerCompanyId    String              @map("owner_company_id") @db.Uuid
+  resourceKind      BookingResourceKind @map("resource_kind")
+  employeeId        String?             @map("employee_id") @db.Uuid
+  equipmentId       String?             @map("equipment_id") @db.Uuid
+  projectId         String              @map("project_id") @db.Uuid
+  siteId            String?             @map("site_id") @db.Uuid
+  activityId        String?             @map("activity_id") @db.Uuid
+  requirementId     String?             @map("requirement_id") @db.Uuid
+  startsAt          DateTime            @map("starts_at") @db.Timestamptz(6)
+  endsAt            DateTime            @map("ends_at") @db.Timestamptz(6)
+  status            BookingStatus       @default(REQUESTED)
+  note              String?
+  conflictsAccepted Boolean             @default(false) @map("conflicts_accepted")
+  requestedById     String?             @map("requested_by") @db.Uuid
+  decidedAt         DateTime?           @map("decided_at") @db.Timestamptz(6)
+  decidedById       String?             @map("decided_by") @db.Uuid
+  decisionNote      String?             @map("decision_note")
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById       String?             @map("created_by") @db.Uuid
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById       String?             @map("updated_by") @db.Uuid
+
+  company      Company              @relation("BookingCompany", fields: [companyId], references: [id], onDelete: Restrict)
+  ownerCompany Company              @relation("BookingOwner", fields: [ownerCompanyId], references: [id], onDelete: Restrict)
+  employee     Employee?            @relation(fields: [ownerCompanyId, employeeId], references: [companyId, id], onDelete: Restrict)
+  equipment    Equipment?           @relation(fields: [ownerCompanyId, equipmentId], references: [companyId, id], onDelete: Restrict)
+  project      Project              @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site         Site?                @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  activity     TaktActivity?        @relation(fields: [companyId, activityId], references: [companyId, id], onDelete: Restrict)
+  requirement  ResourceRequirement? @relation(fields: [companyId, requirementId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, projectId, startsAt])
+  @@index([ownerCompanyId, startsAt])
+  @@index([employeeId, startsAt])
+  @@index([equipmentId, startsAt])
+  @@map("resource_bookings")
+}
+
+enum LogisticsLocationKind {
+  GATE
+  UNLOADING
+  STORAGE
+}
+
+/// Site gate (with opening hours, 30-minute delivery slots), unloading point
+/// or storage location.
+model LogisticsLocation {
+  id           String                @id @default(uuid(7)) @db.Uuid
+  companyId    String                @map("company_id") @db.Uuid
+  projectId    String                @map("project_id") @db.Uuid
+  siteId       String                @map("site_id") @db.Uuid
+  kind         LogisticsLocationKind
+  name         String
+  opensMinute  Int?                  @map("opens_minute")
+  closesMinute Int?                  @map("closes_minute")
+  notes        String?
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById  String?               @map("created_by") @db.Uuid
+  updatedAt    DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById  String?               @map("updated_by") @db.Uuid
+  archivedAt   DateTime?             @map("archived_at") @db.Timestamptz(6)
+
+  company          Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site             Site       @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  gateDeliveries   Delivery[] @relation("DeliveryGate")
+  unloadDeliveries Delivery[] @relation("DeliveryUnloading")
+  storedDeliveries Delivery[] @relation("DeliveryStorage")
+
+  @@unique([companyId, id])
+  @@unique([companyId, siteId, id])
+  @@unique([siteId, kind, name])
+  @@map("logistics_locations")
+}
+
+enum LogisticsServiceType {
+  DELIVERY
+  LIFT
+  INTERNAL_MOVE
+  WASTE_REMOVAL
+  OTHER
+}
+
+enum LogisticsPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum LogisticsRequestStatus {
+  DRAFT
+  REQUESTED
+  REVIEW
+  APPROVED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETE
+  CANCELLED
+}
+
+model LogisticsRequest {
+  id              String                 @id @default(uuid(7)) @db.Uuid
+  companyId       String                 @map("company_id") @db.Uuid
+  projectId       String                 @map("project_id") @db.Uuid
+  siteId          String                 @map("site_id") @db.Uuid
+  activityId      String?                @map("activity_id") @db.Uuid
+  serviceType     LogisticsServiceType   @map("service_type")
+  title           String
+  requestedStart  DateTime               @map("requested_start") @db.Timestamptz(6)
+  requestedEnd    DateTime               @map("requested_end") @db.Timestamptz(6)
+  loadDescription String?                @map("load_description")
+  weightKg        Decimal?               @map("weight_kg") @db.Decimal(10, 1)
+  dimensions      String?
+  pickup          String?
+  destination     String?
+  equipmentTypeId String?                @map("equipment_type_id") @db.Uuid
+  priority        LogisticsPriority      @default(NORMAL)
+  status          LogisticsRequestStatus @default(DRAFT)
+  note            String?
+  decisionNote    String?                @map("decision_note")
+  requestedAt     DateTime?              @map("requested_at") @db.Timestamptz(6)
+  requestedById   String?                @map("requested_by") @db.Uuid
+  approvedAt      DateTime?              @map("approved_at") @db.Timestamptz(6)
+  approvedById    String?                @map("approved_by") @db.Uuid
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById     String?                @map("created_by") @db.Uuid
+  updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById     String?                @map("updated_by") @db.Uuid
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site          Site           @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  activity      TaktActivity?  @relation(fields: [companyId, siteId, activityId], references: [companyId, siteId, id], onDelete: Restrict)
+  equipmentType EquipmentType? @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  deliveries    Delivery[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, siteId, id])
+  @@index([companyId, siteId, status, requestedStart])
+  @@map("logistics_requests")
+}
+
+enum DeliveryStatus {
+  PLANNED
+  CONFIRMED
+  ARRIVED_GATE
+  CHECKED_IN
+  UNLOADING
+  STORED
+  MOVED_TO_WORKFACE
+  INSTALLED
+  CANCELLED
+}
+
+/// Delivery in 30-minute gate slots (owner decision). A gate slot can hold
+/// only one delivery (exclusion constraint). A delivery for a takt activity
+/// opens a MATERIAL constraint that clears when the material is on site.
+model Delivery {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  companyId    String         @map("company_id") @db.Uuid
+  projectId    String         @map("project_id") @db.Uuid
+  siteId       String         @map("site_id") @db.Uuid
+  gateId       String         @map("gate_id") @db.Uuid
+  unloadingId  String?        @map("unloading_id") @db.Uuid
+  storageId    String?        @map("storage_id") @db.Uuid
+  requestId    String?        @map("request_id") @db.Uuid
+  activityId   String?        @map("activity_id") @db.Uuid
+  constraintId String?        @map("constraint_id") @db.Uuid
+  supplier     String
+  carrier      String?
+  vehicle      String?
+  material     String
+  quantity     String?
+  weightKg     Decimal?       @map("weight_kg") @db.Decimal(10, 1)
+  slotStart    DateTime       @map("slot_start") @db.Timestamptz(6)
+  slotEnd      DateTime       @map("slot_end") @db.Timestamptz(6)
+  status       DeliveryStatus @default(PLANNED)
+  arrivedAt    DateTime?      @map("arrived_at") @db.Timestamptz(6)
+  completedAt  DateTime?      @map("completed_at") @db.Timestamptz(6)
+  notes        String?
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById  String?        @map("created_by") @db.Uuid
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById  String?        @map("updated_by") @db.Uuid
+
+  company    Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site       Site                @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  gate       LogisticsLocation   @relation("DeliveryGate", fields: [companyId, siteId, gateId], references: [companyId, siteId, id], onDelete: Restrict)
+  unloading  LogisticsLocation?  @relation("DeliveryUnloading", fields: [companyId, siteId, unloadingId], references: [companyId, siteId, id], onDelete: Restrict)
+  storage    LogisticsLocation?  @relation("DeliveryStorage", fields: [companyId, siteId, storageId], references: [companyId, siteId, id], onDelete: Restrict)
+  request    LogisticsRequest?   @relation(fields: [companyId, siteId, requestId], references: [companyId, siteId, id], onDelete: Restrict)
+  activity   TaktActivity?       @relation(fields: [companyId, siteId, activityId], references: [companyId, siteId, id], onDelete: Restrict)
+  constraint ActivityConstraint? @relation(fields: [companyId, constraintId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, siteId, slotStart])
+  @@map("deliveries")
 }

@@ -1,5 +1,5 @@
 /**
- * Capability permission catalogue (V1–V3). Code checks these keys — never role
+ * Capability permission catalogue (V1–V4). Code checks these keys — never role
  * names. Roles are company-scoped records instantiated from ROLE_TEMPLATES.
  *
  * Changing this file changes authorization. Any change must ship with a
@@ -46,6 +46,13 @@ export const PERMISSIONS = {
   "takt.manage": { category: "takt", sensitive: false, description: "Edit takt structure and draft plan versions, import schedules" },
   "takt.progress.update": { category: "takt", sensitive: false, description: "Record activity progress, constraints and delays" },
   "takt.baseline.approve": { category: "takt", sensitive: false, description: "Approve a proposed plan version as the baseline" },
+
+  // V4 — logistics and resource bookings
+  "logistics.view": { category: "logistics", sensitive: false, description: "View the logistics board, deliveries, requests and bookings" },
+  "logistics.request": { category: "logistics", sensitive: false, description: "Create logistics requests" },
+  "logistics.approve": { category: "logistics", sensitive: false, description: "Review and approve logistics requests, manage gates and storage" },
+  "booking.manage": { category: "logistics", sensitive: false, description: "Book resources and decide booking requests for own resources" },
+  "delivery.manage": { category: "logistics", sensitive: false, description: "Schedule deliveries and record gate check-in and unloading" },
 } as const satisfies Record<string, { category: string; sensitive: boolean; description: string }>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -146,6 +153,11 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "takt.manage",
       "takt.progress.update",
       "takt.baseline.approve",
+      "logistics.view",
+      "logistics.request",
+      "logistics.approve",
+      "booking.manage",
+      "delivery.manage",
     ),
   },
   {
@@ -177,6 +189,9 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "takt.manage",
       "takt.progress.update",
       "takt.baseline.approve",
+      "logistics.view",
+      "logistics.request",
+      "booking.manage",
     ),
   },
   {
@@ -200,6 +215,11 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "takt.view",
       "takt.manage",
       "takt.progress.update",
+      "logistics.view",
+      "logistics.request",
+      "logistics.approve",
+      "booking.manage",
+      "delivery.manage",
     ),
   },
   {
@@ -207,28 +227,28 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Työnjohtaja", en: "Supervisor" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign", "takt.view", "takt.progress.update"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign", "takt.view", "takt.progress.update", "logistics.view", "logistics.request", "delivery.manage"),
   },
   {
     key: "LOGISTICS_COORDINATOR",
     name: { fi: "Logistiikkakoordinaattori", en: "Logistics Coordinator" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view", "takt.view"),
+    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "logistics.approve", "booking.manage", "delivery.manage"),
   },
   {
     key: "HSE",
     name: { fi: "HSE-asiantuntija", en: "HSE" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view", "takt.view"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view", "takt.view", "logistics.view"),
   },
   {
     key: "EMPLOYEE",
     name: { fi: "Työntekijä", en: "Employee" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "documents.view", "timesheet.submit", "diary.view", "takt.view"),
+    permissions: P("project.view", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view"),
   },
   {
     key: "SUBCONTRACTOR",

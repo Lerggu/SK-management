@@ -338,6 +338,37 @@ export class TaktRepo {
     return new Map(rows.map((r) => [r.equipmentTypeId, r._count._all]));
   }
 
+  /** Approved bookings made by this company (V4), for booked capacity in the look-ahead. */
+  approvedBookings(from: Date, to: Date) {
+    return this.tx.resourceBooking.findMany({
+      where: { ...this.c, status: "APPROVED", startsAt: { lt: to }, endsAt: { gt: from } },
+      select: { startsAt: true, endsAt: true, employee: { select: { trade: true } }, equipment: { select: { equipmentTypeId: true } } },
+    });
+  }
+
+  /** Resource requirements of the activity in the current baseline. */
+  activityRequirements(activityId: string) {
+    return this.tx.resourceRequirement.findMany({
+      where: { ...this.c, activityId, version: { status: "BASELINE" } },
+      orderBy: { kind: "asc" },
+      include: { equipmentType: { select: { id: true, name: true } } },
+    });
+  }
+
+  /** Logistics linked to an activity (V4 traceability). */
+  async activityLogistics(activityId: string) {
+    const [requests, deliveries, bookings] = await Promise.all([
+      this.tx.logisticsRequest.findMany({ where: { ...this.c, activityId }, orderBy: { requestedStart: "asc" }, select: { id: true, title: true, status: true, serviceType: true, requestedStart: true } }),
+      this.tx.delivery.findMany({ where: { ...this.c, activityId }, orderBy: { slotStart: "asc" }, select: { id: true, material: true, supplier: true, status: true, slotStart: true } }),
+      this.tx.resourceBooking.findMany({
+        where: { ...this.c, activityId },
+        orderBy: { startsAt: "asc" },
+        select: { id: true, status: true, startsAt: true, endsAt: true, employee: { select: { firstName: true, lastName: true } }, equipment: { select: { assetNumber: true, name: true } }, ownerCompany: { select: { name: true } } },
+      }),
+    ]);
+    return { requests, deliveries, bookings };
+  }
+
   // ── imports ───────────────────────────────────────────────────────
   createImport(data: Create<Prisma.ScheduleImportUncheckedCreateInput>) {
     return this.tx.scheduleImport.create({ data: { ...data, ...this.c } });

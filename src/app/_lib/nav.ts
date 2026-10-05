@@ -1,6 +1,6 @@
 import type { RequestContext } from "@/platform/authz";
 
-export type NavKey = "dashboard" | "projects" | "time" | "takt" | "workforce" | "equipment" | "documents" | "settings";
+export type NavKey = "dashboard" | "projects" | "time" | "takt" | "logistics" | "workforce" | "equipment" | "documents" | "settings";
 
 export interface NavItem {
   key: NavKey;
@@ -16,6 +16,7 @@ export function navItems(ctx: RequestContext): NavItem[] {
   if (has("project.view") || anyProjectGrant) items.push({ key: "projects", href: `${base}/projects` });
   if (hasTimeAccess(ctx)) items.push({ key: "time", href: `${base}/time` });
   if (hasTaktAccess(ctx)) items.push({ key: "takt", href: `${base}/takt` });
+  if (hasLogisticsAccess(ctx)) items.push({ key: "logistics", href: `${base}/logistics` });
   if (has("employee.view")) items.push({ key: "workforce", href: `${base}/workforce` });
   if (has("equipment.view")) items.push({ key: "equipment", href: `${base}/equipment` });
   if (has("documents.view") || anyProjectGrant) items.push({ key: "documents", href: `${base}/documents` });
@@ -35,4 +36,9 @@ export function hasTimeAccess(ctx: RequestContext): boolean {
 /** Takt visibility, company-wide or through a project role. */
 export function hasTaktAccess(ctx: RequestContext): boolean {
   return ctx.permissions.has("takt.view") || [...ctx.projectGrants.values()].some((g) => g.has("takt.view"));
+}
+
+/** Logistics visibility, company-wide or through a project role. */
+export function hasLogisticsAccess(ctx: RequestContext): boolean {
+  return ctx.permissions.has("logistics.view") || [...ctx.projectGrants.values()].some((g) => g.has("logistics.view"));
 }
