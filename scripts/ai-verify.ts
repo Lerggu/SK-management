@@ -1,7 +1,7 @@
 /**
  * V8 live verification (acceptance criterion 8): one real AI project review
  * against the seeded development database, through the same service path as
- * the UI. Requires ANTHROPIC_API_KEY in the environment (never in a file).
+ * the UI. Requires SK_ANTHROPIC_API_KEY (or ANTHROPIC_API_KEY) in the environment (never in a file).
  * The run is stored in ai_runs and counts toward the company's monthly cap.
  *
  * Usage: pnpm ai:verify            (project NDC-001 as pm@skinfra.example.com)
@@ -9,12 +9,12 @@
 import "dotenv/config";
 import "@/modules/registry";
 import { db } from "@/platform/db";
-import { getAiProvider } from "@/platform/ai";
+import { anthropicApiKey, getAiProvider } from "@/platform/ai";
 import { resolveRequestContext } from "@/modules/companies/context";
 import { aiProjectControllerService } from "@/modules/ai/service";
 
 async function main() {
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set — add it to the environment settings and start a new session.");
+  if (!anthropicApiKey()) throw new Error("SK_ANTHROPIC_API_KEY is not set — add it to the environment settings and start a new session.");
   const provider = getAiProvider();
   if (provider?.name !== "anthropic") throw new Error(`Expected the Anthropic provider, got ${provider?.name ?? "none"}`);
 

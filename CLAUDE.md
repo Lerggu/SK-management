@@ -10,7 +10,7 @@ Read both fully before any architectural change. If this file and the Build Mast
 
 ## Current release: V8 — AI & Optimization (APPROVED by owner 2026-10-05; stop report delivered)
 V1–V7 are complete (`docs/V1_REPORT.md` … `docs/V7_REPORT.md`). V8 scope and owner decisions: `docs/V8_PLAN.md` (RLS first; AI Project Controller on the Claude API; 10 €/month/company cap; no personal data; `ai.use`); report: `docs/V8_REPORT.md`.
-The AI Logistics Controller (§27) and resource optimization are deferred: do not start them without explicit owner approval. Never put API keys in files or commits; `ANTHROPIC_API_KEY` comes from the environment only.
+The AI Logistics Controller (§27) and resource optimization are deferred: do not start them without explicit owner approval. Never put API keys in files or commits; `SK_ANTHROPIC_API_KEY`/`ANTHROPIC_API_KEY` come from the environment only.
 
 ## Owner requirements (binding)
 1. Finnish is the default UI language; English is available from V1 (i18n from day one, no hard-coded UI strings).

@@ -20,7 +20,7 @@ The Build Master requires the following:
 
 ### Provider port (`src/platform/ai`)
 - **Port.** `AiProvider.run({ system, prompt, tools, executeTool, maxToolRounds })` returns `{ provider, model, result, toolCalls, usage }`. Domain modules depend only on these types; dependency-cruiser keeps vendor SDKs out of `src/modules`.
-- **`AnthropicProvider`** (`@anthropic-ai/sdk`) is selected when `ANTHROPIC_API_KEY` is set:
+- **`AnthropicProvider`** (`@anthropic-ai/sdk`) is selected when `SK_ANTHROPIC_API_KEY` (preferred) or `ANTHROPIC_API_KEY` is set:
   - **Model and thinking:** `claude-opus-5-5` with adaptive thinking, and `output_config.effort: "medium"` set explicitly.
   - **Requests:** streamed and collected with `finalMessage()`, so long requests do not time out.
   - **Tool loop:** a manual loop over strict tools (`strict: true`). The final answer comes through a `submit_result` tool whose schema is `AI_INSIGHT_SCHEMA`. `tool_choice` is `auto` because forced tool choice is not supported with adaptive thinking; the prompt instructs the model to submit, and the adapter nudges once if it does not.

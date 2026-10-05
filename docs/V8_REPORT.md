@@ -87,7 +87,7 @@ Oikeuksia on nyt 59. Uudet enumit: `AiRunKind`, `AiRunStatus`, `AiSeverity` ja `
 - **Chattiin liitetty avain:** keskustelussa aiemmin liitettyä avainta ei ole käytetty eikä tallennettu mihinkään. Sen mitätöintiä suositellaan edelleen.
 
 ## 5. Tunnetut rajoitukset
-1. **Live-verifiointi puuttuu.** `ANTHROPIC_API_KEY` ei ole tämän istunnon ympäristössä, koska ympäristömuuttujat tulevat voimaan vasta uudessa istunnossa. Adapterin pyyntömuoto ja silmukka on testattu offline-tilassa simuloidulla rajapinnalla, mutta oikeaa kutsua ei ole tehty. Uudessa istunnossa ajetaan `pnpm db:reset && pnpm ai:verify` (muutama sentti).
+1. **Live-verifiointi puuttuu.** API-avain (`SK_ANTHROPIC_API_KEY`) ei ole tämän istunnon ympäristössä, koska ympäristömuuttujat tulevat voimaan vasta uudessa istunnossa. Adapterin pyyntömuoto ja silmukka on testattu offline-tilassa simuloidulla rajapinnalla, mutta oikeaa kutsua ei ole tehty. Uudessa istunnossa ajetaan `pnpm db:reset && pnpm ai:verify` (muutama sentti).
 2. **Kuukausikaton tarkistus ei ole sarjallistettu.** Kaksi yhtäaikaista ajoa voi ylittää lähes täyden katon enintään yhden ajon verran (noin 0,1–0,3 €).
 3. **Kustannus on arvio** listahinnoista ja kiinteästä USD/EUR-kertoimesta. Tarkka laskutus näkyy Anthropicin konsolissa.
 4. **Ajo on synkroninen.** Katsaus kestää noin 10–60 sekuntia, ja sivu odottaa sen ajan; taustajonoa ei ole.
@@ -100,7 +100,7 @@ pnpm install && pnpm db:reset          # migraatiot + fiktiivinen demodata
 pnpm dev                               # http://localhost:3000, dev-kirjautuminen
 ```
 - **Tekoäly:** kirjaudu tunnuksella `pm@skinfra.example.com` ja avaa projekti NDC-001 → **Tekoälyohjaaja**. Ilman avainta sivu toimii testitilassa.
-- **Oikea tekoäly:** lisää `ANTHROPIC_API_KEY` ympäristön asetuksiin (pilviympäristössä Environment → Edit). Käynnistä sen jälkeen uusi istunto.
+- **Oikea tekoäly:** lisää `SK_ANTHROPIC_API_KEY` ympäristön asetuksiin (`ANTHROPIC_API_KEY` on pilviympäristössä varattu) (pilviympäristössä Environment → Edit). Käynnistä sen jälkeen uusi istunto.
 
 ## 7. Näkymät
 - `docs/screenshots/desktop/ai-controller.png` ja `docs/screenshots/mobile/ai-controller.png`: tekoälyohjaaja, jossa näkyvät kuukausikatto, katsaus- ja kysymyslomakkeet, avoimet suositukset Hyväksy- ja Hylkää-painikkeineen sekä ajohistoria. Havaintojen tyypit (Fakta, Ennuste, AI-suositus) ja lähteet näkyvät ajohistoriassa.

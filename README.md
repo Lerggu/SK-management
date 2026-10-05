@@ -164,7 +164,7 @@ The AI Project Controller (project page → "Tekoälyohjaaja") is described in [
 
 | Variable | Purpose |
 |---|---|
-| `ANTHROPIC_API_KEY` | Enables the Claude provider. Set it only in the environment, e.g. the cloud environment settings or a secret manager; never in a file in the repository and never in chat. Without it, development uses the clearly labelled fake provider, and production has AI turned off. |
+| `SK_ANTHROPIC_API_KEY` (or `ANTHROPIC_API_KEY`) | Enables the Claude provider. Hosted Claude Code environments reserve `ANTHROPIC_API_KEY`, so use `SK_ANTHROPIC_API_KEY` there. Set it only in the environment, e.g. the cloud environment settings or a secret manager; never in a file in the repository and never in chat. Without it, development uses the clearly labelled fake provider, and production has AI turned off. |
 | `AI_EUR_PER_USD` | USD → EUR rate for the cost cap (default `0.92`) |
 | `AI_PROVIDER=fake` | Forces the fake provider outside production (E2E, demos) |
 

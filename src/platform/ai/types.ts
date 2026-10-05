@@ -99,3 +99,12 @@ export interface AiProvider {
 }
 
 export class AiProviderError extends Error {}
+
+/**
+ * The Claude API key from the environment. `SK_ANTHROPIC_API_KEY` is preferred:
+ * hosted Claude Code environments reserve `ANTHROPIC_API_KEY` for their own
+ * authentication and do not pass it to sessions.
+ */
+export function anthropicApiKey(): string | undefined {
+  return process.env.SK_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || undefined;
+}
