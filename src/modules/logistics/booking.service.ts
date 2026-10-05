@@ -154,6 +154,12 @@ export const bookingService = {
         const r = await repo.findRequirement(data.requirementId);
         if (!r || r.activityId !== data.activityId) throw new ValidationError({ requirementId: ["validation.invalidOption"] });
       }
+      if (data.liftPlanId) {
+        const lp = await repo.findLiftPlan(data.liftPlanId);
+        if (!lp || lp.projectId !== project.id || lp.status !== "OPEN") throw new ValidationError({ liftPlanId: ["validation.invalidOption"] });
+        siteId = siteId ?? lp.siteId;
+        if (lp.siteId !== siteId) throw new ValidationError({ liftPlanId: ["validation.invalidOption"] });
+      }
       const created = [];
       for (const ref of [...new Set(data.resources)]) {
         const [kind, id] = ref.split(":") as ["EMPLOYEE" | "EQUIPMENT", string];
@@ -168,6 +174,7 @@ export const bookingService = {
           siteId,
           activityId: data.activityId,
           requirementId: data.requirementId,
+          liftPlanId: data.liftPlanId,
           startsAt: data.startsAt,
           endsAt: data.endsAt,
           note: data.note,
@@ -186,6 +193,7 @@ export const bookingService = {
           startsAt: data.startsAt.toISOString(),
           endsAt: data.endsAt.toISOString(),
           status: autoApprove ? "APPROVED" : "REQUESTED",
+          liftPlanId: data.liftPlanId,
           conflicts: conflicts.map((c) => c.code),
         });
         created.push({ id: row.id, status: autoApprove ? "APPROVED" : "REQUESTED", conflicts });

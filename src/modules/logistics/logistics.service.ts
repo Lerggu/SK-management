@@ -24,6 +24,10 @@ import {
   type TransitionInput,
 } from "./schemas";
 
+/** V5: a LIFT request is scheduled, started or completed only with an approved lift plan. */
+const LIFT_GATED: RequestStatus[] = ["SCHEDULED", "IN_PROGRESS", "COMPLETE"];
+const liftBlocked = async (repo: LogisticsRepo, r: { id: string; serviceType: string }) => r.serviceType === "LIFT" && !(await repo.hasApprovedLiftPlan(r.id));
+
 const dayBounds = (dateIso: string) => ({ from: zonedToUtc(dateIso, 0), to: zonedToUtc(dateIso, 24 * 60) });
 
 // ── locations ────────────────────────────────────────────────────────
@@ -149,6 +153,7 @@ export const logisticsRequestService = {
       const actors = requestActors(ctx, r.projectId, r.createdById);
       if (!REQUEST_TRANSITIONS[r.status][data.to]) throw new ValidationError({ to: ["validation.invalidTransition"] });
       if (!canTransitionRequest(r.status, data.to, actors)) throw new ForbiddenError(`Cannot move request ${r.status} → ${data.to}`);
+      if (r.serviceType === "LIFT" && LIFT_GATED.includes(data.to) && !(await repo.hasApprovedLiftPlan(r.id))) throw new ValidationError({ to: ["validation.liftNotApproved"] });
       const stamp =
         data.to === "REQUESTED" ? { requestedAt: new Date(), requestedById: ctx.user.id } : data.to === "APPROVED" ? { approvedAt: new Date(), approvedById: ctx.user.id } : {};
       const after = await repo.updateRequest(r.id, { status: data.to, decisionNote: data.note ?? r.decisionNote, ...stamp, updatedById: ctx.user.id });
@@ -232,7 +237,7 @@ export const deliveryService = {
       } catch (e) {
         slotError(e);
       }
-      if (request?.status === "APPROVED") await repo.updateRequest(request.id, { status: "SCHEDULED", updatedById: ctx.user.id });
+      if (request?.status === "APPROVED" && !(await liftBlocked(repo, request))) await repo.updateRequest(request.id, { status: "SCHEDULED", updatedById: ctx.user.id });
       await writeAudit(tx, ctx, {
         action: "delivery.create",
         entityType: "delivery",
@@ -286,7 +291,7 @@ export const deliveryService = {
       });
       let constraintCleared = false;
       if (MATERIAL_ON_SITE.includes(to) && d.constraintId) constraintCleared = (await repo.clearConstraint(d.constraintId, ctx.user.id)).count > 0;
-      if (d.request) {
+      if (d.request && !(await liftBlocked(repo, d.request))) {
         if (to === "ARRIVED_GATE" && d.request.status === "SCHEDULED") await repo.updateRequest(d.request.id, { status: "IN_PROGRESS", updatedById: ctx.user.id });
         if (MATERIAL_ON_SITE.includes(to) && (d.request.status === "IN_PROGRESS" || d.request.status === "SCHEDULED")) {
           if (d.request.status === "SCHEDULED") await repo.updateRequest(d.request.id, { status: "IN_PROGRESS", updatedById: ctx.user.id });

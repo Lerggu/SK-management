@@ -13,3 +13,9 @@ export function isExclusionViolation(e: unknown, constraint?: string): boolean {
   const message = e instanceof Error ? e.message : "";
   return (message.includes("23P01") || message.includes("exclusion constraint")) && (!constraint || message.includes(constraint));
 }
+
+/** Check-constraint violation (SQLSTATE 23514), optionally of a named constraint. */
+export function isCheckViolation(e: unknown, constraint?: string): boolean {
+  const message = e instanceof Error ? e.message : "";
+  return (message.includes("23514") || message.includes("check constraint")) && (!constraint || message.includes(constraint));
+}

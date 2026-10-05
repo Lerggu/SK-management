@@ -24,6 +24,7 @@ import {
 import { taktPlanService } from "@/modules/takt/plan.service";
 import { bookingService } from "@/modules/logistics/booking.service";
 import { createBookingAction } from "../../../../logistics/actions";
+import { materialTraceService } from "@/modules/lifting/material.service";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("takt"))("activity") };
@@ -45,6 +46,8 @@ export default async function ActivityPage({ params }: Props) {
   const base = `/c/${companySlug}/takt/${planId}`;
   const [tl, resourceOptions] = await Promise.all([getTranslations("logistics"), perms.book ? bookingService.resourceOptions(ctx, d.plan.projectId).catch(() => null) : Promise.resolve(null)]);
   const lg = `/c/${companySlug}/logistics`;
+  const [trace, tm] = await Promise.all([materialTraceService.activity(ctx, a.id).catch(() => null), getTranslations("materials")]);
+  const hasTrace = !!trace && trace.lifts.length + trace.batches.length + trace.drums.length + trace.pulls.length > 0;
   const dtf = (x: Date) => format.dateTime(x, { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
   const depLabel = (x: { taktArea: { code: string }; workPackage: { code: string; name: string }; name: string }) => `${x.taktArea.code} · ${x.workPackage.code} ${x.name}`;
 
@@ -308,6 +311,67 @@ export default async function ActivityPage({ params }: Props) {
                   <SubmitButton variant="outline">{tl("book")}</SubmitButton>
                 </div>
               </ActionForm>
+            )}
+          </Section>
+        )}
+
+        {trace && (trace.permissions.material || trace.permissions.lifts) && (
+          <Section title={tm("trace")}>
+            {!hasTrace ? (
+              <EmptyState>{tm("noTrace")}</EmptyState>
+            ) : (
+              <div className="space-y-4 text-sm" data-testid="activity-trace">
+                {trace.lifts.length > 0 && (
+                  <div>
+                    <h3 className="mb-1 font-medium">{tm("lifts")}</h3>
+                    <ul className="divide-y">
+                      {trace.lifts.map((l) => (
+                        <li key={l.id} className="flex min-h-11 flex-wrap items-center gap-x-3 py-1">
+                          <a href={`/c/${companySlug}/lifting/${l.id}`} className="font-medium hover:underline">{l.title}</a>
+                          <StatusBadge status={l.status === "OPEN" ? (l.approved ? "APPROVED" : "DRAFT") : l.status} label={tm(`liftState.${l.status === "OPEN" ? (l.approved ? "APPROVED" : "PENDING") : l.status}`)} />
+                          <span className="text-muted-foreground">{fmtDateTime(format, l.plannedStart)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {trace.batches.length > 0 && (
+                  <div>
+                    <h3 className="mb-1 font-medium">{tm("batches")}</h3>
+                    <ul className="divide-y">
+                      {trace.batches.map((b) => (
+                        <li key={b.id} className="flex min-h-11 flex-wrap items-center gap-x-3 py-1">
+                          <a href={`/c/${companySlug}/materials/batches/${b.id}`} className="font-medium hover:underline">{b.code} · {b.material}</a>
+                          <span>{b.quantity} {b.unit}</span>
+                          <StatusBadge status={b.status} label={tm(`statuses.${b.status}`)} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {(trace.drums.length > 0 || trace.pulls.length > 0) && (
+                  <div>
+                    <h3 className="mb-1 font-medium">{tm("cablePulledTotal", { metres: format.number(trace.totalPulledM) })}</h3>
+                    <ul className="divide-y">
+                      {trace.pulls.map((p) => (
+                        <li key={p.id} className="flex min-h-11 flex-wrap items-center gap-x-3 py-1">
+                          <span className="font-semibold tabular-nums">{format.number(Number(p.lengthM))} m</span>
+                          <a href={`/c/${companySlug}/materials/drums/${p.drum.id}`} className="hover:underline">{p.drum.code} · {p.drum.cableType}</a>
+                          <span className="text-muted-foreground">{p.pulledOn}</span>
+                        </li>
+                      ))}
+                      {trace.drums
+                        .filter((x) => !trace.pulls.some((p) => p.drum.id === x.id))
+                        .map((x) => (
+                          <li key={x.id} className="flex min-h-11 flex-wrap items-center gap-x-3 py-1">
+                            <a href={`/c/${companySlug}/materials/drums/${x.id}`} className="hover:underline">{x.code} · {x.cableType}</a>
+                            <span className="text-muted-foreground">{tm("reservedRemaining", { metres: x.remainingM })}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             )}
           </Section>
         )}
