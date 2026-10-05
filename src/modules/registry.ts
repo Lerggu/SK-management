@@ -22,6 +22,11 @@ import { commercialDashboardService, customerService, opportunityService } from 
 import { quoteService } from "./commercial/quote.service";
 import { contractService, forecastService, variationService } from "./commercial/project.service";
 import { invoiceService } from "./commercial/invoice.service";
+import { clientApprovalService } from "./commercial/client-approval.service";
+import { hseActionService, hseObservationService, hseOverviewService, hsePhotoService, incidentService } from "./hse/hse.service";
+import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "./hse/planning.service";
+import { scheduleSummaryService } from "./takt/summary.service";
+import { portalService } from "./portal/service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -75,4 +80,17 @@ export const SERVICE_REGISTRY = {
   variation: variationService,
   forecast: forecastService,
   invoice: invoiceService,
+  // V7
+  hseOverview: hseOverviewService,
+  hseObservation: hseObservationService,
+  incident: incidentService,
+  hseAction: hseActionService,
+  hsePhoto: hsePhotoService,
+  toolboxTalk: toolboxTalkService,
+  riskAssessment: riskAssessmentService,
+  workPermit: workPermitService,
+  hseInspection: hseInspectionService,
+  clientApproval: clientApprovalService,
+  scheduleSummary: scheduleSummaryService,
+  portal: portalService,
 } as const;

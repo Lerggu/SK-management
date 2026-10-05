@@ -20,6 +20,9 @@ export const RATE_LIMITS = {
   // RATE_LIMIT_SIGN_IN may raise the limit for automated test environments only.
   signIn: { name: "sign-in", limit: Number(process.env.RATE_LIMIT_SIGN_IN ?? 10), windowMs: 5 * 60_000 },
   upload: { name: "upload", limit: 30, windowMs: 10 * 60_000 },
+  // V7: e-mail sign-in links — per address and per client IP.
+  emailLinkAddress: { name: "email-link-address", limit: Number(process.env.RATE_LIMIT_EMAIL_LINK ?? 5), windowMs: 15 * 60_000 },
+  emailLinkIp: { name: "email-link-ip", limit: Number(process.env.RATE_LIMIT_EMAIL_LINK_IP ?? 20), windowMs: 15 * 60_000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 const windows = new Map<string, Window>();

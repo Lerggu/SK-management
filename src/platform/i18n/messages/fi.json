@@ -376,7 +376,9 @@
       "logistics": "Logistiikka ja varaukset",
       "lifting": "Nostot",
       "material": "Materiaalit ja kaapelikelat",
-      "commercial": "Myynti ja laskutus"
+      "commercial": "Myynti ja laskutus",
+      "hse": "Työturvallisuus (HSE)",
+      "portal": "Portaalit"
     },
     "permissions": {
       "company_manage": "Muokkaa yrityksen asetuksia",
@@ -425,7 +427,18 @@
       "commercial_view": "Näkee tarjoukset, sopimukset, lisätyöt ja ennusteet (hinnat ja katteet)",
       "commercial_manage": "Valmistelee tarjoukset, sopimukset, lisätyöt ja ennusteet",
       "commercial_approve": "Hyväksyy tarjoukset ja lisätyöt",
-      "invoice_manage": "Muodostaa ja vie laskutusaineiston, kirjaa laskutetuksi"
+      "invoice_manage": "Muodostaa ja vie laskutusaineiston, kirjaa laskutetuksi",
+      "hse_view": "Näkee HSE-ilmoitukset, toimenpiteet ja tunnusluvut",
+      "hse_create": "Tekee turvallisuushavainnon, läheltä piti- tai tapaturmailmoituksen, kirjaa työmaakokouksen, pyytää työluvan",
+      "hse_manage": "Käsittelee HSE-ilmoitukset, antaa toimenpiteet, hallitsee riskiarvioita ja tarkastuksia",
+      "hse_investigate": "Tutkii ja sulkee vakavat ja poissaoloon johtaneet tapaturmat",
+      "hse_action_approve": "Hyväksyy tapaturmien korjaavat toimenpiteet",
+      "hse_serious_notify": "Saa heti ilmoituksen vakavista tapaturmista",
+      "hse_personal_view": "Näkee loukkaantuneen henkilötiedot (arkaluonteinen)",
+      "permit_approve": "Hyväksyy tai hylkää työluvat",
+      "portal_client": "Käyttää asiakasportaalia",
+      "portal_subcontractor": "Käyttää aliurakoitsijaportaalia",
+      "variation_client_approve": "Hyväksyy tai hylkää muutostyöt asiakkaan puolesta"
     },
     "calendar": "Työkalenteri"
   },
@@ -602,7 +615,36 @@
       "invoice_candidate_generate_internal": "Sisäisen laskutuksen aihiot muodostettu",
       "invoice_candidate_void": "Laskutusaihio mitätöity",
       "invoice_candidate_invoiced": "Merkitty laskutetuksi",
-      "invoice_export_create": "Laskutusaineisto viety"
+      "invoice_export_create": "Laskutusaineisto viety",
+      "document_share_update": "Dokumentin jakoa muutettu",
+      "variation_client_snapshot": "Muutostyö julkaistu asiakasportaaliin",
+      "hse_observation_create": "Turvallisuushavainto ilmoitettu",
+      "hse_observation_triage": "Havainto käsitelty",
+      "hse_observation_close": "Havainto suljettu",
+      "incident_report": "Tapaturma ilmoitettu",
+      "incident_triage": "Tapaturma käsitelty",
+      "incident_investigation_start": "Tapaturman tutkinta aloitettu",
+      "incident_investigation_update": "Tutkinnan tulokset kirjattu",
+      "incident_close": "Tapaturma suljettu",
+      "incident_notify": "Vakavasta tapaturmasta ilmoitettu",
+      "incident_person_create": "Loukkaantuneen tiedot kirjattu",
+      "hse_action_create": "Korjaava toimenpide annettu",
+      "hse_action_done": "Toimenpide tehty",
+      "hse_action_reopen": "Toimenpide avattu uudelleen",
+      "hse_action_verify": "Toimenpide hyväksytty",
+      "toolbox_talk_create": "Työmaakokous kirjattu",
+      "risk_assessment_create": "Riskiarvio luotu",
+      "risk_assessment_update": "Riskiarviota muutettu",
+      "risk_assessment_item_add": "Vaara lisätty",
+      "risk_assessment_item_remove": "Vaara poistettu",
+      "risk_assessment_approve": "Riskiarvio hyväksytty",
+      "risk_assessment_archive": "Riskiarvio arkistoitu",
+      "work_permit_request": "Työlupaa pyydetty",
+      "work_permit_approve": "Työlupa hyväksytty",
+      "work_permit_reject": "Työlupa hylätty",
+      "work_permit_close": "Työlupa suljettu",
+      "hse_inspection_create": "Turvallisuustarkastus kirjattu",
+      "hse_photo_add": "HSE-kuva lisätty"
     }
   },
   "errors": {
@@ -715,7 +757,23 @@
     "approvalEvidence": "Anna asiakkaan viite tai liitä hyväksyntäasiakirja",
     "candidateNotOpen": "Vain avoimen aihion voi mitätöidä",
     "candidateNotExported": "Vain viedyt aihiot voi merkitä laskutetuiksi",
-    "mixedCurrency": "Vienti sisältää useita valuuttoja – vie ne erikseen"
+    "mixedCurrency": "Vienti sisältää useita valuuttoja – vie ne erikseen",
+    "externalOnly": "Portaali- ja asiakashyväksyntäoikeudet kuuluvat vain ulkoisille rooleille",
+    "shareProjectOnly": "Vain projektin dokumentin voi jakaa ulkoisille",
+    "notFuture": "Aika ei voi olla tulevaisuudessa",
+    "endAfterStart": "Päättymisen pitää olla alun jälkeen",
+    "permitTooLong": "Työlupa voi olla voimassa enintään 14 päivää",
+    "inspectionEmpty": "Anna vähintään yksi kohta (oikein tai väärin)",
+    "hseActionsOpen": "Kaikki toimenpiteet pitää ensin merkitä tehdyiksi",
+    "incidentInvestigationRequired": "Vakava tai poissaoloon johtanut tapaturma suljetaan vasta tutkinnan ja juurisyyn jälkeen",
+    "incidentActionsUnapproved": "Kaikki korjaavat toimenpiteet pitää hyväksyä ennen sulkemista",
+    "imageOnly": "Lisää kuva (JPG, PNG, WebP tai HEIC)",
+    "riskAssessmentLocked": "Hyväksyttyä riskiarviota ei voi muuttaa",
+    "hseSelfApproval": "Omaa riskiarviota tai työlupaa ei voi hyväksyä",
+    "riskAssessmentEmpty": "Lisää riskiarvioon vähintään yksi vaara",
+    "clientApprovalPending": "Muutostyö odottaa jo asiakkaan päätöstä",
+    "clientDecisionFinal": "Päätös on jo tehty",
+    "clientSnapshotChanged": "Muutostyö on muuttunut – lataa sivu ja tarkista se uudelleen"
   },
   "time": {
     "title": "Tunnit",
@@ -1785,6 +1843,20 @@
     "kinds": {
       "CUSTOMER": "Asiakaslaskutus",
       "INTERNAL": "Sisäinen laskutus"
+    }
+  },
+  "mail": {
+    "signInSubject": "Kirjautumislinkki – SK Management",
+    "signInBody": "Hei {name},\n\nkirjaudu SK Managementiin tällä linkillä:\n{link}\n\nLinkki on voimassa {minutes} minuuttia ja toimii kerran. Jos et pyytänyt linkkiä, voit jättää tämän viestin huomiotta.",
+    "seriousIncidentSubject": "VAKAVA TAPATURMA – {project} #{number}",
+    "seriousIncidentBody": "Projektissa {project} on ilmoitettu tapaturma #{number} (vakavuus: {severity}).\n\nAvaa ilmoitus: {link}\n\nViesti ei sisällä henkilötietoja."
+  },
+  "hse": {
+    "incidentSeverity": {
+      "FIRST_AID": "Ensiapu",
+      "MEDICAL_TREATMENT": "Lääkärihoito",
+      "LOST_TIME": "Poissaoloon johtanut",
+      "SERIOUS": "Vakava"
     }
   }
 }

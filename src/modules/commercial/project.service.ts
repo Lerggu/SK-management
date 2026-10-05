@@ -7,7 +7,7 @@ import { D } from "@/modules/finance/calculations";
 import { projectFinanceService } from "@/modules/finance/service";
 import { commercialPermissions, requireProjectCommercial } from "./access";
 import { CommercialRepo } from "./repo";
-import { VARIATION_APPROVED_STATES, VARIATION_FLOW, VARIATION_UNINVOICED_STATES, forecast, priceVariation, type VariationStatus } from "./rules";
+import { VARIATION_APPROVED_STATES, VARIATION_FLOW, VARIATION_UNINVOICED_STATES, clientSnapshot, forecast, priceVariation, snapshotHash, type VariationStatus } from "./rules";
 import {
   clientDecisionSchema,
   contractSchema,
@@ -136,6 +136,25 @@ async function loadVariation(repo: CommercialRepo, ctx: RequestContext, id: stri
   return v;
 }
 
+async function createClientSnapshot(repo: CommercialRepo, ctx: RequestContext, v: Variation) {
+  const snapshot = clientSnapshot(v);
+  const approval = await repo.createClientApproval({
+    projectId: v.projectId,
+    variationId: v.id,
+    snapshot: { ...snapshot },
+    contentSha256: snapshotHash(snapshot),
+    sentById: ctx.user.id,
+  });
+  await writeAudit(repo.tx, ctx, {
+    action: "variation.client_snapshot",
+    entityType: "variation_client_approval",
+    entityId: approval.id,
+    projectId: v.projectId,
+    after: { variationId: v.id, contentSha256: approval.contentSha256, salesPrice: snapshot.salesPrice, currency: snapshot.currency },
+  });
+  return approval;
+}
+
 async function move(repo: CommercialRepo, ctx: RequestContext, v: Variation, to: VariationStatus, extra: Record<string, unknown>, action: string, note?: string | null) {
   if (!VARIATION_FLOW[v.status].includes(to)) throw new ValidationError({ _form: ["validation.invalidTransition"] });
   await repo.updateVariation(v.id, { status: to, ...extra, updatedById: ctx.user.id });
@@ -155,8 +174,17 @@ export const variationService = {
   async get(ctx: RequestContext, variationId: string) {
     const repo = new CommercialRepo(readClient(), ctx.company.id);
     const v = await loadVariation(repo, ctx, variationId);
-    const users = await repo.findUsers([v.createdById, v.submittedById, v.internalApprovedBy].filter((x): x is string => !!x));
-    return { ...presentVariation(v), users, can: variationCan(ctx, v), documents: await repo.listDocuments(v.projectId) };
+    const clientApprovals = await repo.listClientApprovals({ variationId: v.id });
+    const users = await repo.findUsers([v.createdById, v.submittedById, v.internalApprovedBy, ...clientApprovals.map((c) => c.decidedById)].filter((x): x is string => !!x));
+    const pending = clientApprovals.some((c) => c.decision === "PENDING");
+    const can = variationCan(ctx, v);
+    return {
+      ...presentVariation(v),
+      users,
+      clientApprovals: clientApprovals.map(({ project: _p, ...c }) => c),
+      can: { ...can, publishToClient: v.status === "SUBMITTED_TO_CLIENT" && !pending && projectPermissions(ctx, v.projectId).has("commercial.approve") },
+      documents: await repo.listDocuments(v.projectId),
+    };
   },
 
   async create(ctx: RequestContext, input: VariationInput) {
@@ -234,6 +262,23 @@ export const variationService = {
           ? await move(repo, ctx, v, "SUBMITTED_TO_CLIENT", { internalApprovedAt: new Date(), internalApprovedBy: ctx.user.id, decisionNote: data.note }, "variation.approve_internal", data.note)
           : await move(repo, ctx, v, "DRAFT", { submittedAt: null, submittedById: null, decisionNote: data.note }, "variation.return", data.note);
       await writeAudit(tx, ctx, { ...a, entityType: "variation", entityId: v.id, projectId: v.projectId });
+      // V7 owner decision 2: the frozen version the client approves in the portal.
+      if (data.decision === "APPROVE") await createClientSnapshot(repo, ctx, v);
+    });
+  },
+
+  /**
+   * V7: publishes a frozen snapshot to the client portal for a variation that
+   * is already with the client but has none pending (e.g. sent before V7).
+   */
+  async publishToClient(ctx: RequestContext, variationId: string) {
+    return runInTransaction(async (tx) => {
+      const repo = new CommercialRepo(tx, ctx.company.id);
+      const v = await loadVariation(repo, ctx, variationId);
+      requireProjectCommercial(ctx, v.projectId, "commercial.approve");
+      if (v.status !== "SUBMITTED_TO_CLIENT") throw new ValidationError({ _form: ["validation.invalidTransition"] });
+      if (await repo.findPendingClientApproval(v.id)) throw new ValidationError({ _form: ["validation.clientApprovalPending"] });
+      return createClientSnapshot(repo, ctx, v);
     });
   },
 
@@ -257,7 +302,12 @@ export const variationService = {
         data.decision === "APPROVED" ? "variation.client_approve" : "variation.client_reject",
         data.note,
       );
-      await writeAudit(tx, ctx, { ...a, entityType: "variation", entityId: v.id, projectId: v.projectId });
+      // A decision received outside the portal closes the pending snapshot (channel RECORDED).
+      const pending = await repo.findPendingClientApproval(v.id);
+      if (pending) {
+        await repo.decideClientApproval(pending.id, { decision: data.decision, channel: "RECORDED", decidedAt: new Date(), decidedById: ctx.user.id, decisionNote: data.note, decisionIp: ctx.meta.ip ?? null });
+      }
+      await writeAudit(tx, ctx, { ...a, entityType: "variation", entityId: v.id, projectId: v.projectId, metadata: { channel: "RECORDED", clientApprovalId: pending?.id ?? null } });
     });
   },
 

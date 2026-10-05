@@ -7,7 +7,7 @@ const versionInclude = { lines: { orderBy: [{ sortOrder: "asc" }, { createdAt: "
 /** Company-scoped V6 repository: every query carries company_id. */
 export class CommercialRepo {
   constructor(
-    private readonly tx: Tx,
+    readonly tx: Tx,
     readonly companyId: string,
   ) {}
 
@@ -219,6 +219,28 @@ export class CommercialRepo {
       where: { ...this.c, kind: "EQUIPMENT", equipmentId: { not: null }, hours: { not: null }, dailyReport: { projectId, status: "SIGNED", reportDate: { lte: to } } },
       include: { equipment: { select: { id: true, assetNumber: true, name: true } }, dailyReport: { select: { reportDate: true } } },
     });
+  }
+
+  // ── V7: client approvals ──────────────────────────────────────────
+  createClientApproval(data: Create<Prisma.VariationClientApprovalUncheckedCreateInput>) {
+    return this.tx.variationClientApproval.create({ data: { ...data, ...this.c } });
+  }
+
+  findPendingClientApproval(variationId: string) {
+    return this.tx.variationClientApproval.findFirst({ where: { ...this.c, variationId, decision: "PENDING" } });
+  }
+
+  findClientApproval(id: string) {
+    return this.tx.variationClientApproval.findFirst({ where: { id, ...this.c }, include: { project: { select: { id: true, code: true, name: true } } } });
+  }
+
+  listClientApprovals(where: { projectId?: string; variationId?: string }) {
+    return this.tx.variationClientApproval.findMany({ where: { ...this.c, ...where }, orderBy: { sentAt: "desc" }, include: { project: { select: { id: true, code: true, name: true } } } });
+  }
+
+  /** Decides a PENDING approval once (conditional update; the DB trigger enforces it too). */
+  decideClientApproval(id: string, data: Prisma.VariationClientApprovalUncheckedUpdateManyInput) {
+    return this.tx.variationClientApproval.updateMany({ where: { id, ...this.c, decision: "PENDING" }, data });
   }
 
   readyVariations(projectId: string) {

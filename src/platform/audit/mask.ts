@@ -25,6 +25,8 @@ export const SENSITIVE_FIELDS: Readonly<Record<string, readonly string[]>> = {
   employee_rate: ["amount"],
   equipment_rate: ["amount"],
   user: [],
+  // V7: injured-person data is personal (health) data.
+  incident_person: ["personName", "employeeId", "employerName", "injuryDescription", "bodyPart", "absenceDays"],
 };
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };

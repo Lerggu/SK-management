@@ -55,3 +55,6 @@ export interface UploadedFile {
   fileName: string;
   bytes: Uint8Array;
 }
+
+export const documentSharingSchema = z.object({ sharedWithClient: flag(), sharedWithSubcontractors: flag() });
+export type DocumentSharingInput = z.input<typeof documentSharingSchema>;

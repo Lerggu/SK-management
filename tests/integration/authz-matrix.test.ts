@@ -32,6 +32,11 @@ import { customerService } from "@/modules/commercial/crm.service";
 import { quoteService } from "@/modules/commercial/quote.service";
 import { contractService, forecastService, variationService } from "@/modules/commercial/project.service";
 import { invoiceService } from "@/modules/commercial/invoice.service";
+import { clientApprovalService } from "@/modules/commercial/client-approval.service";
+import { hseActionService, hseObservationService, hseOverviewService, incidentService } from "@/modules/hse/hse.service";
+import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
+import { scheduleSummaryService } from "@/modules/takt/summary.service";
+import { portalService } from "@/modules/portal/service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Outcome = "✓" | "F" | "N";
@@ -47,6 +52,7 @@ const ROLES: RoleTemplateKey[] = [
   "SUBCONTRACTOR",
   "CLIENT",
   "LIFTING_SUPERVISOR",
+  "CLIENT_APPROVER",
 ];
 
 interface Fixture {
@@ -67,6 +73,14 @@ interface Fixture {
   lift: { draftPlanId: string; submittedPlanId: () => Promise<string>; approvedPlanId: () => Promise<string> };
   material: { drumId: string };
   v6: { customerId: string; submittedQuoteId: () => Promise<string>; reviewVariationId: () => Promise<string> };
+  v7: {
+    documentId: () => Promise<string>;
+    observationId: () => Promise<string>;
+    triagedIncidentId: () => Promise<string>;
+    doneIncidentActionId: () => Promise<string>;
+    requestedPermitId: () => Promise<string>;
+    pendingApproval: () => Promise<{ id: string; contentSha256: string }>;
+  };
 }
 
 let dayCounter = 0;
@@ -157,76 +171,118 @@ const ACTIONS: Record<string, Action> = {
   "generate invoice candidates": (c, f) => invoiceService.generate(c, { projectId: f.projectId, to: "2026-12-31" }),
   "export invoices": (c, f) => invoiceService.export(c, { kind: "CUSTOMER", projectId: f.projectId, includeExported: "on" }),
   "internal invoicing": (c) => invoiceService.generateInternal(c, { to: "2026-12-31" }),
+  // V7 — HSE and portals
+  "view HSE register": (c, f) => hseOverviewService.register(c, f.projectId),
+  "view HSE key figures": (c, f) => hseOverviewService.metrics(c, f.projectId),
+  "report observation": (c, f) => hseObservationService.create(c, { projectId: f.projectId, kind: "SAFETY_OBSERVATION", title: uniq("Havainto"), occurredAt: "2026-09-01T08:00" }),
+  "triage observation": async (c, f) => hseObservationService.triage(c, await f.v7.observationId(), { category: "PPE", severity: "LOW" }),
+  "report incident": (c, f) => incidentService.report(c, { projectId: f.projectId, type: "PROPERTY_DAMAGE", severity: "FIRST_AID", title: uniq("Vahinko"), occurredAt: "2026-09-01T08:00" }),
+  "investigate incident": async (c, f) => incidentService.startInvestigation(c, await f.v7.triagedIncidentId()),
+  "record injured person": async (c, f) => incidentService.addPerson(c, await f.v7.triagedIncidentId(), { personName: "Testi Henkilö" }),
+  "approve incident action": async (c, f) => hseActionService.verify(c, await f.v7.doneIncidentActionId()),
+  "request permit": (c, f) => workPermitService.request(c, { projectId: f.projectId, type: "HOT_WORK", description: "Hitsaus", validFrom: "2026-11-02T07:00", validTo: "2026-11-02T15:00" }),
+  "approve permit": async (c, f) => workPermitService.decide(c, await f.v7.requestedPermitId(), { decision: "APPROVE" }),
+  "create risk assessment": (c, f) => riskAssessmentService.create(c, { projectId: f.projectId, title: uniq("Riskiarvio") }),
+  "record toolbox talk": (c, f) => toolboxTalkService.create(c, { projectId: f.projectId, heldOn: "2026-09-01", topic: "Putoamissuojaus", attendeeCount: "8" }),
+  "record MVR inspection": (c, f) => hseInspectionService.create(c, { projectId: f.projectId, kind: "MVR", inspectedOn: "2026-09-01", correctCount: "90", incorrectCount: "10" }),
+  "share document": async (c, f) => documentService.setSharing(c, await f.v7.documentId(), { sharedWithClient: "on" }),
+  "open portal": (c, f) => portalService.project(c, f.projectId),
+  "portal schedule": (c, f) => scheduleSummaryService.project(c, f.projectId),
+  "portal HSE figures": (c, f) => hseOverviewService.portalFigures(c, f.projectId),
+  "approve variation in portal": async (c, f) => {
+    const a = await f.v7.pendingApproval();
+    return clientApprovalService.decide(c, a.id, { decision: "APPROVED", contentSha256: a.contentSha256 });
+  },
 };
 
-// Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI LIFT
+// Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI LIFT CA
 const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
-  "view project":            ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓"],
-  "view unassigned project": ["✓", "✓", "N", "N", "N", "N", "N", "N", "N", "N", "N"],
-  "create project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "update project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "create site":             ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "assign project member":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "list employees":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "✓"],
-  "create employee":         ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view employee rates":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "change employee rates":   ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "list equipment":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "✓"],
-  "create equipment":        ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "F", "F", "F"],
-  "view equipment rates":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "change equipment rates":  ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "create project document": ["✓", "✓", "✓", "✓", "✓", "F", "✓", "F", "F", "F", "F"],
-  "approve document":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "manage members":          ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "edit role permissions":   ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view audit log":          ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "enter own hours":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "✓"],
-  "enter crew hours":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "F", "F", "F"],
-  "approve hours":           ["✓", "✓", "✓", "✓", "F", "N", "N", "N", "N", "N", "N"],
-  "export hours":            ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view site diary":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
-  "write site diary":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F"],
-  "sign site diary":         ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F"],
-  "view project finance":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "record project cost":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view takt board":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
-  "edit takt draft":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N", "F"],
-  "record takt progress":    ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F"],
-  "approve takt baseline":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N", "F"],
-  "import schedule":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N", "F"],
-  "view look-ahead":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
-  "edit work calendar":      ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view logistics board":    ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
-  "create logistics request":["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "N", "N", "✓"],
-  "approve logistics request":["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "F"],
-  "manage gates":            ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "F"],
-  "book resource":           ["✓", "✓", "✓", "✓", "F", "✓", "F", "F", "N", "N", "F"],
-  "schedule delivery":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F"],
+  "view project":            ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓"],
+  "view unassigned project": ["✓", "✓", "N", "N", "N", "N", "N", "N", "N", "N", "N", "N"],
+  "create project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "update project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "create site":             ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "assign project member":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "list employees":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "✓", "F"],
+  "create employee":         ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view employee rates":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "change employee rates":   ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "list equipment":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "✓", "F"],
+  "create equipment":        ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "F", "F", "F", "F"],
+  "view equipment rates":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "change equipment rates":  ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "create project document": ["✓", "✓", "✓", "✓", "✓", "F", "✓", "F", "F", "F", "F", "F"],
+  // V7: unshared documents do not exist for external members.
+  "approve document":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N", "F", "N"],
+  "manage members":          ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "edit role permissions":   ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view audit log":          ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "enter own hours":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "✓", "F"],
+  "enter crew hours":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "approve hours":           ["✓", "✓", "✓", "✓", "F", "N", "N", "N", "N", "N", "N", "N"],
+  "export hours":            ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view site diary":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓", "N"],
+  "write site diary":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F", "N"],
+  "sign site diary":         ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F", "N"],
+  "view project finance":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "record project cost":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view takt board":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓", "N"],
+  "edit takt draft":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N", "F", "N"],
+  "record takt progress":    ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F", "N"],
+  "approve takt baseline":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N", "F", "N"],
+  "import schedule":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N", "F", "N"],
+  "view look-ahead":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓", "N"],
+  "edit work calendar":      ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view logistics board":    ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓", "N"],
+  "create logistics request":["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "N", "N", "✓", "N"],
+  "approve logistics request":["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "F", "N"],
+  "manage gates":            ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "F", "N"],
+  "book resource":           ["✓", "✓", "✓", "✓", "F", "✓", "F", "F", "N", "N", "F", "N"],
+  "schedule delivery":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F", "N"],
   // V5 (LIFT = Lifting Supervisor, the person responsible for lifting)
-  "view lift plan":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
-  "create lift plan":        ["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "N", "N", "✓"],
-  "edit lift plan draft":    ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "✓"],
-  "approve lift plan":       ["✓", "✓", "F", "F", "F", "F", "F", "F", "N", "N", "✓"],
-  "complete lift":           ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "✓"],
-  "view accessory register": ["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "F", "✓"],
-  "manage lifting accessories":["✓", "✓", "F", "✓", "F", "✓", "F", "F", "F", "F", "✓"],
-  "view materials":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
-  "register material batch": ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F"],
-  "record cable pull":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F"],
-  "print QR labels":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
+  "view lift plan":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓", "N"],
+  "create lift plan":        ["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "N", "N", "✓", "N"],
+  "edit lift plan draft":    ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "✓", "N"],
+  "approve lift plan":       ["✓", "✓", "F", "F", "F", "F", "F", "F", "N", "N", "✓", "N"],
+  "complete lift":           ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "✓", "N"],
+  "view accessory register": ["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "F", "✓", "F"],
+  "manage lifting accessories":["✓", "✓", "F", "✓", "F", "✓", "F", "F", "F", "F", "✓", "F"],
+  "view materials":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓", "N"],
+  "register material batch": ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F", "N"],
+  "record cable pull":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F", "N"],
+  "print QR labels":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓", "N"],
   // V6 — prices, margins and billing never reach external roles
-  "view customers":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "manage customers":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view quotes":             ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "prepare quote":           ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "approve quote":           ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view project commercial": ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view unassigned project commercial":["✓", "✓", "N", "N", "N", "N", "N", "N", "N", "N", "N"],
-  "create variation":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "approve variation":       ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "generate invoice candidates":["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "export invoices":         ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "internal invoicing":      ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view customers":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "manage customers":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view quotes":             ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "prepare quote":           ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "approve quote":           ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view project commercial": ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view unassigned project commercial":["✓", "✓", "N", "N", "N", "N", "N", "N", "N", "N", "N", "N"],
+  "create variation":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "approve variation":       ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "generate invoice candidates":["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "export invoices":         ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "internal invoicing":      ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  // V7 — HSE (subcontractors report and see only their own records) and portals
+  "view HSE register":       ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "N"],
+  "view HSE key figures":    ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "N", "✓", "N"],
+  "report observation":      ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "N"],
+  "triage observation":      ["✓", "✓", "✓", "✓", "F", "F", "✓", "F", "N", "N", "F", "N"],
+  "report incident":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "N"],
+  "investigate incident":    ["✓", "F", "F", "F", "F", "F", "✓", "F", "N", "N", "F", "N"],
+  "record injured person":   ["✓", "F", "F", "F", "F", "F", "✓", "F", "N", "N", "F", "N"],
+  "approve incident action": ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N", "F", "N"],
+  "request permit":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "N"],
+  "approve permit":          ["✓", "✓", "F", "✓", "F", "F", "✓", "F", "N", "N", "F", "N"],
+  "create risk assessment":  ["✓", "✓", "✓", "✓", "F", "F", "✓", "F", "F", "N", "F", "N"],
+  "record toolbox talk":     ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "N", "✓", "N"],
+  "record MVR inspection":   ["✓", "✓", "✓", "✓", "F", "F", "✓", "F", "F", "N", "F", "N"],
+  "share document":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N", "F", "N"],
+  "open portal":             ["N", "N", "N", "N", "N", "N", "N", "N", "✓", "✓", "N", "✓"],
+  "portal schedule":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "✓", "✓"],
+  "portal HSE figures":      ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "✓", "✓"],
+  "approve variation in portal":["N", "N", "N", "N", "N", "N", "N", "N", "N", "F", "N", "✓"],
 };
 
 let f: Fixture;
@@ -263,6 +319,14 @@ beforeAll(async () => {
     lift: { draftPlanId: "", submittedPlanId: async () => "", approvedPlanId: async () => "" },
     material: { drumId: "" },
     v6: { customerId: "", submittedQuoteId: async () => "", reviewVariationId: async () => "" },
+    v7: {
+      documentId: async () => "",
+      observationId: async () => "",
+      triagedIncidentId: async () => "",
+      doneIncidentActionId: async () => "",
+      requestedPermitId: async () => "",
+      pendingApproval: async () => ({ id: "", contentSha256: "" }),
+    },
   };
   const site = await sites.create(t.ownerCtx, project.id, { name: "Matrix site" });
   const report = await diaryService.open(t.ownerCtx, { siteId: site.id, date: "2026-02-01" });
@@ -344,6 +408,29 @@ beforeAll(async () => {
       await variationService.updateDraft(t.ownerCtx, v.id, { title: v.title, laborCost: "1000", markupPct: "10" });
       await variationService.submitForReview(t.ownerCtx, v.id);
       return v.id;
+    },
+  };
+  // V7 fixtures: owner-reported HSE records; a variation the PD approved internally.
+  const triaged = async () => {
+    const i = await incidentService.report(t.ownerCtx, { projectId: project.id, type: "INJURY", severity: "MEDICAL_TREATMENT", title: uniq("Tapaturma"), occurredAt: "2026-09-01T08:00" });
+    await incidentService.triage(t.ownerCtx, i.id, { type: "INJURY", severity: "MEDICAL_TREATMENT" });
+    return i.id;
+  };
+  f.v7 = {
+    // A fresh, unshared project document per call.
+    documentId: async () => (await documentService.create(t.ownerCtx, { title: uniq("Matrix share"), projectId: project.id }, textFile("s.pdf"))).id,
+    observationId: async () => (await hseObservationService.create(t.ownerCtx, { projectId: project.id, kind: "NEAR_MISS", title: uniq("LP"), occurredAt: "2026-09-01T08:00" })).id,
+    triagedIncidentId: triaged,
+    doneIncidentActionId: async () => {
+      const a = await hseActionService.create(t.ownerCtx, { sourceType: "INCIDENT", sourceId: await triaged(), title: "Korjaus" });
+      await hseActionService.markDone(t.ownerCtx, a.id, {});
+      return a.id;
+    },
+    requestedPermitId: async () => (await workPermitService.request(t.ownerCtx, { projectId: project.id, type: "WORK_AT_HEIGHT", description: "Nostin", validFrom: "2026-11-03T07:00", validTo: "2026-11-03T15:00" })).id,
+    pendingApproval: async () => {
+      const id = await f.v6.reviewVariationId();
+      await variationService.approveInternal(approver, id, { decision: "APPROVE" });
+      return db.variationClientApproval.findFirstOrThrow({ where: { variationId: id, decision: "PENDING" }, select: { id: true, contentSha256: true } });
     },
   };
   for (const role of ROLES) {

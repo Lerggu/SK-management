@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolvePermissions, type RoleGrant } from "./resolve";
-import { ROLE_TEMPLATES, SENSITIVE_PERMISSIONS, getRoleTemplate } from "./permissions";
+import { EXTERNAL_ONLY_PERMISSIONS, ROLE_TEMPLATES, SENSITIVE_PERMISSIONS, getRoleTemplate } from "./permissions";
 
 const grant = (key: string): RoleGrant => {
   const t = getRoleTemplate(key)!;
@@ -57,5 +57,38 @@ describe("resolvePermissions", () => {
   it("ignores unknown permission keys", () => {
     const r = resolvePermissions([{ templateKey: null, projectAccess: "ASSIGNED", permissions: ["project.view", "root.everything"] }]);
     expect([...r.permissions]).toEqual(["project.view"]);
+  });
+});
+
+describe("V7 external boundaries", () => {
+  it("internal roles never receive portal or client-approval permissions", () => {
+    for (const t of ROLE_TEMPLATES.filter((x) => !x.external)) {
+      for (const p of EXTERNAL_ONLY_PERMISSIONS) expect(t.permissions, `${t.key} ${p}`).not.toContain(p);
+    }
+    const misconfigured: RoleGrant = { templateKey: null, projectAccess: "ALL", permissions: ["project.view", "variation.client_approve", "portal.client"] };
+    const r = resolvePermissions([grant("PROJECT_DIRECTOR"), misconfigured]);
+    expect(r.permissions.has("variation.client_approve")).toBe(false);
+    expect(r.permissions.has("portal.client")).toBe(false);
+  });
+
+  it("an internal user given the Client approver project role cannot approve for the client", () => {
+    const r = resolvePermissions([grant("PROJECT_MANAGER")], [{ projectId: "p1", role: grant("CLIENT_APPROVER") }]);
+    expect(r.projectGrants.get("p1")!.has("variation.client_approve")).toBe(false);
+    expect(r.externalParties.size).toBe(0);
+  });
+
+  it("a client with the approver project role can approve in that project only", () => {
+    const r = resolvePermissions([grant("CLIENT")], [{ projectId: "p1", role: grant("CLIENT_APPROVER") }]);
+    expect(r.permissions.has("variation.client_approve")).toBe(false);
+    expect(r.projectGrants.get("p1")!.has("variation.client_approve")).toBe(true);
+    expect([...r.externalParties]).toEqual(["CLIENT"]);
+  });
+
+  it("external parties come from external roles; injured-person data never reaches them", () => {
+    expect([...resolvePermissions([grant("SUBCONTRACTOR")]).externalParties]).toEqual(["SUBCONTRACTOR"]);
+    const misconfigured: RoleGrant = { templateKey: "SUBCONTRACTOR", projectAccess: "ASSIGNED", permissions: ["hse.create", "hse.personal.view"] };
+    const r = resolvePermissions([misconfigured]);
+    expect(r.permissions.has("hse.personal.view")).toBe(false);
+    expect(r.permissions.has("hse.create")).toBe(true);
   });
 });

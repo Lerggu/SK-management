@@ -65,6 +65,10 @@ describe("documents", () => {
     const internal = await documentService.create(t.ownerCtx, { title: "Company contract" }, textFile("c.pdf"));
     const projectDoc = await documentService.create(t.ownerCtx, { title: "Project drawing", projectId: p.id }, textFile("d.pdf"));
     const otherDoc = await documentService.create(t.ownerCtx, { title: "Other project", projectId: other.id }, textFile("o.pdf"));
+    // V7: shared with the client and approved → visible read-only.
+    await documentService.setSharing(t.ownerCtx, projectDoc.id, { sharedWithClient: "on" });
+    await documentService.setVersionApproval(t.ownerCtx, projectDoc.currentVersion.id, { state: "APPROVED" });
+    await documentService.setSharing(t.ownerCtx, otherDoc.id, { sharedWithClient: "on" });
     const client = await createMember(t, "CLIENT", [{ projectId: p.id }]);
     expect((await documentService.list(client)).map((d) => d.id)).toEqual([projectDoc.id]);
     await expect(documentService.get(client, internal.id)).rejects.toBeInstanceOf(NotFoundError);
@@ -72,6 +76,39 @@ describe("documents", () => {
     await expect(documentService.downloadVersion(client, internal.currentVersion.id)).rejects.toBeInstanceOf(NotFoundError);
     await expect(documentService.uploadVersion(client, projectDoc.id, {}, textFile("x.pdf"))).rejects.toBeInstanceOf(ForbiddenError);
     await expect(documentService.create(client, { title: "x" }, textFile("x.pdf"))).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(documentService.setSharing(client, projectDoc.id, { sharedWithSubcontractors: "on" })).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("V7: external visibility needs sharing with the member's party, and only APPROVED versions are shown", async () => {
+    const t = await createTenant("Share");
+    const p = await projectService.create(t.ownerCtx, { code: "P", name: "P" });
+    const doc = await documentService.create(t.ownerCtx, { title: "Drawing", projectId: p.id }, textFile("v1.pdf"));
+    const client = await createMember(t, "CLIENT", [{ projectId: p.id }]);
+    const sub = await createMember(t, "SUBCONTRACTOR", [{ projectId: p.id }]);
+    // Not shared: invisible to both parties.
+    expect(await documentService.list(client)).toEqual([]);
+    await expect(documentService.get(sub, doc.id)).rejects.toBeInstanceOf(NotFoundError);
+    // Shared with subcontractors only, but no approved version yet → still invisible.
+    await documentService.setSharing(t.ownerCtx, doc.id, { sharedWithSubcontractors: "on" });
+    expect(await documentService.list(sub)).toEqual([]);
+    await expect(documentService.get(sub, doc.id)).rejects.toBeInstanceOf(NotFoundError);
+    await documentService.setVersionApproval(t.ownerCtx, doc.currentVersion.id, { state: "APPROVED" });
+    const v2 = await documentService.uploadVersion(t.ownerCtx, doc.id, { revisionLabel: "B" }, textFile("v2.pdf", "draft"));
+    // The subcontractor sees the document with the approved v1 only; the client sees nothing.
+    const listed = await documentService.list(sub);
+    expect(listed.map((d) => [d.id, d.currentVersion?.id])).toEqual([[doc.id, doc.currentVersion.id]]);
+    const detail = await documentService.get(sub, doc.id);
+    expect(detail.versions.map((v) => v.id)).toEqual([doc.currentVersion.id]);
+    expect(detail.permissions).toEqual({ manage: false, approve: false, share: false });
+    await expect(documentService.downloadVersion(sub, v2.id)).rejects.toBeInstanceOf(NotFoundError);
+    expect((await documentService.downloadVersion(sub, doc.currentVersion.id)).fileName).toBe("v1.pdf");
+    expect(await documentService.list(client)).toEqual([]);
+    await expect(documentService.get(client, doc.id)).rejects.toBeInstanceOf(NotFoundError);
+    // Company-level documents can never be shared.
+    const companyDoc = await documentService.create(t.ownerCtx, { title: "Policy" }, textFile("p.pdf"));
+    await expect(documentService.setSharing(t.ownerCtx, companyDoc.id, { sharedWithClient: "on" })).rejects.toBeInstanceOf(ValidationError);
+    const audit = await auditFor(t.companyId, doc.id);
+    expect(audit.map((a) => a.action)).toContain("document.share_update");
   });
 
   it("links documents to entities of the same company", async () => {
