@@ -14,6 +14,10 @@ import { employeeService } from "@/modules/workforce/service";
 import { equipmentService, equipmentTypeService } from "@/modules/equipment/service";
 import { documentService } from "@/modules/documents/service";
 import { db } from "@/platform/db";
+import { siteService as sites } from "@/modules/projects/service";
+import { timesheetService } from "@/modules/timesheets/service";
+import { diaryService } from "@/modules/diary/service";
+import { costService, projectFinanceService } from "@/modules/finance/service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Outcome = "✓" | "F" | "N";
@@ -39,7 +43,17 @@ interface Fixture {
   equipmentTypeId: string;
   pendingVersionId: () => Promise<string>;
   employeeRoleId: string;
+  siteId: string;
+  submittedEntryId: () => Promise<string>;
+  draftReportId: () => Promise<string>;
+  reportId: string;
 }
+
+let dayCounter = 0;
+const nextDate = () => {
+  dayCounter += 1;
+  return new Date(Date.UTC(2026, 0, 1 + dayCounter)).toISOString().slice(0, 10);
+};
 
 type Action = (ctx: RequestContext, f: Fixture) => Promise<unknown>;
 
@@ -66,6 +80,19 @@ const ACTIONS: Record<string, Action> = {
   "manage members": (c) => companyAdminService.listMembers(c),
   "edit role permissions": async (c, f) => companyAdminService.updateRolePermissions(c, f.employeeRoleId, { permissionKeys: ["project.view", "documents.view"] }),
   "view audit log": (c) => companyAdminService.listAuditEvents(c),
+  // V2
+  "enter own hours": (c, f) => timesheetService.create(c, { projectId: f.projectId, workDate: nextDate(), hours: "8" }),
+  "enter crew hours": (c, f) => timesheetService.createCrew(c, { employeeIds: [f.employeeId], projectId: f.projectId, workDate: nextDate(), hours: "8" }),
+  "approve hours": async (c, f) => timesheetService.decide(c, { entryIds: [await f.submittedEntryId()], decision: "APPROVE" }),
+  "export hours": (c) => timesheetService.exportApproved(c, { from: "2020-01-01", to: "2030-12-31" }).catch((e) => {
+    if (e?.fieldErrors?._form?.[0] === "validation.nothingToExport") return null; // allowed, nothing left to export
+    throw e;
+  }),
+  "view site diary": (c, f) => diaryService.get(c, f.reportId),
+  "write site diary": (c, f) => diaryService.addEntry(c, f.reportId, { kind: "WORK", description: "Matrix" }),
+  "sign site diary": async (c, f) => diaryService.sign(c, await f.draftReportId()),
+  "view project finance": (c, f) => projectFinanceService.summary(c, f.projectId),
+  "record project cost": (c, f) => costService.create(c, f.projectId, { category: "OTHER", entryDate: "2026-03-01", description: "Matrix", amount: "1" }),
 };
 
 // Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI
@@ -89,6 +116,15 @@ const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
   "manage members":          ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
   "edit role permissions":   ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
   "view audit log":          ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "enter own hours":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F"],
+  "enter crew hours":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "F", "F"],
+  "approve hours":           ["✓", "✓", "✓", "✓", "F", "N", "N", "N", "N", "N"],
+  "export hours":            ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view site diary":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
+  "write site diary":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N"],
+  "sign site diary":         ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N"],
+  "view project finance":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
+  "record project cost":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
 };
 
 let f: Fixture;
@@ -115,10 +151,29 @@ beforeAll(async () => {
       await documentService.setVersionApproval(t.ownerCtx, doc.currentVersion.id, { state: "PENDING_APPROVAL" });
       return doc.currentVersion.id;
     },
+    // Filled in below, once the V2 fixtures exist.
+    siteId: "",
+    reportId: "",
+    submittedEntryId: async () => "",
+    draftReportId: async () => "",
   };
+  const site = await sites.create(t.ownerCtx, project.id, { name: "Matrix site" });
+  const report = await diaryService.open(t.ownerCtx, { siteId: site.id, date: "2026-02-01" });
+  f.siteId = site.id;
+  f.reportId = report.id;
+  f.submittedEntryId = async () => {
+    const date = nextDate();
+    const [e] = await timesheetService.createCrew(t.ownerCtx, { employeeIds: [employee.id], projectId: project.id, workDate: date, hours: "8" });
+    await timesheetService.submitWeek(t.ownerCtx, { employeeId: employee.id, date });
+    return e.id;
+  };
+  f.draftReportId = async () => (await diaryService.open(t.ownerCtx, { siteId: site.id, date: nextDate() })).id;
   for (const role of ROLES) {
     const assigned = role === "CEO" || role === "PROJECT_DIRECTOR" ? [] : [{ projectId: project.id }];
-    ctxByRole.set(role, await createMember(t, role, assigned));
+    const ctx = await createMember(t, role, assigned);
+    // Every member has an employee record so "own hours" is meaningful.
+    await employeeService.create(t.ownerCtx, { employeeNumber: `R-${role}`, firstName: role, lastName: "Matrix", userId: ctx.user.id });
+    ctxByRole.set(role, ctx);
   }
 });
 

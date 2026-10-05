@@ -18,6 +18,11 @@ import { projectService, siteService } from "@/modules/projects/service";
 import { employeeService } from "@/modules/workforce/service";
 import { equipmentService, equipmentTypeService } from "@/modules/equipment/service";
 import { documentService } from "@/modules/documents/service";
+import { timesheetService } from "@/modules/timesheets/service";
+import { diaryService } from "@/modules/diary/service";
+import { budgetService, costService } from "@/modules/finance/service";
+import { addDays, isoDateString, weekStart } from "@/modules/timesheets/rules";
+import { todayInDisplayZone } from "@/platform/i18n/config";
 
 const meta: RequestMeta = { requestId: "seed", ip: null, userAgent: "seed" };
 const ORG_SLUG = "sk-group-demo";
@@ -260,6 +265,69 @@ async function main() {
   } catch (e) {
     console.warn("⚠ Documents were not seeded (is object storage running? docker compose -f docker/docker-compose.yml up -d):", (e as Error).message);
   }
+
+  // ── V2: hours, site diary and project finance (SK Infra Demo) ─────
+  const today = new Date(`${todayInDisplayZone()}T00:00:00Z`);
+  const lastMonday = addDays(weekStart(today), -7);
+  const linked = [
+    { email: "employee@skinfra.example.com", number: "E-1007", first: "Timo", last: "Tyyppi", trade: "Sähköasentaja", cost: "41.00" },
+    { email: "supervisor@skinfra.example.com", number: "E-1008", first: "Sanna", last: "Testi", trade: "Työnjohtaja", cost: "52.00" },
+    { email: "site.manager@skinfra.example.com", number: "E-1009", first: "Pekka", last: "Demo", trade: "Työmaapäällikkö", cost: "58.00" },
+  ];
+  for (const l of linked) {
+    const user = await db.user.findUniqueOrThrow({ where: { email: l.email } });
+    const emp = await employeeService.create(skCeo, { employeeNumber: l.number, firstName: l.first, lastName: l.last, trade: l.trade, userId: user.id, startDate: "2024-01-01" });
+    await employeeService.addRate(skCeo, emp.id, { rateType: "COST", amount: l.cost, validFrom: "2026-01-01" });
+    createdEmployees.push(emp);
+  }
+  const supervisorCtx = await ctxFor("supervisor@skinfra.example.com", "sk-infra-demo");
+  const siteManagerCtx = await ctxFor("site.manager@skinfra.example.com", "sk-infra-demo");
+  const employeeCtx = await ctxFor("employee@skinfra.example.com", "sk-infra-demo");
+  const crew = createdEmployees.slice(0, 4).map((e) => e.id);
+
+  // Last week: crew hours entered by the supervisor, submitted and approved by the site manager.
+  for (let d = 0; d < 5; d++) {
+    const workDate = isoDateString(addDays(lastMonday, d));
+    await timesheetService.createCrew(supervisorCtx, { employeeIds: crew, projectId: ndc.id, siteId: hallA.id, workDate, hours: "8", note: "Kaapelihyllyt, Data Hall A" });
+    if (d === 3) await timesheetService.createCrew(supervisorCtx, { employeeIds: crew.slice(0, 2), projectId: ndc.id, siteId: hallA.id, workDate, hours: "2", workClass: "OVERTIME_50", note: "Kiireellinen nosto" });
+  }
+  for (const id of crew) await timesheetService.submitWeek(supervisorCtx, { employeeId: id, date: isoDateString(lastMonday) });
+  const toApprove = await timesheetService.listForApproval(siteManagerCtx, { projectId: ndc.id });
+  await timesheetService.decide(siteManagerCtx, { entryIds: toApprove.map((e) => e.id), decision: "APPROVE" });
+
+  // This week: the employee's own hours (submitted) and today's draft.
+  const thisMonday = weekStart(today);
+  for (let d = 0; d < Math.min(2, Math.max(1, Math.round((today.getTime() - thisMonday.getTime()) / 86_400_000))); d++) {
+    await timesheetService.create(employeeCtx, { projectId: ndc.id, siteId: substation.id, workDate: isoDateString(addDays(thisMonday, d)), startTime: "07:00", endTime: "15:30" });
+  }
+  await timesheetService.submitWeek(employeeCtx, { date: isoDateString(thisMonday) });
+  await timesheetService.create(employeeCtx, { projectId: ndc.id, siteId: substation.id, workDate: isoDateString(today), hours: "7,5", note: "Maadoitukset" });
+
+  // Site diary: last Friday signed (with crane hours), today's draft.
+  const friday = isoDateString(addDays(lastMonday, 4));
+  const signedDiary = await diaryService.open(supervisorCtx, { siteId: hallA.id, date: friday });
+  await diaryService.update(supervisorCtx, signedDiary.id, { weather: "Pilvistä, +2 °C", summary: "Kaapelihyllyasennukset Data Hall A:ssa valmiit linjoilla 1–4. Nosturilla nostettiin muuntajan osat paikalleen." });
+  await diaryService.addEntry(supervisorCtx, signedDiary.id, { kind: "WORK", description: "Kaapelihyllyt linjat 1–4 asennettu ja tarkastettu" });
+  await diaryService.addEntry(supervisorCtx, signedDiary.id, { kind: "EQUIPMENT", equipmentId: createdEquipment[0].id, hours: "4" });
+  await diaryService.addEntry(supervisorCtx, signedDiary.id, { kind: "DELAY", description: "Toimitus myöhässä 2 h (kaapelirummut)" });
+  await diaryService.sign(supervisorCtx, signedDiary.id);
+  const todayDiary = await diaryService.open(supervisorCtx, { siteId: hallA.id, date: isoDateString(today) });
+  await diaryService.addEntry(supervisorCtx, todayDiary.id, { kind: "WORK", description: "Kaapelinveto linja 5 aloitettu" });
+
+  // Budget (original version) and manual costs.
+  const budget = await budgetService.createVersion(skCeo, ndc.id, { note: "Alkuperäinen budjetti" });
+  for (const [category, description, amount] of [
+    ["LABOR", "Asennustyö", "180000"],
+    ["EQUIPMENT", "Nosturit ja kurottajat", "90000"],
+    ["MATERIALS", "Kaapelit ja hyllyt", "250000"],
+    ["SUBCONTRACT", "Telineet ja purku", "120000"],
+    ["OTHER", "Majoitus ja matkat", "20000"],
+  ] as const) {
+    await budgetService.addLine(skCeo, budget.id, { category, description, amount });
+  }
+  await budgetService.activate(skCeo, budget.id);
+  await costService.create(skCeo, ndc.id, { category: "MATERIALS", entryDate: isoDateString(lastMonday), description: "Kaapelirummut 4 kpl", supplier: "Kaapeli Demo Oy", reference: "LASKU-1001", amount: "38500" });
+  await costService.create(skCeo, ndc.id, { category: "SUBCONTRACT", entryDate: isoDateString(addDays(lastMonday, 2)), description: "Telinetyöt viikko", supplier: "Teline Demo Oy", reference: "LASKU-2001", amount: "12000" });
 
   // ── Purent Demo (separate company, same platform) ─────────────────
   await seedCompany({

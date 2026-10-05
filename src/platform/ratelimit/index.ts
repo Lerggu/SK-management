@@ -17,7 +17,8 @@ export interface RateLimitRule {
 }
 
 export const RATE_LIMITS = {
-  signIn: { name: "sign-in", limit: 10, windowMs: 5 * 60_000 },
+  // RATE_LIMIT_SIGN_IN may raise the limit for automated test environments only.
+  signIn: { name: "sign-in", limit: Number(process.env.RATE_LIMIT_SIGN_IN ?? 10), windowMs: 5 * 60_000 },
   upload: { name: "upload", limit: 30, windowMs: 10 * 60_000 },
 } as const satisfies Record<string, RateLimitRule>;
 

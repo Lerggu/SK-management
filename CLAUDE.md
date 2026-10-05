@@ -8,8 +8,9 @@ This file is the standing brief for Claude Code in this repository. Read it at t
 
 Read both fully before any architectural change. If this file and the Build Master conflict, the Build Master wins, except where the owner-approved decisions below are more specific.
 
-## Current release: V1 — Foundation (APPROVED by owner)
-Do not implement V2–V8 functionality. Do not start V2 without explicit owner approval.
+## Current release: V2 — Site Execution & Project Finance Foundation (APPROVED by owner 2026-10-04)
+V1 — Foundation is complete (`docs/V1_REPORT.md`). V2 scope and owner decisions: `docs/V2_PLAN.md`.
+Do not implement V3–V8 functionality. Do not start V3 without explicit owner approval.
 
 ## Owner requirements (binding)
 1. Finnish is the default UI language; English is available from V1 (i18n from day one, no hard-coded UI strings).

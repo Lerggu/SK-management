@@ -29,6 +29,17 @@ export const PERMISSIONS = {
   "documents.view": { category: "documents", sensitive: false, description: "View documents" },
   "documents.manage": { category: "documents", sensitive: false, description: "Create documents and upload versions" },
   "documents.approve": { category: "documents", sensitive: false, description: "Approve or reject document versions" },
+
+  // V2 — site execution and project finance
+  "timesheet.submit": { category: "time", sensitive: false, description: "Enter and submit own hours" },
+  "timesheet.manage": { category: "time", sensitive: false, description: "Enter and submit hours for crew members" },
+  "timesheet.approve": { category: "time", sensitive: false, description: "Approve or reject submitted hours" },
+  "timesheet.export": { category: "time", sensitive: false, description: "Export approved hours for payroll" },
+  "diary.view": { category: "diary", sensitive: false, description: "View site diaries" },
+  "diary.manage": { category: "diary", sensitive: false, description: "Write site diaries" },
+  "diary.sign": { category: "diary", sensitive: false, description: "Sign (finalize) site diaries" },
+  "finance.view": { category: "finance", sensitive: true, description: "View project budgets, costs and margins" },
+  "finance.manage": { category: "finance", sensitive: true, description: "Edit budgets and record project costs" },
 } as const satisfies Record<string, { category: string; sensitive: boolean; description: string }>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -57,6 +68,7 @@ export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "equipment.manage",
   "equipment.rates.view",
   "equipment.rates.manage",
+  "timesheet.export",
 ]);
 
 export type RoleTemplateKey =
@@ -115,6 +127,15 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "documents.view",
       "documents.manage",
       "documents.approve",
+      "timesheet.submit",
+      "timesheet.manage",
+      "timesheet.approve",
+      "timesheet.export",
+      "diary.view",
+      "diary.manage",
+      "diary.sign",
+      "finance.view",
+      "finance.manage",
     ),
   },
   {
@@ -134,6 +155,14 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "documents.view",
       "documents.manage",
       "documents.approve",
+      "timesheet.submit",
+      "timesheet.manage",
+      "timesheet.approve",
+      "diary.view",
+      "diary.manage",
+      "diary.sign",
+      "finance.view",
+      "finance.manage",
     ),
   },
   {
@@ -147,36 +176,35 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "equipment.view",
       "equipment.manage",
       "documents.view",
-      "documents.manage",
-    ),
+      "documents.manage", "timesheet.submit", "timesheet.manage", "timesheet.approve", "diary.view", "diary.manage", "diary.sign"),
   },
   {
     key: "SUPERVISOR",
     name: { fi: "Työnjohtaja", en: "Supervisor" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign"),
   },
   {
     key: "LOGISTICS_COORDINATOR",
     name: { fi: "Logistiikkakoordinaattori", en: "Logistics Coordinator" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view"),
+    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view"),
   },
   {
     key: "HSE",
     name: { fi: "HSE-asiantuntija", en: "HSE" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view"),
   },
   {
     key: "EMPLOYEE",
     name: { fi: "Työntekijä", en: "Employee" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "documents.view"),
+    permissions: P("project.view", "documents.view", "timesheet.submit", "diary.view"),
   },
   {
     key: "SUBCONTRACTOR",

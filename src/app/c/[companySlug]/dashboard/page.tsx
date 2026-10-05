@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { AlertTriangle, FileText, FolderKanban, MapPin, Plus, Truck, Users } from "lucide-react";
-import { hasPermission } from "@/platform/authz";
+import { AlertTriangle, BookOpen, ClipboardCheck, Clock, FileText, FolderKanban, MapPin, Plus, Truck, Users } from "lucide-react";
+import { hasPermission, projectIdsWithPermission, projectPermissions } from "@/platform/authz";
+import { todayInDisplayZone } from "@/platform/i18n/config";
+import { timesheetService } from "@/modules/timesheets/service";
+import { projectService, siteService } from "@/modules/projects/service";
+import { D } from "@/modules/finance/calculations";
+import { hasTimeAccess } from "@/app/_lib/nav";
+import { openDiaryAction } from "../diary/actions";
+import { ActionButton } from "@/ui/components/form";
 import { dashboardService } from "@/modules/companies/dashboard";
 import { companyAdminService } from "@/modules/companies/service";
 import { PageHeader, Section } from "@/ui/components/page";
@@ -40,6 +47,19 @@ export default async function DashboardPage({ params }: { params: Promise<{ comp
   const [summary, t, ta, format] = await Promise.all([dashboardService.summary(ctx), getTranslations("dashboard"), getTranslations("audit.actions"), getFormatter()]);
   await companyAdminService.rememberCompany(ctx);
 
+  // ── Today (mobile-first site view) ──
+  const today = todayInDisplayZone();
+  const timeAccess = hasTimeAccess(ctx);
+  const myWeek = timeAccess ? await timesheetService.listWeek(ctx, { date: today }).catch(() => null) : null;
+  const myHoursToday = myWeek ? myWeek.entries.filter((e) => e.workDate.toISOString().slice(0, 10) === today).reduce((sum, e) => sum.plus(e.hours), D(0)) : null;
+  const approveProjects = projectIdsWithPermission(ctx, "timesheet.approve");
+  const approvals = approveProjects === undefined || approveProjects.length > 0 ? await timesheetService.listForApproval(ctx).catch(() => []) : null;
+  const diarySites: { id: string; label: string }[] = [];
+  for (const p of (await projectService.list(ctx)).filter((p) => !p.archivedAt && projectPermissions(ctx, p.id).has("diary.manage")).slice(0, 4)) {
+    for (const site of await siteService.list(ctx, p.id)) diarySites.push({ id: site.id, label: `${p.code} › ${site.name}` });
+  }
+  const showToday = timeAccess || diarySites.length > 0;
+
   const quick = [
     hasPermission(ctx, "project.manage") && { href: `${base}/projects/new`, label: t("newProject") },
     hasPermission(ctx, "employee.manage") && { href: `${base}/workforce/new`, label: t("newEmployee") },
@@ -50,6 +70,41 @@ export default async function DashboardPage({ params }: { params: Promise<{ comp
   return (
     <>
       <PageHeader title={t("welcome", { name: ctx.user.name ?? ctx.user.email })} description={ctx.company.name} />
+      {showToday && (
+        <section className="mb-6 rounded-xl border bg-card p-4" aria-labelledby="today" data-testid="today">
+          <h2 id="today" className="mb-3 text-base font-semibold">
+            {t("today")}
+          </h2>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {timeAccess && (
+              <Link href={`${base}/time`} className="flex min-h-14 items-center gap-3 rounded-xl bg-primary px-4 text-base font-semibold text-primary-foreground hover:bg-primary/90">
+                <Clock className="size-5" aria-hidden />
+                <span className="flex-1">{t("logHours")}</span>
+                {myHoursToday && <span className="text-sm font-normal opacity-90">{t("myHoursToday", { hours: format.number(Number(myHoursToday.toString()), { maximumFractionDigits: 2 }) })}</span>}
+              </Link>
+            )}
+            {approvals && approvals.length > 0 && (
+              <Link href={`${base}/time/approvals`} className="flex min-h-14 items-center gap-3 rounded-xl border px-4 text-sm font-medium hover:bg-muted">
+                <ClipboardCheck className="size-5 text-primary" aria-hidden />
+                {t("approvalsWaiting", { count: approvals.length })}
+              </Link>
+            )}
+          </div>
+          {diarySites.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-2 text-sm text-muted-foreground">{t("diaryToday")}</p>
+              <div className="flex flex-wrap gap-2">
+                {diarySites.map((site) => (
+                  <ActionButton key={site.id} action={openDiaryAction.bind(null, companySlug, site.id, today)} variant="outline">
+                    <BookOpen aria-hidden /> {site.label}
+                  </ActionButton>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label={t("projects")} value={summary.projects} href={`${base}/projects`} icon={FolderKanban} />
         <Stat label={t("sites")} value={summary.sites} icon={MapPin} />

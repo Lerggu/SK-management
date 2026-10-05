@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { Pencil, Plus } from "lucide-react";
-import { hasPermission } from "@/platform/authz";
+import { BookOpen, Pencil, Plus, Wallet } from "lucide-react";
+import { hasPermission, projectPermissions } from "@/platform/authz";
+import { diaryService } from "@/modules/diary/service";
 import { projectService, siteService } from "@/modules/projects/service";
 import { documentService } from "@/modules/documents/service";
 import { equipmentService } from "@/modules/equipment/service";
@@ -12,7 +13,9 @@ import { DetailList, EmptyState, PageHeader, RowLink, RowList, Section } from "@
 import { StatusBadge } from "@/ui/components/status-badge";
 import { fmtDate } from "@/ui/format";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
+import { todayInDisplayZone } from "@/platform/i18n/config";
 import { archiveProjectAction, assignMemberAction, removeMemberAction } from "../actions";
+import { openDiaryAction } from "../../diary/actions";
 
 type Props = { params: Promise<{ companySlug: string; projectId: string }> };
 
@@ -38,6 +41,10 @@ export default async function ProjectPage({ params }: Props) {
     getFormatter(),
   ]);
   const editable = project.permissions.manage && !project.archivedAt;
+  const perms = projectPermissions(ctx, project.id);
+  const [diaries, td2] = await Promise.all([perms.has("diary.view") ? diaryService.list(ctx, { projectId: project.id }) : Promise.resolve(null), getTranslations("diary")]);
+  const tp = await getTranslations("projects");
+  const today = todayInDisplayZone();
 
   return (
     <>
@@ -52,16 +59,27 @@ export default async function ProjectPage({ params }: Props) {
         backHref={`${base}/projects`}
         backLabel={t("title")}
         actions={
-          editable && (
+          (editable || perms.has("finance.view")) && (
             <>
+              {perms.has("finance.view") && (
+                <Button asChild variant="outline">
+                  <Link href={`${base}/projects/${project.id}/finance`}>
+                    <Wallet aria-hidden /> {tp("finance")}
+                  </Link>
+                </Button>
+              )}
+              {editable && (
               <Button asChild variant="outline">
                 <Link href={`${base}/projects/${project.id}/edit`}>
                   <Pencil aria-hidden /> {tc("edit")}
                 </Link>
               </Button>
+              )}
+              {editable && (
               <ActionButton action={archiveProjectAction.bind(null, companySlug, project.id)} confirm={tc("confirmArchive")} variant="destructive">
                 {tc("archive")}
               </ActionButton>
+              )}
             </>
           )
         }
@@ -118,6 +136,35 @@ export default async function ProjectPage({ params }: Props) {
             </ul>
           )}
         </Section>
+
+        {diaries && (
+          <Section title={tp("diary")}>
+            {perms.has("diary.manage") && !project.archivedAt && sites.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {sites.map((site) => (
+                  <ActionButton key={site.id} action={openDiaryAction.bind(null, companySlug, site.id, today)} variant="outline">
+                    <BookOpen aria-hidden /> {tp("openDiary")}: {site.name}
+                  </ActionButton>
+                ))}
+              </div>
+            )}
+            {diaries.length === 0 ? (
+              <EmptyState>{td2("noReports")}</EmptyState>
+            ) : (
+              <RowList>
+                {diaries.slice(0, 10).map((d) => (
+                  <RowLink
+                    key={d.id}
+                    href={`${base}/diary/${d.id}`}
+                    title={`${fmtDate(format, d.reportDate)} · ${d.site.name}`}
+                    subtitle={[td2("entryCount", { count: d._count.entries }), td2("photoCount", { count: d._count.attachments })].join(" · ")}
+                    badge={<StatusBadge status={d.status === "SIGNED" ? "APPROVED" : "DRAFT"} label={td2(`statuses.${d.status}`)} />}
+                  />
+                ))}
+              </RowList>
+            )}
+          </Section>
+        )}
 
         <Section title={t("members")}>
           {members.length === 0 ? (

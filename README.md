@@ -1,11 +1,13 @@
 # SK Management
 
-A multi-company construction and industrial project control platform for SK Infra, Purent and other group companies. This repository contains **release V1 — Foundation**: companies, users, roles and permissions, projects and sites, workforce, equipment, documents, the audit trail and a responsive mobile/desktop UI.
+A multi-company construction and industrial project control platform for SK Infra, Purent and other group companies. Releases in this repository:
+- **V1 — Foundation:** companies, users, roles and permissions, projects and sites, workforce, equipment, documents, the audit trail and a responsive mobile/desktop UI ([report](docs/V1_REPORT.md)).
+- **V2 — Site execution & project finance foundation:** time tracking with weekly approval, payroll CSV export, the site diary with signing, budget versions, project costs and budget vs actual ([plan](docs/V2_PLAN.md), [report](docs/V2_REPORT.md)).
 
 - Build specification: [`docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md`](docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md)
 - Functional specification (Finnish): [`docs/specs/SK_management_master.md`](docs/specs/SK_management_master.md)
 - Architecture decisions: [`docs/adr/`](docs/adr)
-- V1 release report: [`docs/V1_REPORT.md`](docs/V1_REPORT.md)
+- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md)
 
 ## Stack
 
@@ -35,6 +37,8 @@ Sign in on `/sign-in` with **Kehityskirjautuminen** (dev login) and pick a demo 
 | `site.manager@…`, `supervisor@…`, `logistics@…`, `hse@…`, `employee@skinfra.example.com` | Other SK Infra Demo roles |
 | `subcontractor@example.com`, `client@example.com` | External roles (no cost/rate data) |
 | `ceo@purent.example.com`, `pm@purent.example.com` | Purent Demo |
+
+V2 demo data: `employee@`, `supervisor@` and `site.manager@skinfra.example.com` have linked employee records. Last week's crew hours are approved, the employee has submitted hours this week, there is a signed diary (last Friday) and a draft one (today), and NDC-001 has an active budget with recorded costs. Try **Tunnit** as the employee, **Tunnit → Hyväksyntä** as the site manager, and **Projektit → NDC-001 → Talous** as the project manager or CEO.
 
 All seed data is fictional. Never put real personal data in seed files.
 
@@ -66,7 +70,7 @@ All schema changes go through Prisma migrations. Triggers, check constraints and
 | `pnpm lint` / `pnpm typecheck` / `pnpm depcruise` | ESLint, TypeScript, architecture layer rules |
 | `pnpm check` | lint + typecheck + depcruise + unit + integration |
 
-Integration and E2E tests need the docker-compose services running. E2E starts `next dev` on port 3100, because the dev login is disabled in production builds. If Playwright's bundled browser is not installed, set `PW_CHROMIUM=/path/to/chromium`.
+Integration and E2E tests need the docker-compose services running. `RATE_LIMIT_SIGN_IN` raises the sign-in rate limit; it is meant only for automated test environments (Playwright sets it). E2E starts `next dev` on port 3100, because the dev login is disabled in production builds. If Playwright's bundled browser is not installed, set `PW_CHROMIUM=/path/to/chromium`.
 
 **Tenant isolation rule:** every service method listed in `src/modules/registry.ts` must have a case in `tests/isolation/isolation.test.ts`. CI fails otherwise.
 
@@ -75,8 +79,9 @@ Integration and E2E tests need the docker-compose services running. E2E starts `
 ```
 src/app/            UI routes, server actions, /api/v1 route handlers
   (auth)/sign-in    sign-in (Entra + dev login)
-  c/[companySlug]/  dashboard, projects, workforce, equipment, documents, settings
-src/modules/        domain modules: identity, companies, projects, workforce, equipment, documents
+  c/[companySlug]/  dashboard, projects (+finance), time (+approvals, export), diary, workforce, equipment, documents, settings
+src/modules/        domain modules: identity, companies, projects, workforce, equipment, documents,
+                    timesheets, diary, finance (finance/calculations.ts = all cost formulas)
                     (schemas.ts = Zod validation, repo.ts = company-scoped repository, service.ts)
 src/platform/       auth, authz, audit, db, storage, errors, config, i18n, ratelimit, ai (interface), integrations (interfaces)
 src/ui/             app shell, responsive navigation, shadcn/ui components

@@ -20,6 +20,9 @@ import { employeeService } from "@/modules/workforce/service";
 import { equipmentService, equipmentTypeService } from "@/modules/equipment/service";
 import { documentService } from "@/modules/documents/service";
 import { profileService } from "@/modules/identity/service";
+import { timesheetService } from "@/modules/timesheets/service";
+import { diaryService } from "@/modules/diary/service";
+import { budgetService, costService, projectFinanceService } from "@/modules/finance/service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -42,7 +45,17 @@ interface World {
     membership: string;
     memberUserId: string;
     role: string;
+    timeEntry: string;
+    report: string;
+    reportEntry: string;
+    attachment: string;
+    budget: string;
+    budgetLine: string;
+    activeBudget: string;
+    cost: string;
+    exportBatch: string;
   };
+  bSite: string;
   bProject: string;
   bDocument: string;
   bEquipmentType: string;
@@ -85,6 +98,27 @@ beforeAll(async () => {
   const bProject = await projectService.create(b.ownerCtx, { code: "B-1", name: "B project" });
   const bDocument = await documentService.create(b.ownerCtx, { title: "B doc" }, textFile("b.pdf"));
   const bType = await equipmentTypeService.create(b.ownerCtx, { name: "B type" });
+  const bSite = await siteService.create(b.ownerCtx, bProject.id, { name: "B site" });
+  // B owner has an employee record, so "own hours" paths are exercised.
+  await employeeService.create(b.ownerCtx, { employeeNumber: "B-OWN", firstName: "B", lastName: "Owner", userId: b.ownerCtx.user.id });
+
+  // ── V2 data in company A ──
+  const te = await timesheetService.create(actx, { employeeId: employee.id, projectId: project.id, siteId: site.id, workDate: "2026-03-02", hours: "8" });
+  await timesheetService.submitWeek(actx, { employeeId: employee.id, date: "2026-03-02" });
+  await timesheetService.decide(actx, { entryIds: [te.id], decision: "APPROVE" });
+  const te2 = await timesheetService.create(actx, { employeeId: employee.id, projectId: project.id, workDate: "2026-02-02", hours: "4" });
+  await timesheetService.submitWeek(actx, { employeeId: employee.id, date: "2026-02-02" });
+  await timesheetService.decide(actx, { entryIds: [te2.id], decision: "APPROVE" });
+  const exportBatch = await timesheetService.exportApproved(actx, { from: "2026-02-01", to: "2026-02-28" });
+  const report = await diaryService.open(actx, { siteId: site.id, date: "2026-03-02" });
+  const reportEntry = await diaryService.addEntry(actx, report.id, { kind: "WORK", description: "A work" });
+  const attachment = await diaryService.addAttachment(actx, report.id, {}, { fileName: "a.jpg", bytes: new Uint8Array([255, 216, 255]) });
+  const activeBudget = await budgetService.createVersion(actx, project.id, {});
+  await budgetService.addLine(actx, activeBudget.id, { category: "LABOR", description: "A labour", amount: "1000" });
+  await budgetService.activate(actx, activeBudget.id);
+  const draftBudget = await budgetService.createVersion(actx, project.id, { copyFromCurrent: true });
+  const budgetLine = (await budgetService.listVersions(actx, project.id)).find((v) => v.id === draftBudget.id)!.lines[0];
+  const cost = await costService.create(actx, project.id, { category: "MATERIALS", entryDate: "2026-03-02", description: "A cable", amount: "500" });
 
   w = {
     a,
@@ -106,7 +140,17 @@ beforeAll(async () => {
       membership: member.membershipId,
       memberUserId: member.user.id,
       role: await a.roleId("EMPLOYEE"),
+      timeEntry: te.id,
+      report: report.id,
+      reportEntry: reportEntry.id,
+      attachment: attachment.id,
+      budget: draftBudget.id,
+      budgetLine: budgetLine.id,
+      activeBudget: activeBudget.id,
+      cost: cost.id,
+      exportBatch: exportBatch.batchId,
     },
+    bSite: bSite.id,
     bProject: bProject.id,
     bDocument: bDocument.id,
     bEquipmentType: bType.id,
@@ -158,7 +202,7 @@ const cases: Record<string, Case> = {
   "dashboard.summary": async () => {
     const s = await dashboardService.summary(w.bCtx);
     expect(s.projects).toBe(await db.project.count({ where: { companyId: w.b.companyId, archivedAt: null } }));
-    expect(s.employees).toBe(0);
+    expect(s.employees).toBe(await db.employee.count({ where: { companyId: w.b.companyId, archivedAt: null } }));
     expect((s.recentAudit ?? []).every((e) => e.companyId === w.b.companyId)).toBe(true);
   },
 
@@ -261,6 +305,78 @@ const cases: Record<string, Case> = {
   "profile.getProfile": async () => {
     expect((await profileService.getProfile(w.bUser)).id).toBe(w.bUser.user.id);
   },
+  // ── V2: time tracking ───────────────────────────────────────────
+  "timesheet.entryOptions": async () => {
+    const o = await timesheetService.entryOptions(w.bCtx);
+    expect(o.crewEmployees.map((e) => e.id)).not.toContain(w.ids.employee);
+    expect(o.ownEmployee?.id).not.toBe(w.ids.employee);
+  },
+  "timesheet.listWeek": async () => {
+    await expectRejected(timesheetService.listWeek(w.bCtx, { employeeId: w.ids.employee, date: "2026-03-02" }));
+    const own = await timesheetService.listWeek(w.bCtx, { date: "2026-03-02" });
+    expect(own.entries.map((e) => e.id)).not.toContain(w.ids.timeEntry);
+  },
+  "timesheet.create": async () => {
+    await expectRejected(timesheetService.create(w.bCtx, { employeeId: w.ids.employee, projectId: w.bProject, workDate: "2026-03-03", hours: "1" }));
+    await expectRejected(timesheetService.create(w.bCtx, { projectId: w.ids.project, workDate: "2026-03-03", hours: "1" }));
+    await expectRejected(timesheetService.create(w.bCtx, { projectId: w.bProject, siteId: w.ids.site, workDate: "2026-03-03", hours: "1" }));
+  },
+  "timesheet.createCrew": () => expectRejected(timesheetService.createCrew(w.bCtx, { employeeIds: [w.ids.employee], projectId: w.bProject, workDate: "2026-03-03", hours: "1" })),
+  "timesheet.update": () => expectNotFound(timesheetService.update(w.bCtx, w.ids.timeEntry, { projectId: w.bProject, workDate: "2026-03-03", hours: "1" })),
+  "timesheet.archive": () => expectNotFound(timesheetService.archive(w.bCtx, w.ids.timeEntry)),
+  "timesheet.submitWeek": () => expectRejected(timesheetService.submitWeek(w.bCtx, { employeeId: w.ids.employee, date: "2026-03-02" })),
+  "timesheet.listForApproval": async () => {
+    expect((await timesheetService.listForApproval(w.bCtx)).every((e) => e.projectId !== w.ids.project)).toBe(true);
+    await expectNotFound(timesheetService.listForApproval(w.bCtx, { projectId: w.ids.project }).then((r) => (r.length ? r : Promise.reject(new NotFoundError()))));
+  },
+  "timesheet.decide": () => expectNotFound(timesheetService.decide(w.bCtx, { entryIds: [w.ids.timeEntry], decision: "APPROVE" })),
+  "timesheet.createCorrection": () => expectNotFound(timesheetService.createCorrection(w.bCtx, w.ids.timeEntry, { hours: "-1", note: "x" })),
+  "timesheet.exportApproved": async () => {
+    await expectRejected(timesheetService.exportApproved(w.bCtx, { from: "2026-03-01", to: "2026-03-31" }));
+    expect((await db.timeEntry.findUniqueOrThrow({ where: { id: w.ids.timeEntry } })).status).toBe("APPROVED");
+  },
+  "timesheet.exportRows": () => expectNotFound(timesheetService.exportRows(w.bCtx, w.ids.exportBatch)),
+
+  // ── V2: site diary ──────────────────────────────────────────────
+  "diary.list": () => expectNotFound(diaryService.list(w.bCtx, { projectId: w.ids.project })),
+  "diary.open": () => expectNotFound(diaryService.open(w.bCtx, { siteId: w.ids.site, date: "2026-03-02" })),
+  "diary.get": () => expectNotFound(diaryService.get(w.bCtx, w.ids.report)),
+  "diary.equipmentOptions": async () => {
+    await expectNotFound(diaryService.equipmentOptions(w.bCtx, w.ids.report));
+    const own = await diaryService.open(w.bCtx, { siteId: w.bSite, date: "2026-03-02" });
+    expect((await diaryService.equipmentOptions(w.bCtx, own.id)).map((e) => e.id)).not.toContain(w.ids.equipment);
+  },
+  "diary.update": () => expectNotFound(diaryService.update(w.bCtx, w.ids.report, { summary: "Hijacked" })),
+  "diary.addEntry": async () => {
+    await expectNotFound(diaryService.addEntry(w.bCtx, w.ids.report, { kind: "WORK", description: "x" }));
+    const own = await diaryService.open(w.bCtx, { siteId: w.bSite, date: "2026-03-02" });
+    await expectRejected(diaryService.addEntry(w.bCtx, own.id, { kind: "EQUIPMENT", equipmentId: w.ids.equipment, hours: "2" }));
+  },
+  "diary.removeEntry": () => expectNotFound(diaryService.removeEntry(w.bCtx, w.ids.reportEntry)),
+  "diary.addAttachment": () => expectNotFound(diaryService.addAttachment(w.bCtx, w.ids.report, {}, { fileName: "x.jpg", bytes: new Uint8Array([1]) })),
+  "diary.downloadAttachment": () => expectNotFound(diaryService.downloadAttachment(w.bCtx, w.ids.attachment)),
+  "diary.sign": () => expectNotFound(diaryService.sign(w.bCtx, w.ids.report)),
+
+  // ── V2: finance ─────────────────────────────────────────────────
+  "budget.listVersions": () => expectNotFound(budgetService.listVersions(w.bCtx, w.ids.project)),
+  "budget.createVersion": () => expectNotFound(budgetService.createVersion(w.bCtx, w.ids.project, {})),
+  "budget.addLine": () => expectNotFound(budgetService.addLine(w.bCtx, w.ids.budget, { category: "OTHER", description: "x", amount: "1" })),
+  "budget.updateLine": () => expectNotFound(budgetService.updateLine(w.bCtx, w.ids.budgetLine, { category: "OTHER", description: "x", amount: "1" })),
+  "budget.removeLine": () => expectNotFound(budgetService.removeLine(w.bCtx, w.ids.budgetLine)),
+  "budget.discardDraft": () => expectNotFound(budgetService.discardDraft(w.bCtx, w.ids.budget)),
+  "budget.activate": () => expectNotFound(budgetService.activate(w.bCtx, w.ids.budget)),
+  "cost.list": () => expectNotFound(costService.list(w.bCtx, w.ids.project)),
+  "cost.create": async () => {
+    await expectNotFound(costService.create(w.bCtx, w.ids.project, { category: "OTHER", entryDate: "2026-03-02", description: "x", amount: "1" }));
+    await expectRejected(costService.create(w.bCtx, w.bProject, { category: "OTHER", entryDate: "2026-03-02", description: "x", amount: "1", siteId: w.ids.site }));
+  },
+  "cost.archive": () => expectNotFound(costService.archive(w.bCtx, w.ids.cost)),
+  "projectFinance.summary": async () => {
+    await expectNotFound(projectFinanceService.summary(w.bCtx, w.ids.project));
+    const own = await projectFinanceService.summary(w.bCtx, w.bProject);
+    expect(own.comparison.total.actual.toString()).toBe("0");
+  },
+
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -299,5 +415,8 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect(await db.site.count({ where: { projectId: w.ids.project } })).toBe(1);
     expect(await db.documentVersion.count({ where: { documentId: w.ids.document } })).toBe(1);
     expect(await db.auditEvent.count({ where: { companyId: w.a.companyId } })).toBe(aAuditCountBefore);
+    expect((await db.dailyReport.findUniqueOrThrow({ where: { id: w.ids.report } })).status).toBe("DRAFT");
+    expect((await db.budget.findUniqueOrThrow({ where: { id: w.ids.budget } })).status).toBe("DRAFT");
+    expect((await db.costEntry.findUniqueOrThrow({ where: { id: w.ids.cost } })).archivedAt).toBeNull();
   });
 });
