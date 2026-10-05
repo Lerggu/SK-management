@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, OctagonX } from "lucide-react";
 import { liftPlanService } from "@/modules/lifting/lift.service";
 import { bookingService } from "@/modules/logistics/booking.service";
 import { toLocalDateTimeInput } from "@/platform/i18n/time";
-import { ActionButton, ActionForm, CheckboxGroupField, SelectField, SubmitButton, TextField, TextareaField } from "@/ui/components/form";
+import { ActionButton, ActionForm, CheckboxField, CheckboxGroupField, SelectField, SubmitButton, TextField, TextareaField } from "@/ui/components/form";
 import { DetailList, EmptyState, PageHeader, Section } from "@/ui/components/page";
 import { StatusBadge } from "@/ui/components/status-badge";
 import { fmtDate, fmtDateTime } from "@/ui/format";
@@ -233,9 +233,7 @@ export default async function LiftPlanPage({ params }: { params: Promise<{ compa
               <ActionForm action={decideLiftAction.bind(null, slug, p.id)} className="mt-4 space-y-3 border-t pt-4" data-testid="lift-decision-form">
                 <TextField name="note" label={t("decisionNote")} />
                 {open.issues.length > 0 && (
-                  <label className="flex min-h-11 items-center gap-3 text-sm">
-                    <input type="checkbox" name="acknowledgeWarnings" className="size-5 accent-primary md:size-4" /> {t("acknowledgeWarnings")}
-                  </label>
+                  <CheckboxField name="acknowledgeWarnings" label={t("acknowledgeWarnings")} />
                 )}
                 <div className="flex flex-wrap gap-2">
                   <button type="submit" name="decision" value="APPROVE" className="h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground md:h-9">

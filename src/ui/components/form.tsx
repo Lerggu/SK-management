@@ -41,7 +41,7 @@ export function ActionForm({
       <form action={formAction} className={cn("space-y-4", className)} noValidate {...rest}>
         {state && !state.ok && state.message && (
           <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {t(state.message)}
+            {state.fieldErrors?._form?.length ? state.fieldErrors._form.map((e) => t(e)).join(" ") : t(state.message)}
           </p>
         )}
         {state?.ok && showSuccess && state.message && (
@@ -209,6 +209,24 @@ export function SelectField({
   );
 }
 
+/** Single checkbox with its field error (e.g. an acknowledgement). */
+export function CheckboxField({ name, label, className }: { name: string; label: string; className?: string }) {
+  const f = useField(name);
+  return (
+    <div className={cn("space-y-1", className)}>
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm md:min-h-9">
+        <input type="checkbox" name={name} defaultChecked={f.value === "on"} aria-invalid={f.errors.length > 0 || undefined} className="size-5 accent-primary md:size-4" />
+        {label}
+      </label>
+      {f.errors.map((e) => (
+        <p key={e} className="text-xs font-medium text-destructive">
+          {e}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 /** Group of checkboxes submitting the same name (e.g. roleIds). */
 export function CheckboxGroupField({
   name,
@@ -301,7 +319,7 @@ export function ActionButton({
       <SubmitButton variant={variant}>{children}</SubmitButton>
       {state && !state.ok && state.message && (
         <span role="alert" className="text-xs text-destructive">
-          {t(state.message)}
+          {state.fieldErrors?._form?.length ? state.fieldErrors._form.map((e) => t(e)).join(" ") : t(state.message)}
         </span>
       )}
     </form>

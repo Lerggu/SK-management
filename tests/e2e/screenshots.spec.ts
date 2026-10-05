@@ -17,6 +17,7 @@ const VIEWS: [string, string][] = [
 ];
 
 test("capture main views", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
   const dir = `docs/screenshots/${testInfo.project.name}`;
   for (const [name, path] of VIEWS) {
     await page.goto(path);
@@ -67,6 +68,35 @@ test("capture main views", async ({ page }, testInfo) => {
   await page.getByTestId("request-list").getByRole("link").first().click();
   await page.waitForURL(/requests\/[0-9a-f-]{36}$/);
   await page.screenshot({ path: `${dir}/logistics-request.png`, fullPage: true, caret: "initial" });
+  // V5
+  await page.goto("/c/sk-infra-demo/lifting");
+  await page.getByTestId("site-day-picker").getByLabel("Työmaa").selectOption({ label: "NDC-001 · Data Hall A" });
+  await page.getByTestId("site-day-picker").getByRole("button", { name: "Näytä" }).click();
+  await page.waitForURL(/site=/);
+  await page.screenshot({ path: `${dir}/lifting-list.png`, fullPage: true, caret: "initial" });
+  await page.getByRole("link", { name: /Muuntajan nosto/ }).click();
+  await page.waitForURL(/lifting\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/lifting-plan-submitted.png`, fullPage: true, caret: "initial" });
+  await page.goBack();
+  await page.getByRole("link", { name: /Kaapelihyllynippujen nosto/ }).click();
+  await page.waitForURL(/lifting\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/lifting-plan-approved.png`, fullPage: true, caret: "initial" });
+  await page.goto("/c/sk-infra-demo/lifting/accessories");
+  await page.screenshot({ path: `${dir}/lifting-accessories.png`, fullPage: true, caret: "initial" });
+  await page.goto("/c/sk-infra-demo/materials");
+  await page.getByTestId("site-day-picker").getByLabel("Työmaa").selectOption({ label: "NDC-001 · Data Hall A" });
+  await page.getByTestId("site-day-picker").getByRole("button", { name: "Näytä" }).click();
+  await page.waitForURL(/site=/);
+  await page.screenshot({ path: `${dir}/materials.png`, fullPage: true, caret: "initial" });
+  await page.getByRole("link", { name: /KK-0001/ }).click();
+  await page.waitForURL(/drums\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/materials-drum.png`, fullPage: true, caret: "initial" });
+  await page.goBack();
+  await page.getByRole("link", { name: /ME-0001/ }).click();
+  await page.waitForURL(/batches\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/materials-batch.png`, fullPage: true, caret: "initial" });
+  await page.goto("/c/sk-infra-demo/scan");
+  await page.screenshot({ path: `${dir}/scan.png`, fullPage: true, caret: "initial" });
   await page.goto("/c/sk-infra-demo/documents");
   await page.getByRole("link", { name: /pääkaavio/ }).click();
   await page.waitForURL(/documents\/[0-9a-f-]{36}$/);

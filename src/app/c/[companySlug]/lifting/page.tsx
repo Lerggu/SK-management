@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { ShieldCheck } from "lucide-react";
 import { liftPlanService } from "@/modules/lifting/lift.service";
-import { toLocalDateTimeInput } from "@/platform/i18n/time";
+import { todayInDisplayZone } from "@/platform/i18n/config";
 import { Button } from "@/ui/components/button";
 import { ActionForm, SelectField, SubmitButton, TextField } from "@/ui/components/form";
 import { EmptyState, PageHeader, RowLink, RowList, Section } from "@/ui/components/page";
@@ -50,8 +50,7 @@ export default async function LiftingPage({ params, searchParams }: Props) {
   const [plans, options] = await Promise.all([liftPlanService.list(ctx, { siteId }), loadOr404(liftPlanService.options(ctx, siteId))]);
   const open = plans.filter((p) => p.status === "OPEN");
   const closed = plans.filter((p) => p.status !== "OPEN");
-  const tomorrow = new Date(Date.now() + 86_400_000);
-  tomorrow.setUTCMinutes(0, 0, 0);
+  const today = todayInDisplayZone();
   const badge = (p: (typeof plans)[number]) =>
     p.status !== "OPEN" ? (
       <StatusBadge status={p.status} label={t(`planStatuses.${p.status}`)} />
@@ -86,8 +85,8 @@ export default async function LiftingPage({ params, searchParams }: Props) {
             <ActionForm action={createLiftPlanAction.bind(null, companySlug)} className="grid gap-3 sm:grid-cols-2" data-testid="lift-form">
               <input type="hidden" name="siteId" value={siteId} />
               <TextField name="title" label={t("liftTitle")} required className="sm:col-span-2" />
-              <TextField name="plannedStart" label={t("plannedStart")} type="datetime-local" step={900} required defaultValue={toLocalDateTimeInput(tomorrow)} />
-              <TextField name="plannedEnd" label={t("plannedEnd")} type="datetime-local" step={900} required defaultValue={toLocalDateTimeInput(new Date(tomorrow.getTime() + 3_600_000))} />
+              <TextField name="plannedStart" label={t("plannedStart")} type="datetime-local" step={900} required defaultValue={`${today}T14:00`} />
+              <TextField name="plannedEnd" label={t("plannedEnd")} type="datetime-local" step={900} required defaultValue={`${today}T15:00`} />
               <SelectField name="requestId" label={t("liftRequest")} placeholder={t("none")} options={options.requests.map((r) => ({ value: r.id, label: r.title }))} />
               <SelectField name="activityId" label={t("activity")} placeholder={t("none")} options={options.activities.map((a) => ({ value: a.id, label: `${a.taktArea.code} · ${a.workPackage.code} ${a.name}` }))} />
               <div className="sm:col-span-2">
