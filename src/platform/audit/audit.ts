@@ -47,7 +47,9 @@ export async function writeAudit(tx: Tx, actor: AuditActor, input: AuditInput): 
           ? (actor.organizationId ?? null)
           : null;
 
-  await tx.auditEvent.create({
+  // createMany: INSERT without RETURNING, so an event written for another
+  // company of the group passes row-level security (V8) without being readable.
+  await tx.auditEvent.createMany({
     data: {
       action: input.action,
       entityType: input.entityType,

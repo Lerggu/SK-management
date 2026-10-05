@@ -11,6 +11,8 @@ setStorageForTests(new MemoryObjectStorage());
 // V7: e-mails go to an in-memory mailbox (getMailer() as MemoryMailer).
 const { setMailerForTests, MemoryMailer } = await import("@/platform/mail");
 setMailerForTests(new MemoryMailer());
+// V8: wrap all services in the tenant scope (row-level security), as the app does.
+await import("@/modules/registry");
 
 afterAll(async () => {
   const { db } = await import("@/platform/db");

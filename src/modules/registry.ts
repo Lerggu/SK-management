@@ -1,3 +1,4 @@
+import { withTenantScope } from "@/platform/db";
 import { companyAdminService, companyDirectoryService } from "./companies/service";
 import { dashboardService } from "./companies/dashboard";
 import { projectService, siteService } from "./projects/service";
@@ -94,3 +95,34 @@ export const SERVICE_REGISTRY = {
   scheduleSummary: scheduleSummaryService,
   portal: portalService,
 } as const;
+
+// ── V8: tenant scope for row-level security ──────────────────────────
+const SCOPED = Symbol.for("sk.tenantScoped");
+type AnyFn = ((...args: unknown[]) => unknown) & { [SCOPED]?: true };
+
+/**
+ * Wraps every registered service method once: a call made with a company
+ * RequestContext runs inside that company's tenant scope, so its queries run
+ * under PostgreSQL row-level security (docs/adr/0022). UserContext calls
+ * (company selection, profile) stay unscoped. The objects are the same ones
+ * the app imports, so the wrapper applies everywhere once this module loads.
+ */
+for (const service of Object.values(SERVICE_REGISTRY) as Record<string, AnyFn>[]) {
+  for (const [name, fn] of Object.entries(service)) {
+    if (typeof fn !== "function" || fn[SCOPED]) continue;
+    const wrapped: AnyFn = function (this: unknown, ...args: unknown[]) {
+      const ctx = args[0] as { kind?: string; company?: { id: string; organizationId: string } } | undefined;
+      if (ctx?.kind === "company" && ctx.company) {
+        return withTenantScope({ companyId: ctx.company.id, organizationId: ctx.company.organizationId }, () => fn.apply(service, args));
+      }
+      return fn.apply(service, args);
+    };
+    wrapped[SCOPED] = true;
+    service[name] = wrapped;
+  }
+}
+
+/** Whether a service method runs inside the tenant scope wrapper. */
+export function isTenantScoped(fn: unknown): boolean {
+  return typeof fn === "function" && (fn as AnyFn)[SCOPED] === true;
+}

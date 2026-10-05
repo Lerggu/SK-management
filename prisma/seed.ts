@@ -10,6 +10,7 @@
  * Usage: pnpm db:seed   (idempotent: skips if the demo organization exists)
  */
 import { db } from "@/platform/db";
+import "@/modules/registry"; // V8: services run under row-level security
 import { writeAudit } from "@/platform/audit";
 import type { RequestContext, RequestMeta, UserContext } from "@/platform/authz";
 import { resolveRequestContext } from "@/modules/companies/context";

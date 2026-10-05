@@ -1,3 +1,4 @@
+import "@/modules/registry"; // V8: tenant scope (row-level security) for all services
 import "server-only";
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
