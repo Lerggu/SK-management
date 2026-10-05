@@ -186,6 +186,7 @@ model Company {
   dailyReports   DailyReport[]
   budgets        Budget[]
   costEntries    CostEntry[]
+  workCalendars  WorkCalendar[]
 
   @@index([organizationId])
   @@map("companies")
@@ -435,14 +436,15 @@ model Project {
   updatedById  String?       @map("updated_by") @db.Uuid
   archivedAt   DateTime?     @map("archived_at") @db.Timestamptz(6)
 
-  company     Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  sites       Site[]
-  memberships ProjectMembership[]
-  equipment   Equipment[]
-  documents   Document[]
-  timeEntries TimeEntry[]
-  budgets     Budget[]
-  costEntries CostEntry[]
+  company      Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  sites        Site[]
+  memberships  ProjectMembership[]
+  equipment    Equipment[]
+  documents    Document[]
+  timeEntries  TimeEntry[]
+  budgets      Budget[]
+  costEntries  CostEntry[]
+  workPackages WorkPackage[]
 
   @@unique([companyId, id])
   @@unique([companyId, code])
@@ -476,6 +478,8 @@ model Site {
   timeEntries  TimeEntry[]
   dailyReports DailyReport[]
   costEntries  CostEntry[]
+  buildings    Building[]
+  taktPlans    TaktPlan[]
 
   @@unique([companyId, id])
   @@unique([companyId, projectId, id])
@@ -558,8 +562,11 @@ model EquipmentType {
   updatedById String?           @map("updated_by") @db.Uuid
   archivedAt  DateTime?         @map("archived_at") @db.Timestamptz(6)
 
-  company   Company     @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  equipment Equipment[]
+  company        Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  equipment      Equipment[]
+  workPackages   WorkPackage[]
+  taktActivities TaktActivity[]
+  requirements   ResourceRequirement[]
 
   @@unique([companyId, id])
   @@unique([companyId, name])
@@ -967,4 +974,428 @@ model CostEntry {
   @@unique([companyId, id])
   @@index([companyId, projectId, entryDate])
   @@map("cost_entries")
+}
+
+// ─────────────────────────────────────────────────────────────── V3 — Takt
+// Hierarchy: Site → Building/Area → Takt Area; Work Packages are project-level
+// trades ("wagons"); an Activity is one work package in one takt area of a
+// site plan. Planned dates live in versioned assignments (DRAFT → PROPOSED →
+// BASELINE → SUPERSEDED); a baseline is frozen by DB triggers. Actual dates,
+// progress and constraints are facts on the activity and are not versioned.
+// See docs/adr/0012-takt-plan-versioning.md.
+
+/// Company working calendar: working weekdays (ISO 1 = Monday … 7 = Sunday)
+/// and public holidays. Day-takt cycles skip non-working days.
+model WorkCalendar {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  companyId       String    @map("company_id") @db.Uuid
+  name            String
+  workingWeekdays Int[]     @default([1, 2, 3, 4, 5]) @map("working_weekdays")
+  isDefault       Boolean   @default(false) @map("is_default")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById     String?   @map("created_by") @db.Uuid
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById     String?   @map("updated_by") @db.Uuid
+  archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  company  Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  holidays CalendarHoliday[]
+  plans    TaktPlan[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, name])
+  @@map("work_calendars")
+}
+
+model CalendarHoliday {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  calendarId  String   @map("calendar_id") @db.Uuid
+  date        DateTime @db.Date
+  name        String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?  @map("created_by") @db.Uuid
+
+  calendar WorkCalendar @relation(fields: [companyId, calendarId], references: [companyId, id], onDelete: Cascade)
+
+  @@unique([companyId, id])
+  @@unique([calendarId, date])
+  @@map("calendar_holidays")
+}
+
+enum BuildingKind {
+  BUILDING
+  AREA
+}
+
+model Building {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  companyId   String       @map("company_id") @db.Uuid
+  projectId   String       @map("project_id") @db.Uuid
+  siteId      String       @map("site_id") @db.Uuid
+  code        String?
+  name        String
+  kind        BuildingKind @default(BUILDING)
+  sortOrder   Int          @default(0) @map("sort_order")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?      @map("created_by") @db.Uuid
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?      @map("updated_by") @db.Uuid
+  archivedAt  DateTime?    @map("archived_at") @db.Timestamptz(6)
+
+  site      Site       @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  taktAreas TaktArea[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, siteId, id])
+  @@unique([siteId, name])
+  @@map("buildings")
+}
+
+model TaktArea {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  companyId   String    @map("company_id") @db.Uuid
+  siteId      String    @map("site_id") @db.Uuid
+  buildingId  String    @map("building_id") @db.Uuid
+  code        String
+  name        String
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?   @map("updated_by") @db.Uuid
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  building   Building       @relation(fields: [companyId, siteId, buildingId], references: [companyId, siteId, id], onDelete: Restrict)
+  activities TaktActivity[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, siteId, id])
+  @@unique([buildingId, code])
+  @@map("takt_areas")
+}
+
+/// A trade "wagon" of the takt train, reusable across the project's sites.
+model WorkPackage {
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  projectId             String    @map("project_id") @db.Uuid
+  code                  String
+  name                  String
+  trade                 String?
+  color                 String    @default("#1E88A8")
+  defaultCrewSize       Int       @default(2) @map("default_crew_size")
+  defaultDurationCycles Int       @default(1) @map("default_duration_cycles")
+  equipmentTypeId       String?   @map("equipment_type_id") @db.Uuid
+  equipmentCount        Int       @default(0) @map("equipment_count")
+  sortOrder             Int       @default(0) @map("sort_order")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById           String?   @map("created_by") @db.Uuid
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById           String?   @map("updated_by") @db.Uuid
+  archivedAt            DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  project       Project        @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  equipmentType EquipmentType? @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  activities    TaktActivity[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, projectId, id])
+  @@unique([projectId, code])
+  @@map("work_packages")
+}
+
+/// One takt plan per site (or several named alternatives).
+model TaktPlan {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  companyId       String    @map("company_id") @db.Uuid
+  projectId       String    @map("project_id") @db.Uuid
+  siteId          String    @map("site_id") @db.Uuid
+  calendarId      String    @map("calendar_id") @db.Uuid
+  name            String
+  cycleLengthDays Int       @default(1) @map("cycle_length_days")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById     String?   @map("created_by") @db.Uuid
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById     String?   @map("updated_by") @db.Uuid
+  archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  site       Site              @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  calendar   WorkCalendar      @relation(fields: [companyId, calendarId], references: [companyId, id], onDelete: Restrict)
+  versions   TaktPlanVersion[]
+  activities TaktActivity[]
+  imports    ScheduleImport[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, projectId, siteId, id])
+  @@unique([siteId, name])
+  @@map("takt_plans")
+}
+
+enum TaktPlanVersionStatus {
+  DRAFT
+  PROPOSED
+  BASELINE
+  SUPERSEDED
+}
+
+/// Plan version. Only DRAFT versions are editable; at most one DRAFT/PROPOSED
+/// and one BASELINE per plan (partial unique indexes). BASELINE/SUPERSEDED
+/// versions are frozen by a DB trigger.
+model TaktPlanVersion {
+  id            String                @id @default(uuid(7)) @db.Uuid
+  companyId     String                @map("company_id") @db.Uuid
+  planId        String                @map("plan_id") @db.Uuid
+  versionNumber Int                   @map("version_number")
+  status        TaktPlanVersionStatus @default(DRAFT)
+  startDate     DateTime              @map("start_date") @db.Date
+  reason        String?
+  basedOnId     String?               @map("based_on_id") @db.Uuid
+  proposedAt    DateTime?             @map("proposed_at") @db.Timestamptz(6)
+  proposedById  String?               @map("proposed_by") @db.Uuid
+  approvedAt    DateTime?             @map("approved_at") @db.Timestamptz(6)
+  approvedById  String?               @map("approved_by") @db.Uuid
+  supersededAt  DateTime?             @map("superseded_at") @db.Timestamptz(6)
+  returnedNote  String?               @map("returned_note")
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?               @map("created_by") @db.Uuid
+  updatedAt     DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById   String?               @map("updated_by") @db.Uuid
+
+  plan         TaktPlan              @relation(fields: [companyId, planId], references: [companyId, id], onDelete: Restrict)
+  assignments  TaktAssignment[]
+  requirements ResourceRequirement[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, planId, id])
+  @@unique([planId, versionNumber])
+  @@map("takt_plan_versions")
+}
+
+enum ActivityExecution {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+/// Work package × takt area within a plan. Requirements (crew, equipment)
+/// default from the work package. Actuals and progress are not versioned.
+model TaktActivity {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  companyId       String            @map("company_id") @db.Uuid
+  projectId       String            @map("project_id") @db.Uuid
+  siteId          String            @map("site_id") @db.Uuid
+  planId          String            @map("plan_id") @db.Uuid
+  taktAreaId      String            @map("takt_area_id") @db.Uuid
+  workPackageId   String            @map("work_package_id") @db.Uuid
+  name            String
+  crewTrade       String?           @map("crew_trade")
+  crewSize        Int               @default(0) @map("crew_size")
+  equipmentTypeId String?           @map("equipment_type_id") @db.Uuid
+  equipmentCount  Int               @default(0) @map("equipment_count")
+  execution       ActivityExecution @default(NOT_STARTED)
+  progressPct     Int               @default(0) @map("progress_pct")
+  actualStart     DateTime?         @map("actual_start") @db.Date
+  actualEnd       DateTime?         @map("actual_end") @db.Date
+  blocked         Boolean           @default(false)
+  delayReason     String?           @map("delay_reason")
+  recoveryAction  String?           @map("recovery_action")
+  externalRef     String?           @map("external_ref")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById     String?           @map("created_by") @db.Uuid
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById     String?           @map("updated_by") @db.Uuid
+  archivedAt      DateTime?         @map("archived_at") @db.Timestamptz(6)
+
+  plan          TaktPlan              @relation(fields: [companyId, projectId, siteId, planId], references: [companyId, projectId, siteId, id], onDelete: Restrict)
+  taktArea      TaktArea              @relation(fields: [companyId, siteId, taktAreaId], references: [companyId, siteId, id], onDelete: Restrict)
+  workPackage   WorkPackage           @relation(fields: [companyId, projectId, workPackageId], references: [companyId, projectId, id], onDelete: Restrict)
+  equipmentType EquipmentType?        @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  assignments   TaktAssignment[]
+  predecessors  ActivityDependency[]  @relation("DependencySuccessor")
+  successors    ActivityDependency[]  @relation("DependencyPredecessor")
+  constraints   ActivityConstraint[]
+  progress      ActivityProgress[]
+  requirements  ResourceRequirement[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, planId, id])
+  @@unique([planId, workPackageId, taktAreaId])
+  @@index([companyId, planId])
+  @@map("takt_activities")
+}
+
+/// Planned position of an activity in one plan version (cycle index from the
+/// version start date, counted in working days × cycle length).
+model TaktAssignment {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  companyId      String   @map("company_id") @db.Uuid
+  planId         String   @map("plan_id") @db.Uuid
+  versionId      String   @map("version_id") @db.Uuid
+  activityId     String   @map("activity_id") @db.Uuid
+  startCycle     Int      @map("start_cycle")
+  durationCycles Int      @default(1) @map("duration_cycles")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  version  TaktPlanVersion @relation(fields: [companyId, planId, versionId], references: [companyId, planId, id], onDelete: Cascade)
+  activity TaktActivity    @relation(fields: [companyId, planId, activityId], references: [companyId, planId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@unique([versionId, activityId])
+  @@map("takt_assignments")
+}
+
+enum DependencyType {
+  FS
+  SS
+  FF
+  SF
+}
+
+model ActivityDependency {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  companyId     String         @map("company_id") @db.Uuid
+  planId        String         @map("plan_id") @db.Uuid
+  predecessorId String         @map("predecessor_id") @db.Uuid
+  successorId   String         @map("successor_id") @db.Uuid
+  type          DependencyType @default(FS)
+  lagDays       Int            @default(0) @map("lag_days")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?        @map("created_by") @db.Uuid
+
+  predecessor TaktActivity @relation("DependencyPredecessor", fields: [companyId, planId, predecessorId], references: [companyId, planId, id], onDelete: Restrict)
+  successor   TaktActivity @relation("DependencySuccessor", fields: [companyId, planId, successorId], references: [companyId, planId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@unique([predecessorId, successorId])
+  @@index([companyId, planId])
+  @@map("activity_dependencies")
+}
+
+enum ConstraintType {
+  DRAWINGS
+  MATERIAL
+  WORKFORCE
+  EQUIPMENT
+  PERMIT
+  AREA
+  OTHER
+}
+
+enum ConstraintStatus {
+  OPEN
+  CLEARED
+}
+
+/// Readiness constraint. The predecessor check is derived from dependencies.
+model ActivityConstraint {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  companyId   String           @map("company_id") @db.Uuid
+  planId      String           @map("plan_id") @db.Uuid
+  activityId  String           @map("activity_id") @db.Uuid
+  type        ConstraintType
+  description String
+  dueDate     DateTime?        @map("due_date") @db.Date
+  status      ConstraintStatus @default(OPEN)
+  clearedAt   DateTime?        @map("cleared_at") @db.Timestamptz(6)
+  clearedById String?          @map("cleared_by") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?          @map("created_by") @db.Uuid
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?          @map("updated_by") @db.Uuid
+
+  activity TaktActivity @relation(fields: [companyId, planId, activityId], references: [companyId, planId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, planId, status])
+  @@map("activity_constraints")
+}
+
+/// Append-only progress history (DB trigger blocks UPDATE/DELETE).
+model ActivityProgress {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  planId      String   @map("plan_id") @db.Uuid
+  activityId  String   @map("activity_id") @db.Uuid
+  reportDate  DateTime @map("report_date") @db.Date
+  progressPct Int      @map("progress_pct")
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?  @map("created_by") @db.Uuid
+
+  activity TaktActivity @relation(fields: [companyId, planId, activityId], references: [companyId, planId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, planId, reportDate])
+  @@map("activity_progress")
+}
+
+enum RequirementKind {
+  TRADE
+  EQUIPMENT_TYPE
+}
+
+/// Resource requirement generated when a version becomes the baseline; the
+/// basis for V4–V5 bookings. Immutable (DB trigger).
+model ResourceRequirement {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  companyId       String          @map("company_id") @db.Uuid
+  planId          String          @map("plan_id") @db.Uuid
+  versionId       String          @map("version_id") @db.Uuid
+  activityId      String          @map("activity_id") @db.Uuid
+  kind            RequirementKind
+  trade           String?
+  equipmentTypeId String?         @map("equipment_type_id") @db.Uuid
+  quantity        Int
+  startDate       DateTime        @map("start_date") @db.Date
+  endDate         DateTime        @map("end_date") @db.Date
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  version       TaktPlanVersion @relation(fields: [companyId, planId, versionId], references: [companyId, planId, id], onDelete: Restrict)
+  activity      TaktActivity    @relation(fields: [companyId, planId, activityId], references: [companyId, planId, id], onDelete: Restrict)
+  equipmentType EquipmentType?  @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, versionId])
+  @@index([companyId, startDate, endDate])
+  @@map("resource_requirements")
+}
+
+enum ScheduleImportFormat {
+  MSPDI
+  XER
+}
+
+enum ScheduleImportStatus {
+  PREVIEW
+  APPLIED
+  DISCARDED
+}
+
+/// MS Project XML / Primavera P6 XER file import. The original file is kept
+/// in storage (SHA-256); applying it creates a new DRAFT version.
+model ScheduleImport {
+  id              String               @id @default(uuid(7)) @db.Uuid
+  companyId       String               @map("company_id") @db.Uuid
+  planId          String               @map("plan_id") @db.Uuid
+  format          ScheduleImportFormat
+  fileName        String               @map("file_name")
+  sizeBytes       BigInt               @map("size_bytes")
+  sha256          String               @db.Char(64)
+  storageKey      String               @map("storage_key")
+  status          ScheduleImportStatus @default(PREVIEW)
+  options         Json
+  preview         Json
+  resultVersionId String?              @map("result_version_id") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById     String?              @map("created_by") @db.Uuid
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById     String?              @map("updated_by") @db.Uuid
+
+  plan TaktPlan @relation(fields: [companyId, planId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, planId])
+  @@map("schedule_imports")
 }

@@ -21,6 +21,9 @@ import { documentService } from "@/modules/documents/service";
 import { timesheetService } from "@/modules/timesheets/service";
 import { diaryService } from "@/modules/diary/service";
 import { budgetService, costService } from "@/modules/finance/service";
+import { taktStructureService } from "@/modules/takt/structure.service";
+import { taktPlanService } from "@/modules/takt/plan.service";
+import { taktActivityService } from "@/modules/takt/activity.service";
 import { addDays, isoDateString, weekStart } from "@/modules/timesheets/rules";
 import { todayInDisplayZone } from "@/platform/i18n/config";
 
@@ -328,6 +331,44 @@ async function main() {
   await budgetService.activate(skCeo, budget.id);
   await costService.create(skCeo, ndc.id, { category: "MATERIALS", entryDate: isoDateString(lastMonday), description: "Kaapelirummut 4 kpl", supplier: "Kaapeli Demo Oy", reference: "LASKU-1001", amount: "38500" });
   await costService.create(skCeo, ndc.id, { category: "SUBCONTRACT", entryDate: isoDateString(addDays(lastMonday, 2)), description: "Telinetyöt viikko", supplier: "Teline Demo Oy", reference: "LASKU-2001", amount: "12000" });
+
+  // ── V3: takt plan for Data Hall A (SK Infra Demo) ─────────────────
+  const pmCtx = await ctxFor("pm@skinfra.example.com", "sk-infra-demo");
+  const dc1 = await taktStructureService.createBuilding(pmCtx, { siteId: hallA.id, name: "DC1 – Data Hall A", code: "DC1" });
+  for (let i = 1; i <= 6; i++) await taktStructureService.createArea(pmCtx, { buildingId: dc1.id, code: `A${i}`, name: `Sali A, vyöhyke ${i}` });
+  const wagons = [
+    { code: "TE", name: "Telineet", trade: "Telinerakentaja", defaultCrewSize: "2", color: "#B7950B" },
+    { code: "KH", name: "Kaapelihyllyt", trade: "Sähköasentaja", defaultCrewSize: "3", color: "#1E88A8", equipmentTypeId: types.TELEHANDLER, equipmentCount: "1" },
+    { code: "KA", name: "Kaapelinveto", trade: "Sähköasentaja", defaultCrewSize: "4", color: "#0B2545", equipmentTypeId: types.CABLE_EQUIPMENT, equipmentCount: "1" },
+    { code: "KY", name: "Kytkennät", trade: "Sähköasentaja", defaultCrewSize: "2", color: "#4C9F38" },
+    { code: "TS", name: "Testaus ja käyttöönotto", trade: "Sähköasentaja", defaultCrewSize: "2", color: "#8E44AD" },
+  ];
+  const wagonIds: Record<string, string> = {};
+  for (const w of wagons) wagonIds[w.code] = (await taktStructureService.createWorkPackage(pmCtx, ndc.id, { ...w, defaultDurationCycles: "1" })).id;
+  const taktPlan = await taktPlanService.create(pmCtx, { siteId: hallA.id, name: "Data Hall A – sähkötahti", startDate: isoDateString(lastMonday) });
+  const v1 = (await taktPlanService.board(pmCtx, taktPlan.id)).selected!;
+  await taktPlanService.generateTrain(pmCtx, v1.id, { startCycle: 0, bufferCycles: 0 });
+  await taktPlanService.propose(pmCtx, v1.id);
+  await taktPlanService.approve(pmCtx, v1.id);
+
+  // Progress: finished work up to yesterday, today's work half done.
+  const todayIso = isoDateString(today);
+  const baselineBoard = await taktPlanService.board(pmCtx, taktPlan.id);
+  const byKey = (wp: string, area: string) => baselineBoard.activities.find((a) => a.workPackage.code === wp && a.taktArea.code === area)!;
+  for (const a of [...baselineBoard.activities].sort((x, y) => (x.plannedStart ?? "").localeCompare(y.plannedStart ?? ""))) {
+    if (!a.plannedStart || !a.plannedEnd) continue;
+    if (a.plannedEnd < todayIso) await taktActivityService.recordProgress(supervisorCtx, a.id, { progressPct: "100", reportDate: a.plannedEnd, note: "Valmis" });
+    else if (a.plannedStart <= todayIso) await taktActivityService.recordProgress(supervisorCtx, a.id, { progressPct: "50", reportDate: todayIso, note: "Työ käynnissä" });
+  }
+  const drawings = await taktActivityService.addConstraint(supervisorCtx, byKey("KY", "A1").id, { type: "DRAWINGS", description: "Kytkentäkaaviot rev. B hyväksytty" });
+  await taktActivityService.clearConstraint(supervisorCtx, drawings.id);
+  await taktActivityService.addConstraint(supervisorCtx, byKey("KA", "A5").id, { type: "MATERIAL", description: "Kaapelirummut (4 kpl) toimitus myöhässä", dueDate: isoDateString(addDays(today, 3)) });
+  await taktActivityService.addConstraint(supervisorCtx, byKey("TS", "A2").id, { type: "PERMIT", description: "Jännitetyölupa haettava" });
+  await taktActivityService.setBlocked(supervisorCtx, byKey("KH", "A6").id, { blocked: true, delayReason: "Kurottaja huollossa", recoveryAction: "Vuokrakurottaja tilattu, saapuu huomenna" });
+
+  // A change in progress: cable delivery late → new draft version, cabling and later wagons shifted by 2 days.
+  const v2 = await taktPlanService.createDraft(pmCtx, taktPlan.id, { reason: "Kaapelitoimitus myöhässä 2 työpäivää" });
+  for (const code of ["KA", "KY", "TS"]) await taktPlanService.shiftWorkPackage(pmCtx, v2.id, wagonIds[code], { days: 2 });
 
   // ── Purent Demo (separate company, same platform) ─────────────────
   await seedCompany({

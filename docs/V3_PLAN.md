@@ -1,4 +1,6 @@
-# V3 — Takt & Look-ahead: plan (DRAFT, awaiting owner approval)
+# V3 — Takt & Look-ahead: plan
+
+- Approved by the owner: 2026-10-05 ("saa aloittaa V3"; decisions below, recommendations accepted)
 
 - Scope: Build Master §8 (Takt engine), §9 (Look-ahead engine), §37 (V3).
 - Out of scope: resource bookings and conflict detection (V4–V5), logistics requests (V4), AI suggestions.
@@ -17,19 +19,19 @@
 | 3 | **MS Project and Primavera P6 import is required in V3.** |
 
 ## Proposed details (recommendations)
-- **Working calendar:** a company calendar with Mon–Fri working days and a configurable list of public holidays. The seed loads Finnish public holidays for 2026–2027 as data. Day-takt cycles skip non-working days.
+- **Working calendar:** a company calendar with Mon–Fri working days and a configurable list of public holidays. The default calendar is created on first use with Finnish public holidays for the current year and the next two. Day-takt cycles skip non-working days.
 - **Import formats:** file import only, with no API connection and no fabricated integration.
   - MS Project XML (MSPDI, `.xml`, "Save as XML" in MS Project).
   - Primavera P6 XER (`.xer`).
   - The native binary `.mpp` format is not supported; users export it to XML.
   - An import always creates a new DRAFT plan version and never touches the baseline.
   - The import shows a preview: the WBS is mapped to takt area, work package and activity; tasks with no mapping are reported; dependencies (FS/SS/FF/SF with lag) are carried over.
-  - The original file is stored as a document version (SHA-256), and the import is audited.
+  - The original file is stored with its SHA-256 in the import history (`schedule_imports`) and can be downloaded from there. It is not stored as a document version, because the import history keeps the preview, the mapping options and the resulting version together (ADR 0013). The import is audited.
 
 ## Deliverables
 - **Hierarchy:** `buildings` (building/area), `takt_areas`, `work_packages` and `activities`. They hang off `sites(company_id, project_id, id)` through composite foreign keys, so the change is non-breaking.
 - **Plans and versions:**
-  - Tables: `takt_plans`, `takt_plan_versions` (DRAFT → PROPOSED → BASELINE / SUPERSEDED) and `takt_cycles`.
+  - Tables: `takt_plans`, `takt_plan_versions` (DRAFT → PROPOSED → BASELINE / SUPERSEDED) and `takt_assignments`. Cycle dates are computed from the working calendar, so no `takt_cycles` table is stored (ADR 0012).
   - A DB trigger locks baseline versions.
   - Every change is a new version or an approved adjustment, with a reason and an audit event.
 - **Takt board:** a grid of takt areas × cycle days, colour-coded by trade.

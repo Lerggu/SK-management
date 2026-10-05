@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { BookOpen, Pencil, Plus, Wallet } from "lucide-react";
+import { BookOpen, ChartGantt, Pencil, Plus, Wallet } from "lucide-react";
 import { hasPermission, projectPermissions } from "@/platform/authz";
 import { diaryService } from "@/modules/diary/service";
 import { projectService, siteService } from "@/modules/projects/service";
@@ -59,8 +59,15 @@ export default async function ProjectPage({ params }: Props) {
         backHref={`${base}/projects`}
         backLabel={t("title")}
         actions={
-          (editable || perms.has("finance.view")) && (
+          (editable || perms.has("finance.view") || perms.has("takt.view")) && (
             <>
+              {perms.has("takt.view") && (
+                <Button asChild variant="outline">
+                  <Link href={`${base}/projects/${project.id}/takt`}>
+                    <ChartGantt aria-hidden /> {tp("takt")}
+                  </Link>
+                </Button>
+              )}
               {perms.has("finance.view") && (
                 <Button asChild variant="outline">
                   <Link href={`${base}/projects/${project.id}/finance`}>

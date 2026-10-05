@@ -120,7 +120,7 @@ export function TextField({
   className?: string;
 } & Omit<React.ComponentProps<"input">, "name" | "defaultValue">) {
   const f = useField(name, defaultValue);
-  const id = `f-${name}`;
+  const id = `f-${name}-${React.useId().replace(/:/g, "")}`;
   return (
     <FieldShell id={id} label={label} hint={hint} errors={f.errors} required={required} className={className}>
       <Input
@@ -153,7 +153,7 @@ export function TextareaField({
   className?: string;
 }) {
   const f = useField(name, defaultValue);
-  const id = `f-${name}`;
+  const id = `f-${name}-${React.useId().replace(/:/g, "")}`;
   return (
     <FieldShell id={id} label={label} hint={hint} errors={f.errors} className={className}>
       <Textarea key={f.key} id={id} name={name} rows={rows} defaultValue={f.value} aria-invalid={f.errors.length > 0 || undefined} />
@@ -187,7 +187,7 @@ export function SelectField({
   className?: string;
 }) {
   const f = useField(name, defaultValue);
-  const id = `f-${name}`;
+  const id = `f-${name}-${React.useId().replace(/:/g, "")}`;
   return (
     <FieldShell id={id} label={label} hint={hint} errors={f.errors} required={required} className={className}>
       <select
@@ -246,7 +246,7 @@ export function CheckboxGroupField({
 
 export function FileField({ name = "file", label, hint, accept, required }: { name?: string; label: string; hint?: string; accept?: string; required?: boolean }) {
   const f = useField(name);
-  const id = `f-${name}`;
+  const id = `f-${name}-${React.useId().replace(/:/g, "")}`;
   return (
     <FieldShell id={id} label={label} hint={hint} errors={f.errors} required={required}>
       <input

@@ -1,7 +1,7 @@
 import { test } from "@playwright/test";
 import { authFile } from "./helpers";
 
-/** Captures the main V1 views for the release report (docs/screenshots). */
+/** Captures the main views for the release reports (docs/screenshots). */
 test.use({ storageState: authFile("ceo") });
 
 const VIEWS: [string, string][] = [
@@ -33,6 +33,23 @@ test("capture main views", async ({ page }, testInfo) => {
   await page.getByRole("link", { name: /\d{4} · Data Hall A/ }).first().click();
   await page.waitForURL(/diary\/[0-9a-f-]{36}$/);
   await page.screenshot({ path: `${dir}/site-diary.png`, fullPage: true });
+  await page.goto("/c/sk-infra-demo/takt");
+  await page.screenshot({ path: `${dir}/takt-plans.png` });
+  await page.getByRole("link", { name: /Data Hall A – sähkötahti/ }).click();
+  await page.waitForURL(/takt\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/takt-board.png`, fullPage: true });
+  const boardUrl = page.url();
+  await page.getByTestId("takt-board").locator('[data-status="BLOCKED"]').first().click();
+  await page.waitForURL(/activities\/[0-9a-f-]{36}$/);
+  await page.screenshot({ path: `${dir}/takt-activity.png`, fullPage: true });
+  await page.goto(boardUrl);
+  await page.getByRole("link", { name: "Vertaa baselineen" }).click();
+  await page.waitForURL(/compare/);
+  await page.screenshot({ path: `${dir}/takt-compare.png`, fullPage: true });
+  await page.goto("/c/sk-infra-demo/takt/lookahead?weeks=6");
+  await page.screenshot({ path: `${dir}/takt-lookahead.png`, fullPage: true });
+  await page.goto("/c/sk-infra-demo/settings/calendar");
+  await page.screenshot({ path: `${dir}/settings-calendar.png`, fullPage: true });
   await page.goto("/c/sk-infra-demo/documents");
   await page.getByRole("link", { name: /pääkaavio/ }).click();
   await page.waitForURL(/documents\/[0-9a-f-]{36}$/);

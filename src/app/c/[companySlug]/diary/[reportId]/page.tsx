@@ -124,6 +124,23 @@ export default async function DiaryPage({ params }: { params: Promise<{ companyS
           )}
         </Section>
 
+        {r.taktProgress.length > 0 && (
+          <Section title={t("taktProgress")}>
+            <ul className="divide-y text-sm" data-testid="diary-takt-progress">
+              {r.taktProgress.map((p) => (
+                <li key={p.id} className="flex min-h-11 flex-wrap items-center gap-2 py-1">
+                  <span aria-hidden className="size-3 rounded-sm" style={{ backgroundColor: p.activity.workPackage.color }} />
+                  <a href={`/c/${companySlug}/takt/${p.activity.planId}/activities/${p.activity.id}`} className="font-medium hover:underline">
+                    {p.activity.taktArea.code} · {p.activity.name}
+                  </a>
+                  <span className="font-semibold tabular-nums">{p.progressPct} %</span>
+                  {p.note && <span className="text-muted-foreground">{p.note}</span>}
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
         <Section title={t("photos")}>
           {r.attachments.length === 0 ? (
             <EmptyState>{t("noPhotos")}</EmptyState>

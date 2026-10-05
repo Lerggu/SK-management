@@ -1,15 +1,15 @@
 "use client";
 
 /** Big tap targets that fill the hours input (minimal typing on site). */
-export function QuickHours({ target = "f-hours", values = ["7.5", "8", "10"], label }: { target?: string; values?: string[]; label: string }) {
+export function QuickHours({ name = "hours", values = ["7.5", "8", "10"], label }: { name?: string; values?: string[]; label: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label={label}>
       {values.map((v) => (
         <button
           key={v}
           type="button"
-          onClick={() => {
-            const input = document.getElementById(target) as HTMLInputElement | null;
+          onClick={(e) => {
+            const input = e.currentTarget.closest("form")?.querySelector<HTMLInputElement>(`input[name="${name}"]`) ?? null;
             if (input) {
               input.value = v.replace(".", ",");
               input.dispatchEvent(new Event("input", { bubbles: true }));

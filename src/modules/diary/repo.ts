@@ -88,6 +88,15 @@ export class DiaryRepo {
     return this.tx.dailyReportAttachment.findFirst({ where: { id, companyId: this.companyId } });
   }
 
+  /** Takt progress reported for activities on the site that day (V3). */
+  taktProgress(siteId: string, date: Date) {
+    return this.tx.activityProgress.findMany({
+      where: { companyId: this.companyId, reportDate: date, activity: { siteId } },
+      orderBy: { createdAt: "asc" },
+      include: { activity: { select: { id: true, name: true, planId: true, taktArea: { select: { code: true } }, workPackage: { select: { code: true, color: true } } } } },
+    });
+  }
+
   findUsers(ids: string[]) {
     return this.tx.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, email: true } });
   }
