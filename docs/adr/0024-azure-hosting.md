@@ -40,7 +40,7 @@
 - **Images:** Azure Container Registry (Basic). The App Service pulls images with its managed identity (*AcrPull*).
 - **Deployment:** the GitHub Actions workflow `deploy.yml` runs after CI passes on `main`, or manually.
   - It authenticates with OIDC as a user-assigned managed identity. The federated credential's subject is `repo:Lerggu/SK-management:environment:production`, so no Azure credentials are stored in GitHub.
-  - The identity holds only *AcrPush* on the registry, *Website Contributor* on the app and *Reader* on the resource group.
+  - The identity holds only *Contributor* scoped to the registry (the AcrPush role id was missing in the owner's subscription), *Website Contributor* on the app and *Reader* on the resource group.
   - The workflow does nothing until the repository variables exist.
 - **First tenant data.** `scripts/bootstrap.ts`, driven by `BOOTSTRAP_*` settings, creates:
   - the group organization;
