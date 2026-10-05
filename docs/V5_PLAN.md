@@ -1,4 +1,6 @@
-# V5 — Lifting & Material Flow: plan (DRAFT, awaiting owner approval)
+# V5 — Lifting & Material Flow: plan
+
+- Approved by the owner: 2026-10-05 ("saa aloittaa V5"; decisions below, recommendations accepted)
 
 - Scope: Build Master §13 (material flow), §14 (lifting and rigging), §39 (V5).
 - Out of scope: the commercial layer, CRM, invoicing and internal charging between companies (V6); portals (V7); AI suggestions (V8).

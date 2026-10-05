@@ -1,5 +1,5 @@
 /**
- * Capability permission catalogue (V1–V4). Code checks these keys — never role
+ * Capability permission catalogue (V1–V5). Code checks these keys — never role
  * names. Roles are company-scoped records instantiated from ROLE_TEMPLATES.
  *
  * Changing this file changes authorization. Any change must ship with a
@@ -53,6 +53,13 @@ export const PERMISSIONS = {
   "logistics.approve": { category: "logistics", sensitive: false, description: "Review and approve logistics requests, manage gates and storage" },
   "booking.manage": { category: "logistics", sensitive: false, description: "Book resources and decide booking requests for own resources" },
   "delivery.manage": { category: "logistics", sensitive: false, description: "Schedule deliveries and record gate check-in and unloading" },
+
+  // V5 — lifting and material flow
+  "lift.request": { category: "lifting", sensitive: false, description: "Create lift plans and edit drafts for own lifts" },
+  "lift.plan.manage": { category: "lifting", sensitive: false, description: "Edit and submit lift plans, manage lifting accessories, record lift completion" },
+  "lift.plan.approve": { category: "lifting", sensitive: false, description: "Approve or reject lift plans (person responsible for lifting)" },
+  "material.view": { category: "material", sensitive: false, description: "View material batches, cable drums and QR labels" },
+  "material.manage": { category: "material", sensitive: false, description: "Register and move material batches, cable drums and record cable pulls" },
 } as const satisfies Record<string, { category: string; sensitive: boolean; description: string }>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -94,7 +101,8 @@ export type RoleTemplateKey =
   | "HSE"
   | "EMPLOYEE"
   | "SUBCONTRACTOR"
-  | "CLIENT";
+  | "CLIENT"
+  | "LIFTING_SUPERVISOR";
 
 export interface RoleTemplate {
   key: RoleTemplateKey;
@@ -108,7 +116,8 @@ export interface RoleTemplate {
 const P = (...keys: PermissionKey[]) => keys;
 
 /**
- * The 10 role templates from Build Master §5. CEO and Project Director see all
+ * The 10 role templates from Build Master §5, plus the V5 Lifting Supervisor
+ * (owner decision: the person responsible for lifting approves lift plans). CEO and Project Director see all
  * projects; all other roles see only projects they are assigned to.
  */
 export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
@@ -158,6 +167,11 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "logistics.approve",
       "booking.manage",
       "delivery.manage",
+      "lift.request",
+      "lift.plan.manage",
+      "lift.plan.approve",
+      "material.view",
+      "material.manage",
     ),
   },
   {
@@ -192,6 +206,8 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "logistics.view",
       "logistics.request",
       "booking.manage",
+      "lift.request",
+      "material.view",
     ),
   },
   {
@@ -220,6 +236,10 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "logistics.approve",
       "booking.manage",
       "delivery.manage",
+      "lift.request",
+      "lift.plan.manage",
+      "material.view",
+      "material.manage",
     ),
   },
   {
@@ -227,28 +247,28 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Työnjohtaja", en: "Supervisor" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign", "takt.view", "takt.progress.update", "logistics.view", "logistics.request", "delivery.manage"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign", "takt.view", "takt.progress.update", "logistics.view", "logistics.request", "delivery.manage", "lift.request", "material.view", "material.manage"),
   },
   {
     key: "LOGISTICS_COORDINATOR",
     name: { fi: "Logistiikkakoordinaattori", en: "Logistics Coordinator" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "logistics.approve", "booking.manage", "delivery.manage"),
+    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "logistics.approve", "booking.manage", "delivery.manage", "lift.request", "lift.plan.manage", "material.view", "material.manage"),
   },
   {
     key: "HSE",
     name: { fi: "HSE-asiantuntija", en: "HSE" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view", "takt.view", "logistics.view"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "material.view"),
   },
   {
     key: "EMPLOYEE",
     name: { fi: "Työntekijä", en: "Employee" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view"),
+    permissions: P("project.view", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "material.view"),
   },
   {
     key: "SUBCONTRACTOR",
@@ -263,6 +283,13 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     projectAccess: "ASSIGNED",
     external: true,
     permissions: P("project.view", "documents.view"),
+  },
+  {
+    key: "LIFTING_SUPERVISOR",
+    name: { fi: "Nostovastaava", en: "Lifting Supervisor" },
+    projectAccess: "ASSIGNED",
+    external: false,
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "lift.request", "lift.plan.manage", "lift.plan.approve", "material.view"),
   },
 ];
 

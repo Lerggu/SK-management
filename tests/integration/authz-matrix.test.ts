@@ -26,6 +26,8 @@ import { lookaheadService } from "@/modules/takt/lookahead.service";
 import { scheduleImportService } from "@/modules/takt/import.service";
 import { bookingService } from "@/modules/logistics/booking.service";
 import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
+import { liftingAccessoryService, liftPlanService } from "@/modules/lifting/lift.service";
+import { cableDrumService, materialBatchService, materialLabelService } from "@/modules/lifting/material.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Outcome = "✓" | "F" | "N";
@@ -40,6 +42,7 @@ const ROLES: RoleTemplateKey[] = [
   "EMPLOYEE",
   "SUBCONTRACTOR",
   "CLIENT",
+  "LIFTING_SUPERVISOR",
 ];
 
 interface Fixture {
@@ -57,6 +60,8 @@ interface Fixture {
   reportId: string;
   takt: { planId: string; draftId: string; activityId: string; buildingId: string; proposedVersionId: () => Promise<string> };
   logistics: { gateId: string; requestedId: () => Promise<string>; slot: () => string };
+  lift: { draftPlanId: string; submittedPlanId: () => Promise<string>; approvedPlanId: () => Promise<string> };
+  material: { drumId: string };
 }
 
 let dayCounter = 0;
@@ -122,51 +127,75 @@ const ACTIONS: Record<string, Action> = {
   "manage gates": (c, f) => logisticsLocationService.create(c, { siteId: f.siteId, kind: "STORAGE", name: uniq("Varasto") }),
   "book resource": (c, f) => bookingService.create(c, { resources: [`EQUIPMENT:${f.equipmentId}`], projectId: f.projectId, startsAt: "2026-12-01T07:00", endsAt: "2026-12-01T08:00" }),
   "schedule delivery": (c, f) => deliveryService.create(c, { siteId: f.siteId, gateId: f.logistics.gateId, supplier: "Matrix", material: "Matrix", date: f.logistics.slot(), startTime: "07:00" }),
+  // V5
+  "view lift plan": (c, f) => liftPlanService.get(c, f.lift.draftPlanId),
+  "create lift plan": (c, f) => liftPlanService.create(c, { siteId: f.siteId, title: uniq("Lift"), plannedStart: "2027-03-01T08:00", plannedEnd: "2027-03-01T09:00" }),
+  "edit lift plan draft": (c, f) => liftPlanService.updateDraft(c, f.lift.draftPlanId, { loadDescription: "Matrix load", loadWeightKg: "500" }),
+  "approve lift plan": async (c, f) => liftPlanService.decide(c, await f.lift.submittedPlanId(), { decision: "APPROVE", acknowledgeWarnings: "on" }),
+  "complete lift": async (c, f) => liftPlanService.complete(c, await f.lift.approvedPlanId()),
+  "view accessory register": (c) => liftingAccessoryService.list(c),
+  "manage lifting accessories": (c) => liftingAccessoryService.create(c, { code: uniq("ACC"), name: "Matrix sling", kind: "SLING", wllKg: "1000" }),
+  "view materials": (c, f) => materialBatchService.list(c, { siteId: f.siteId }),
+  "register material batch": (c, f) => materialBatchService.create(c, { siteId: f.siteId, code: uniq("MB"), material: "Matrix", quantity: "1", unit: "pcs" }),
+  "record cable pull": (c, f) => cableDrumService.pull(c, f.material.drumId, { lengthM: "1", pulledOn: "2027-03-01" }),
+  "print QR labels": (c, f) => materialLabelService.pdf(c, { kind: "drum", siteId: f.siteId }, "http://localhost", { title: "Matrix", footer: "Matrix" }),
 };
 
-// Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI
+// Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI LIFT
 const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
-  "view project":            ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓"],
-  "view unassigned project": ["✓", "✓", "N", "N", "N", "N", "N", "N", "N", "N"],
-  "create project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "update project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "create site":             ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "assign project member":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "list employees":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F"],
-  "create employee":         ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "view employee rates":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "change employee rates":   ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "list equipment":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F"],
-  "create equipment":        ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "F", "F"],
-  "view equipment rates":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "change equipment rates":  ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "create project document": ["✓", "✓", "✓", "✓", "✓", "F", "✓", "F", "F", "F"],
-  "approve document":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "manage members":          ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "edit role permissions":   ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view audit log":          ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "enter own hours":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F"],
-  "enter crew hours":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "F", "F"],
-  "approve hours":           ["✓", "✓", "✓", "✓", "F", "N", "N", "N", "N", "N"],
-  "export hours":            ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view site diary":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
-  "write site diary":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N"],
-  "sign site diary":         ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N"],
-  "view project finance":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "record project cost":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F"],
-  "view takt board":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
-  "edit takt draft":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N"],
-  "record takt progress":    ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N"],
-  "approve takt baseline":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N"],
-  "import schedule":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N"],
-  "view look-ahead":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
-  "edit work calendar":      ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "view logistics board":    ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N"],
-  "create logistics request":["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "N", "N"],
-  "approve logistics request":["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N"],
-  "manage gates":            ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N"],
-  "book resource":           ["✓", "✓", "✓", "✓", "F", "✓", "F", "F", "N", "N"],
-  "schedule delivery":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N"],
+  "view project":            ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓"],
+  "view unassigned project": ["✓", "✓", "N", "N", "N", "N", "N", "N", "N", "N", "N"],
+  "create project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "update project":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "create site":             ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "assign project member":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "list employees":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "✓"],
+  "create employee":         ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view employee rates":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "change employee rates":   ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "list equipment":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "✓"],
+  "create equipment":        ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "F", "F", "F"],
+  "view equipment rates":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "change equipment rates":  ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "create project document": ["✓", "✓", "✓", "✓", "✓", "F", "✓", "F", "F", "F", "F"],
+  "approve document":        ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "manage members":          ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "edit role permissions":   ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view audit log":          ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "enter own hours":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "✓"],
+  "enter crew hours":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "F", "F", "F"],
+  "approve hours":           ["✓", "✓", "✓", "✓", "F", "N", "N", "N", "N", "N", "N"],
+  "export hours":            ["✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view site diary":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
+  "write site diary":        ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F"],
+  "sign site diary":         ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F"],
+  "view project finance":    ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "record project cost":     ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view takt board":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
+  "edit takt draft":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N", "F"],
+  "record takt progress":    ["✓", "✓", "✓", "✓", "✓", "F", "F", "F", "N", "N", "F"],
+  "approve takt baseline":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N", "F"],
+  "import schedule":         ["✓", "✓", "✓", "✓", "F", "F", "F", "F", "N", "N", "F"],
+  "view look-ahead":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
+  "edit work calendar":      ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "view logistics board":    ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
+  "create logistics request":["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "N", "N", "✓"],
+  "approve logistics request":["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "F"],
+  "manage gates":            ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "F"],
+  "book resource":           ["✓", "✓", "✓", "✓", "F", "✓", "F", "F", "N", "N", "F"],
+  "schedule delivery":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F"],
+  // V5 (LIFT = Lifting Supervisor, the person responsible for lifting)
+  "view lift plan":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
+  "create lift plan":        ["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "N", "N", "✓"],
+  "edit lift plan draft":    ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "✓"],
+  "approve lift plan":       ["✓", "✓", "F", "F", "F", "F", "F", "F", "N", "N", "✓"],
+  "complete lift":           ["✓", "✓", "F", "✓", "F", "✓", "F", "F", "N", "N", "✓"],
+  "view accessory register": ["✓", "✓", "✓", "✓", "✓", "✓", "F", "F", "F", "F", "✓"],
+  "manage lifting accessories":["✓", "✓", "F", "✓", "F", "✓", "F", "F", "F", "F", "✓"],
+  "view materials":          ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
+  "register material batch": ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F"],
+  "record cable pull":       ["✓", "✓", "F", "✓", "✓", "✓", "F", "F", "N", "N", "F"],
+  "print QR labels":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "N", "✓"],
 };
 
 let f: Fixture;
@@ -200,6 +229,8 @@ beforeAll(async () => {
     draftReportId: async () => "",
     takt: { planId: "", draftId: "", activityId: "", buildingId: "", proposedVersionId: async () => "" },
     logistics: { gateId: "", requestedId: async () => "", slot: () => "" },
+    lift: { draftPlanId: "", submittedPlanId: async () => "", approvedPlanId: async () => "" },
+    material: { drumId: "" },
   };
   const site = await sites.create(t.ownerCtx, project.id, { name: "Matrix site" });
   const report = await diaryService.open(t.ownerCtx, { siteId: site.id, date: "2026-02-01" });
@@ -245,6 +276,24 @@ beforeAll(async () => {
       return v.id;
     },
   };
+  // V5 fixtures: lift plans by the owner; a separate approver (never the author).
+  const approver = await createMember(t, "PROJECT_DIRECTOR");
+  const submitted = async () => {
+    const lp = await liftPlanService.create(t.ownerCtx, { siteId: site.id, title: uniq("Lift"), plannedStart: "2027-03-01T08:00", plannedEnd: "2027-03-01T09:00" });
+    await liftPlanService.updateDraft(t.ownerCtx, lp.id, { loadDescription: "Beam", loadWeightKg: "1000", craneId: equipment.id, radiusM: "12", craneCapacityKg: "5000" });
+    await liftPlanService.submit(t.ownerCtx, lp.id);
+    return lp.id;
+  };
+  f.lift = {
+    draftPlanId: (await liftPlanService.create(t.ownerCtx, { siteId: site.id, title: "Matrix lift", plannedStart: "2027-03-01T08:00", plannedEnd: "2027-03-01T09:00" })).id,
+    submittedPlanId: submitted,
+    approvedPlanId: async () => {
+      const id = await submitted();
+      await liftPlanService.decide(approver, id, { decision: "APPROVE", acknowledgeWarnings: "on" });
+      return id;
+    },
+  };
+  f.material = { drumId: (await cableDrumService.create(t.ownerCtx, { siteId: site.id, code: "M-CD1", cableType: "Matrix cable", originalLengthM: "100000" })).id };
   for (const role of ROLES) {
     const assigned = role === "CEO" || role === "PROJECT_DIRECTOR" ? [] : [{ projectId: project.id }];
     const ctx = await createMember(t, role, assigned);

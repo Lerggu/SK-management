@@ -56,6 +56,16 @@ export class LogisticsRepo {
     return this.tx.company.findUnique({ where: { id }, select: { id: true, name: true, organizationId: true } });
   }
 
+  /** V5: whether a non-cancelled lift plan for the request has an approved version. */
+  async hasApprovedLiftPlan(requestId: string) {
+    const n = await this.tx.liftPlanVersion.count({ where: { ...this.c, status: "APPROVED", plan: { requestId, status: { not: "CANCELLED" } } } });
+    return n > 0;
+  }
+
+  findLiftPlan(id: string) {
+    return this.tx.liftPlan.findFirst({ where: { id, ...this.c } });
+  }
+
   findUsers(ids: string[]) {
     return this.tx.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, email: true } });
   }
@@ -213,7 +223,7 @@ export class LogisticsRepo {
     gate: { select: { id: true, name: true } },
     unloading: { select: { id: true, name: true } },
     storage: { select: { id: true, name: true } },
-    request: { select: { id: true, title: true, status: true } },
+    request: { select: { id: true, title: true, status: true, serviceType: true } },
     activity: { select: { id: true, name: true, planId: true, taktArea: { select: { code: true } }, workPackage: { select: { code: true, color: true } } } },
     constraint: { select: { id: true, status: true } },
   } satisfies Prisma.DeliveryInclude;

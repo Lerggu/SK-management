@@ -25,6 +25,8 @@ import { taktStructureService } from "@/modules/takt/structure.service";
 import { taktPlanService } from "@/modules/takt/plan.service";
 import { taktActivityService } from "@/modules/takt/activity.service";
 import { bookingService } from "@/modules/logistics/booking.service";
+import { liftingAccessoryService, liftPlanService } from "@/modules/lifting/lift.service";
+import { cableDrumService, materialBatchService } from "@/modules/lifting/material.service";
 import { deliveryService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { addDays, isoDateString, weekStart } from "@/modules/timesheets/rules";
 import { todayInDisplayZone } from "@/platform/i18n/config";
@@ -39,6 +41,7 @@ const SK_USERS = [
   { email: "site.manager@skinfra.example.com", name: "Pekka Demo", role: "SITE_MANAGER" },
   { email: "supervisor@skinfra.example.com", name: "Sanna Testi", role: "SUPERVISOR" },
   { email: "logistics@skinfra.example.com", name: "Jari Kuvitteellinen", role: "LOGISTICS_COORDINATOR" },
+  { email: "lifting@skinfra.example.com", name: "Ville Vinssi", role: "LIFTING_SUPERVISOR" },
   { email: "hse@skinfra.example.com", name: "Riikka Harjoitus", role: "HSE" },
   { email: "employee@skinfra.example.com", name: "Timo Tyyppi", role: "EMPLOYEE" },
   { email: "subcontractor@example.com", name: "Aliurakka Demo Oy", role: "SUBCONTRACTOR" },
@@ -206,7 +209,7 @@ async function main() {
   for (const t of typeDefs) types[t.category] = (await equipmentTypeService.create(skCeo, t)).id;
 
   const equipmentDefs = [
-    { assetNumber: "EQ-001", name: "Mobile crane 100 t", type: "CRANE", manufacturer: "Liebherr", model: "LTM 1100-4.2", meterHours: "5320.0", inspection: "2026-10-20", site: hallA.id, cost: "95.00", billing: "165.00" },
+    { assetNumber: "EQ-001", name: "Mobile crane 100 t", type: "CRANE", manufacturer: "Liebherr", model: "LTM 1100-4.2", meterHours: "5320.0", inspection: isoDateString(addDays(new Date(`${todayInDisplayZone()}T00:00:00Z`), 45)), site: hallA.id, cost: "95.00", billing: "165.00" },
     { assetNumber: "EQ-002", name: "Telehandler 4 t / 17 m", type: "TELEHANDLER", manufacturer: "Manitou", model: "MT 1840", meterHours: "2110.5", inspection: "2027-02-15", site: substation.id, cost: "28.00", billing: "48.00" },
     { assetNumber: "EQ-003", name: "Excavator 22 t", type: "EXCAVATOR", manufacturer: "Volvo", model: "EC220E", meterHours: "7400.0", inspection: "2026-12-01", site: null, cost: "45.00", billing: "78.00" },
     { assetNumber: "EQ-004", name: "Forklift 3 t", type: "FORKLIFT", manufacturer: "Toyota", model: "8FD30", meterHours: "980.0", inspection: "2026-10-10", site: null, cost: "12.00", billing: "25.00" },
@@ -449,8 +452,62 @@ async function main() {
   await bookingService.create(pmCtx, { resources: electricians, projectId: ndc.id, activityId: byKey("KA", "A6").id, startsAt: `${tomorrowIso}T07:00`, endsAt: `${tomorrowIso}T15:30` });
   await bookingService.create(pmCtx, { resources: [`EQUIPMENT:${purentForklift.id}`], projectId: ndc.id, siteId: hallA.id, startsAt: `${tomorrowIso}T07:00`, endsAt: `${tomorrowIso}T15:30`, note: "Kenttävaraston siirrot" });
 
+  // ── V5: lifting and material flow at Data Hall A (SK Infra Demo) ──
+  const liftCtx = await ctxFor("lifting@skinfra.example.com", "sk-infra-demo");
+  const smCtx = await ctxFor("site.manager@skinfra.example.com", "sk-infra-demo");
+  const inDays = (n: number) => isoDateString(addDays(today, n));
+  const sling4 = await liftingAccessoryService.create(smCtx, { code: "NR-001", name: "Nostoraksi 4 t / 4 m", kind: "SLING", wllKg: "4000", manufacturer: "Raksi Demo Oy", nextInspectionDate: inDays(120) });
+  await liftingAccessoryService.create(smCtx, { code: "NR-002", name: "Nostoraksi 4 t / 4 m", kind: "SLING", wllKg: "4000", manufacturer: "Raksi Demo Oy", nextInspectionDate: inDays(120) });
+  const shackle = await liftingAccessoryService.create(smCtx, { code: "SA-010", name: "Sakkeli 6,5 t", kind: "SHACKLE", wllKg: "6500", nextInspectionDate: inDays(90) });
+  const beam = await liftingAccessoryService.create(smCtx, { code: "NP-001", name: "Nostopalkki 10 t", kind: "SPREADER_BEAM", wllKg: "10000", nextInspectionDate: inDays(200) });
+  // Overdue inspection: the register and lift plans flag it.
+  await liftingAccessoryService.create(smCtx, { code: "KE-003", name: "Nostoketju 2-haarainen 3,15 t", kind: "CHAIN", wllKg: "3150", nextInspectionDate: inDays(-3) });
+  const rams = await db.document.findFirstOrThrow({ where: { companyId: sk.company.id, documentNumber: "NDC-RAMS-001" } });
+
+  // An approved lift for the LIFT request (supervisor plans, lifting supervisor approves).
+  const liftRequest = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: sk.company.id, serviceType: "LIFT" } });
+  await logisticsRequestService.transition(logCtx, liftRequest.id, { to: "APPROVED" });
+  const trayLift = await liftPlanService.create(supervisorCtx, { siteId: hallA.id, requestId: liftRequest.id, title: "Kaapelihyllynippujen nosto 2. kerrokseen", plannedStart: `${tomorrowIso}T07:00`, plannedEnd: `${tomorrowIso}T09:00` });
+  await liftPlanService.updateDraft(supervisorCtx, trayLift.id, { loadDescription: "Kaapelihyllyniput 4 × 300 kg nostopalkissa", loadWeightKg: "1200", riggingWeightKg: "350", cogNotes: "Painopiste palkin keskellä", craneId: createdEquipment[0].id, radiusM: "22", craneCapacityKg: "7400", areaDescription: "Nostoalue aidattu linjalla 5, liikenne ohjattu portille 2", safetyDistanceM: "6", riskDocumentId: rams.id });
+  await liftPlanService.addAccessory(supervisorCtx, trayLift.id, { accessoryId: beam.id, count: 1 });
+  await liftPlanService.addAccessory(supervisorCtx, trayLift.id, { accessoryId: sling4.id, count: 1 });
+  await liftPlanService.submit(supervisorCtx, trayLift.id);
+  await liftPlanService.decide(liftCtx, trayLift.id, { decision: "APPROVE", note: "Tuulirajat 10 m/s, merkinantaja paikalla" });
+  const operator = createdEmployees.find((e) => e.trade === "Nosturinkuljettaja")!;
+  await bookingService.create(pmCtx, { resources: [`EMPLOYEE:${operator.id}`], projectId: ndc.id, siteId: hallA.id, liftPlanId: trayLift.id, startsAt: `${tomorrowIso}T06:30`, endsAt: `${tomorrowIso}T09:30`, note: "Nosturinkuljettaja" });
+
+  // A heavier lift awaiting approval (high utilisation, warnings shown to the approver).
+  const transformerLift = await liftPlanService.create(supervisorCtx, { siteId: hallA.id, activityId: byKey("KA", "A6").id, title: "Muuntajan nosto perustukselle", plannedStart: `${inDays(3)}T08:00`, plannedEnd: `${inDays(3)}T10:00` });
+  await liftPlanService.updateDraft(supervisorCtx, transformerLift.id, { loadDescription: "Jakelumuuntaja 1600 kVA", loadWeightKg: "6200", riggingWeightKg: "400", cogNotes: "Valmistajan nostopisteet, painopiste merkitty", craneId: createdEquipment[0].id, radiusM: "14", craneCapacityKg: "7200", areaDescription: "Muuntamon edusta", safetyDistanceM: "8" });
+  await liftPlanService.addAccessory(supervisorCtx, transformerLift.id, { accessoryId: shackle.id, count: 2 });
+  await liftPlanService.addAccessory(supervisorCtx, transformerLift.id, { accessoryId: sling4.id, count: 2 });
+  await liftPlanService.submit(supervisorCtx, transformerLift.id);
+
+  // Cable drums with pulls in metres, traced to takt activities.
+  const drumDelivery = await db.delivery.findFirstOrThrow({ where: { companyId: sk.company.id, requestId: drumRequest.id } });
+  const drumDefs = [
+    { code: "KK-0001", cableType: "AXMK 4×240 1 kV", length: "500", pulls: [["120", "KA", "A5"], ["85.5", "KA", "A5"]] },
+    { code: "KK-0002", cableType: "AXMK 4×240 1 kV", length: "500", pulls: [["210", "KA", "A6"]] },
+    { code: "KK-0003", cableType: "MCMK 4×16+16 1 kV", length: "1000", pulls: [] },
+    { code: "KK-0004", cableType: "AHXAMK-W 3×240 20 kV", length: "350", pulls: [] },
+  ] as const;
+  for (const d of drumDefs) {
+    const drum = await cableDrumService.create(supervisorCtx, { siteId: hallA.id, code: d.code, manufacturer: "Kaapelitehdas Demo Oy", cableType: d.cableType, originalLengthM: d.length, weightKg: "2100", dimensions: "Ø 2200 × 1300 mm", locationId: cableStore.id, deliveryId: drumDelivery.id, reservedActivityId: byKey("KA", "A5").id, receivedDate: inDays(-7), nextInspectionDate: inDays(180) });
+    for (const [m, wp, area] of d.pulls) await cableDrumService.pull(supervisorCtx, drum.id, { lengthM: m, activityId: byKey(wp, area).id, pulledOn: inDays(-2) });
+  }
+
+  // Material batches moving delivery → storage → workface → installed.
+  const trays = await materialBatchService.create(supervisorCtx, { siteId: hallA.id, code: "ME-0001", material: "Kaapelihylly 400 mm, kuumasinkitty", quantity: "120", unit: "m", deliveryId: scaffolding.id, locationId: cableStore.id });
+  await materialBatchService.move(supervisorCtx, trays.id, { to: "STORED", locationId: cableStore.id });
+  await materialBatchService.move(supervisorCtx, trays.id, { to: "AT_WORKFACE", activityId: byKey("KH", "A5").id });
+  await materialBatchService.move(supervisorCtx, trays.id, { to: "INSTALLED", note: "Linjat 1–4" });
+  const brackets = await materialBatchService.create(supervisorCtx, { siteId: hallA.id, code: "ME-0002", material: "Hyllykannakkeet", quantity: "300", unit: "kpl" });
+  await materialBatchService.move(supervisorCtx, brackets.id, { to: "STORED", locationId: cableStore.id });
+  await materialBatchService.move(supervisorCtx, brackets.id, { to: "AT_WORKFACE", activityId: byKey("KH", "A6").id });
+  await materialBatchService.create(supervisorCtx, { siteId: hallA.id, code: "ME-0003", material: "Kaapelimerkit ja nippusiteet", quantity: "4", unit: "laatikko", locationId: cableStore.id });
+
   console.log("✔ Seed complete (fictional data).");
-  console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, client@example.com, ceo@purent.example.com …");
+  console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, client@example.com, ceo@purent.example.com …");
 }
 
 main()

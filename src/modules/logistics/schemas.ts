@@ -57,6 +57,8 @@ const bookingBase = z.object({
   siteId: optionalUuid(),
   activityId: optionalUuid(),
   requirementId: optionalUuid(),
+  /** V5: crew booked for a lift plan (riggers, crane operators). */
+  liftPlanId: optionalUuid(),
   startsAt: localDateTime(),
   endsAt: localDateTime(),
   note: optionalText(300),

@@ -31,6 +31,8 @@ import { lookaheadService } from "@/modules/takt/lookahead.service";
 import { scheduleImportService } from "@/modules/takt/import.service";
 import { bookingService } from "@/modules/logistics/booking.service";
 import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
+import { liftingAccessoryService, liftPlanService } from "@/modules/lifting/lift.service";
+import { cableDrumService, materialBatchService, materialLabelService, materialTraceService, scanService } from "@/modules/lifting/material.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -78,7 +80,13 @@ interface World {
     logisticsRequest: string;
     delivery: string;
     booking: string;
+    storage: string;
+    accessory: string;
+    liftPlan: string;
+    batch: string;
+    drum: string;
   };
+  b5: { liftPlan: string; drum: string; batch: string };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
@@ -178,6 +186,16 @@ beforeAll(async () => {
   const [booking] = await bookingService.create(actx, { resources: [`EQUIPMENT:${equipment.id}`], projectId: project.id, startsAt: "2026-11-02T07:00", endsAt: "2026-11-02T15:00" });
   await equipmentService.update(actx, equipment.id, { equipmentTypeId: type.id, assetNumber: "A-EQ", name: "A crane 1", currentProjectId: project.id, shareableInGroup: "on" });
 
+  // ── V5 data in company A ──
+  const storage = await logisticsLocationService.create(actx, { siteId: site.id, kind: "STORAGE", name: "A yard" });
+  const accessory = await liftingAccessoryService.create(actx, { code: "A-SL1", name: "A sling", kind: "SLING", wllKg: "2000", nextInspectionDate: "2027-06-01" });
+  const liftPlan = await liftPlanService.create(actx, { siteId: site.id, activityId: activity.id, title: "A secret lift", plannedStart: "2026-11-03T08:00", plannedEnd: "2026-11-03T09:00" });
+  await liftPlanService.updateDraft(actx, liftPlan.id, { loadDescription: "A beam", loadWeightKg: "1000", craneId: equipment.id, radiusM: "10", craneCapacityKg: "5000" });
+  await liftPlanService.addAccessory(actx, liftPlan.id, { accessoryId: accessory.id, count: 1 });
+  const batch = await materialBatchService.create(actx, { siteId: site.id, code: "A-MB1", material: "A secret cable trays", quantity: "40", unit: "m", deliveryId: delivery.id, activityId: activity.id });
+  const drum = await cableDrumService.create(actx, { siteId: site.id, code: "A-CD1", cableType: "A cable", originalLengthM: "500", locationId: storage.id });
+  await cableDrumService.pull(actx, drum.id, { lengthM: "20", activityId: activity.id, pulledOn: "2026-11-03" });
+
   // ── V3 data in company B (for cross-references) ──
   const bBuilding = await taktStructureService.createBuilding(b.ownerCtx, { siteId: bSite.id, name: "B building" });
   const bArea = await taktStructureService.createArea(b.ownerCtx, { buildingId: bBuilding.id, code: "B1", name: "B area" });
@@ -185,6 +203,9 @@ beforeAll(async () => {
   const bPlan = await taktPlanService.create(b.ownerCtx, { siteId: bSite.id, name: "B plan", startDate: "2026-11-02" });
   const bVersion = (await taktPlanService.board(b.ownerCtx, bPlan.id)).selected!;
   const bActivity = await taktActivityService.create(b.ownerCtx, bPlan.id, { workPackageId: bWp.id, taktAreaId: bArea.id });
+  const bLift = await liftPlanService.create(b.ownerCtx, { siteId: bSite.id, title: "B lift", plannedStart: "2026-11-03T08:00", plannedEnd: "2026-11-03T09:00" });
+  const bDrum = await cableDrumService.create(b.ownerCtx, { siteId: bSite.id, code: "B-CD1", cableType: "B cable", originalLengthM: "100" });
+  const bBatch = await materialBatchService.create(b.ownerCtx, { siteId: bSite.id, code: "B-MB1", material: "B material", quantity: "1", unit: "pcs" });
 
   w = {
     a,
@@ -231,7 +252,13 @@ beforeAll(async () => {
       logisticsRequest: logisticsRequest.id,
       delivery: delivery.id,
       booking: booking.id,
+      storage: storage.id,
+      accessory: accessory.id,
+      liftPlan: liftPlan.id,
+      batch: batch.id,
+      drum: drum.id,
     },
+    b5: { liftPlan: bLift.id, drum: bDrum.id, batch: bBatch.id },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
@@ -603,6 +630,100 @@ const cases: Record<string, Case> = {
   },
   "logisticsBoard.day": () => expectNotFound(logisticsBoardService.day(w.bCtx, { siteId: w.ids.site, date: "2026-11-02" })),
 
+  // ── V5 lifting and material flow ────────────────────────────────
+  "liftingAccessory.list": async () => {
+    expect((await liftingAccessoryService.list(w.bCtx, { includeArchived: true })).map((a) => a.id)).not.toContain(w.ids.accessory);
+  },
+  "liftingAccessory.get": () => expectNotFound(liftingAccessoryService.get(w.bCtx, w.ids.accessory)),
+  "liftingAccessory.create": async () => {
+    // Codes are unique per company: B may reuse A's code without touching A.
+    const own = await liftingAccessoryService.create(w.bCtx, { code: "A-SL1", name: "B sling", kind: "SLING", wllKg: "1000" });
+    expect(own.id).not.toBe(w.ids.accessory);
+    expect(own.companyId).toBe(w.b.companyId);
+  },
+  "liftingAccessory.update": () => expectNotFound(liftingAccessoryService.update(w.bCtx, w.ids.accessory, { name: "x", kind: "SLING", wllKg: "1" })),
+  "liftingAccessory.archive": () => expectNotFound(liftingAccessoryService.archive(w.bCtx, w.ids.accessory)),
+  "liftPlan.options": () => expectNotFound(liftPlanService.options(w.bCtx, w.ids.site)),
+  "liftPlan.sites": async () => {
+    expect((await liftPlanService.sites(w.bCtx)).map((x) => x.id)).not.toContain(w.ids.site);
+  },
+  "liftPlan.list": async () => {
+    await expectNotFound(liftPlanService.list(w.bCtx, { siteId: w.ids.site }));
+    expect((await liftPlanService.list(w.bCtx)).map((p) => p.id)).not.toContain(w.ids.liftPlan);
+  },
+  "liftPlan.get": () => expectNotFound(liftPlanService.get(w.bCtx, w.ids.liftPlan)),
+  "liftPlan.create": async () => {
+    await expectNotFound(liftPlanService.create(w.bCtx, { siteId: w.ids.site, title: "x", plannedStart: "2026-11-03T08:00", plannedEnd: "2026-11-03T09:00" }));
+    await expectRejected(liftPlanService.create(w.bCtx, { siteId: w.bSite, activityId: w.ids.activity, title: "x", plannedStart: "2026-11-03T08:00", plannedEnd: "2026-11-03T09:00" }));
+    await expectRejected(liftPlanService.create(w.bCtx, { siteId: w.bSite, requestId: w.ids.logisticsRequest, title: "x", plannedStart: "2026-11-03T08:00", plannedEnd: "2026-11-03T09:00" }));
+  },
+  "liftPlan.updateDraft": async () => {
+    await expectNotFound(liftPlanService.updateDraft(w.bCtx, w.ids.liftPlan, { loadWeightKg: "1" }));
+    await expectRejected(liftPlanService.updateDraft(w.bCtx, w.b5.liftPlan, { craneId: w.ids.equipment }));
+    await expectRejected(liftPlanService.updateDraft(w.bCtx, w.b5.liftPlan, { riskDocumentId: w.ids.document }));
+  },
+  "liftPlan.addAccessory": async () => {
+    await expectNotFound(liftPlanService.addAccessory(w.bCtx, w.ids.liftPlan, { accessoryId: w.ids.accessory }));
+    await expectRejected(liftPlanService.addAccessory(w.bCtx, w.b5.liftPlan, { accessoryId: w.ids.accessory }));
+  },
+  "liftPlan.removeAccessory": () => expectNotFound(liftPlanService.removeAccessory(w.bCtx, w.ids.liftPlan, w.ids.accessory)),
+  "liftPlan.submit": () => expectNotFound(liftPlanService.submit(w.bCtx, w.ids.liftPlan)),
+  "liftPlan.returnToDraft": () => expectNotFound(liftPlanService.returnToDraft(w.bCtx, w.ids.liftPlan)),
+  "liftPlan.decide": () => expectNotFound(liftPlanService.decide(w.bCtx, w.ids.liftPlan, { decision: "APPROVE" })),
+  "liftPlan.revise": () => expectNotFound(liftPlanService.revise(w.bCtx, w.ids.liftPlan, { reason: "x" })),
+  "liftPlan.complete": () => expectNotFound(liftPlanService.complete(w.bCtx, w.ids.liftPlan)),
+  "liftPlan.cancel": () => expectNotFound(liftPlanService.cancel(w.bCtx, w.ids.liftPlan)),
+  "materialBatch.options": () => expectNotFound(materialBatchService.options(w.bCtx, w.ids.site)),
+  "materialBatch.sites": async () => {
+    expect((await materialBatchService.sites(w.bCtx)).map((x) => x.id)).not.toContain(w.ids.site);
+  },
+  "materialBatch.list": async () => {
+    await expectNotFound(materialBatchService.list(w.bCtx, { siteId: w.ids.site }));
+    expect((await materialBatchService.list(w.bCtx)).map((b) => b.id)).not.toContain(w.ids.batch);
+  },
+  "materialBatch.get": () => expectNotFound(materialBatchService.get(w.bCtx, w.ids.batch)),
+  "materialBatch.create": async () => {
+    await expectNotFound(materialBatchService.create(w.bCtx, { siteId: w.ids.site, code: "X1", material: "x", quantity: "1", unit: "pcs" }));
+    await expectRejected(materialBatchService.create(w.bCtx, { siteId: w.bSite, code: "X2", material: "x", quantity: "1", unit: "pcs", deliveryId: w.ids.delivery }));
+    await expectRejected(materialBatchService.create(w.bCtx, { siteId: w.bSite, code: "X3", material: "x", quantity: "1", unit: "pcs", activityId: w.ids.activity }));
+    await expectRejected(materialBatchService.create(w.bCtx, { siteId: w.bSite, code: "X4", material: "x", quantity: "1", unit: "pcs", locationId: w.ids.storage }));
+  },
+  "materialBatch.move": async () => {
+    await expectNotFound(materialBatchService.move(w.bCtx, w.ids.batch, { to: "RETURNED" }));
+    await expectRejected(materialBatchService.move(w.bCtx, w.b5.batch, { to: "STORED", locationId: w.ids.storage }));
+  },
+  "cableDrum.list": async () => {
+    await expectNotFound(cableDrumService.list(w.bCtx, { siteId: w.ids.site }));
+    expect((await cableDrumService.list(w.bCtx)).map((d) => d.id)).not.toContain(w.ids.drum);
+  },
+  "cableDrum.get": () => expectNotFound(cableDrumService.get(w.bCtx, w.ids.drum)),
+  "cableDrum.create": async () => {
+    await expectNotFound(cableDrumService.create(w.bCtx, { siteId: w.ids.site, code: "X1", cableType: "x", originalLengthM: "1" }));
+    await expectRejected(cableDrumService.create(w.bCtx, { siteId: w.bSite, code: "X2", cableType: "x", originalLengthM: "1", locationId: w.ids.storage }));
+  },
+  "cableDrum.update": async () => {
+    await expectNotFound(cableDrumService.update(w.bCtx, w.ids.drum, { returned: "on" }));
+    await expectRejected(cableDrumService.update(w.bCtx, w.b5.drum, { reservedActivityId: w.ids.activity }));
+  },
+  "cableDrum.pull": async () => {
+    await expectNotFound(cableDrumService.pull(w.bCtx, w.ids.drum, { lengthM: "1", pulledOn: "2026-11-03" }));
+    await expectRejected(cableDrumService.pull(w.bCtx, w.b5.drum, { lengthM: "1", pulledOn: "2026-11-03", activityId: w.ids.activity }));
+  },
+  "materialTrace.activity": () => expectNotFound(materialTraceService.activity(w.bCtx, w.ids.activity)),
+  "materialLabel.pdf": async () => {
+    const strings = { title: "x", footer: "x" };
+    await expectNotFound(materialLabelService.pdf(w.bCtx, { kind: "drum", siteId: w.ids.site }, "http://x", strings));
+    await expectNotFound(materialLabelService.pdf(w.bCtx, { kind: "drum", ids: [w.ids.drum] }, "http://x", strings));
+    await expectNotFound(materialLabelService.pdf(w.bCtx, { kind: "batch", ids: [w.ids.batch] }, "http://x", strings));
+    await expectNotFound(materialLabelService.pdf(w.bCtx, { kind: "accessory", ids: [w.ids.accessory] }, "http://x", strings));
+  },
+  "scan.resolve": async () => {
+    await expectNotFound(scanService.resolve(w.bCtx, { code: `http://x/c/${w.a.slug}/scan/${w.ids.drum}` }));
+    await expectNotFound(scanService.resolve(w.bCtx, { code: w.ids.batch }));
+    await expectNotFound(scanService.resolve(w.bCtx, { code: w.ids.accessory }));
+    await expectNotFound(scanService.resolve(w.bCtx, { code: "A-CD1" }));
+  },
+
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -653,5 +774,11 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.resourceBooking.findUniqueOrThrow({ where: { id: w.ids.booking } })).status).toBe("APPROVED");
     expect((await db.logisticsRequest.findUniqueOrThrow({ where: { id: w.ids.logisticsRequest } })).status).toBe("REQUESTED");
     expect(await db.resourceBooking.count({ where: { equipmentId: w.ids.equipment } })).toBe(1);
+    expect((await db.liftPlanVersion.findFirstOrThrow({ where: { planId: w.ids.liftPlan } })).status).toBe("DRAFT");
+    expect((await db.liftPlan.findUniqueOrThrow({ where: { id: w.ids.liftPlan } })).status).toBe("OPEN");
+    expect((await db.liftingAccessory.findUniqueOrThrow({ where: { id: w.ids.accessory } })).archivedAt).toBeNull();
+    expect((await db.materialBatch.findUniqueOrThrow({ where: { id: w.ids.batch } })).status).toBe("RECEIVED");
+    expect((await db.cableDrum.findUniqueOrThrow({ where: { id: w.ids.drum } })).remainingM.toString()).toBe("480");
+    expect(await db.cablePull.count({ where: { drumId: w.ids.drum } })).toBe(1);
   });
 });

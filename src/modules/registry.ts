@@ -16,6 +16,8 @@ import { lookaheadService } from "./takt/lookahead.service";
 import { scheduleImportService } from "./takt/import.service";
 import { bookingService } from "./logistics/booking.service";
 import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "./logistics/logistics.service";
+import { liftingAccessoryService, liftPlanService } from "./lifting/lift.service";
+import { cableDrumService, materialBatchService, materialLabelService, materialTraceService, scanService } from "./lifting/material.service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -52,4 +54,12 @@ export const SERVICE_REGISTRY = {
   logisticsRequest: logisticsRequestService,
   delivery: deliveryService,
   logisticsBoard: logisticsBoardService,
+  // V5
+  liftingAccessory: liftingAccessoryService,
+  liftPlan: liftPlanService,
+  materialBatch: materialBatchService,
+  cableDrum: cableDrumService,
+  materialTrace: materialTraceService,
+  materialLabel: materialLabelService,
+  scan: scanService,
 } as const;

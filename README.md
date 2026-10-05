@@ -4,12 +4,13 @@ A multi-company construction and industrial project control platform for SK Infr
 - **V1 — Foundation:** companies, users, roles and permissions, projects and sites, workforce, equipment, documents, the audit trail and a responsive mobile/desktop UI ([report](docs/V1_REPORT.md)).
 - **V2 — Site execution & project finance foundation:** time tracking with weekly approval, payroll CSV export, the site diary with signing, budget versions, project costs and budget vs actual ([plan](docs/V2_PLAN.md), [report](docs/V2_REPORT.md)).
 - **V3 — Takt & look-ahead:** takt structure (buildings, takt areas, work packages), versioned takt plans with a locked baseline, the takt board, dependencies and constraints with readiness states, progress, MS Project XML / P6 XER import and the 2/6/12-week resource look-ahead ([plan](docs/V3_PLAN.md), [report](docs/V3_REPORT.md)).
+- **V5 — Lifting & material flow:** lift plans with checks and versioning, approved by the person responsible for lifting (new Lifting Supervisor role), lifting accessory register, rigging crew via bookings, material batches, cable drums with pulls in metres, QR label PDFs and mobile scanning ([plan](docs/V5_PLAN.md), [report](docs/V5_REPORT.md)).
 - **V4 — Logistics:** resource bookings with conflict detection (including cross-company bookings within the group), logistics requests with approval, gates, unloading and storage, deliveries in 30-minute gate slots with a mobile gate view, and takt linkage ([plan](docs/V4_PLAN.md), [report](docs/V4_REPORT.md)).
 
 - Build specification: [`docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md`](docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md)
 - Functional specification (Finnish): [`docs/specs/SK_management_master.md`](docs/specs/SK_management_master.md)
 - Architecture decisions: [`docs/adr/`](docs/adr)
-- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md), [`docs/V4_REPORT.md`](docs/V4_REPORT.md)
+- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md), [`docs/V4_REPORT.md`](docs/V4_REPORT.md), [`docs/V5_REPORT.md`](docs/V5_REPORT.md)
 
 ## Stack
 
@@ -45,6 +46,17 @@ V2 demo data: `employee@`, `supervisor@` and `site.manager@skinfra.example.com` 
 V3 demo data: Data Hall A (NDC-001) has a takt plan "Data Hall A – sähkötahti" with six takt areas and five work packages. Version 1 is the approved baseline, with progress up to today, constraints and one blocked activity. Version 2 is an open draft where cabling is shifted by two days. Try **Tahti** as `pm@` (board, compare, look-ahead, import) and as `supervisor@` (one-tap progress on a phone). The sample schedule files `tests/fixtures/schedules/data-hall-b.xml` and `.xer` can be imported.
 
 V4 demo data: Data Hall A has two gates, an unloading point and two storage locations. Today's deliveries are one stored, one confirmed and linked to an approved request and a takt activity, and one planned. There is also a pending lift request. The bookings are an approved crane booking, an overlapping crane request (conflict), an electrician crew for tomorrow, and a request for Purent's shared forklift. Try **Logistiikka** as `logistics@skinfra.example.com` (board, requests, gates), the gate view as `supervisor@` on a phone, **Resurssivaraukset** as `pm@`, and the incoming request as `ceo@purent.example.com`.
+
+V5 demo data (Data Hall A):
+- **Lift plans:** an approved lift plan for the pending LIFT request, with a crane operator booked, and a transformer lift awaiting approval with warnings.
+- **Lifting accessories:** five accessories, one of them with an overdue inspection.
+- **Cable drums:** four drums, two with pulls traced to takt activities.
+- **Material batches:** three batches at different stages.
+
+Try:
+- **Nostot** as `lifting@skinfra.example.com` (Lifting Supervisor) to approve.
+- **Materiaalit** and **Skannaa QR** as `supervisor@` on a phone. Type a code such as `KK-0001`.
+- **QR-tarrat (PDF)** to print labels.
 
 All seed data is fictional. Never put real personal data in seed files.
 
@@ -87,13 +99,15 @@ src/app/            UI routes, server actions, /api/v1 route handlers
   (auth)/sign-in    sign-in (Entra + dev login)
   c/[companySlug]/  dashboard, projects (+finance, +takt structure), time (+approvals, export), diary, takt (+board, activities,
                     compare, import, lookahead), logistics (+gate, requests, deliveries, bookings, setup),
+                    lifting (+plans, accessories), materials (+drums, batches, labels PDF), scan,
                     workforce, equipment, documents, settings (+calendar)
 src/modules/        domain modules: identity, companies, projects, workforce, equipment, documents,
                     timesheets, diary, finance (finance/calculations.ts = all cost formulas),
                     takt (calendar.ts, engine.ts = scheduling rules; import/ = MSPDI and XER parsers),
-                    logistics (rules.ts = slots, workflows, booking conflicts)
+                    logistics (rules.ts = slots, workflows, booking conflicts),
+                    lifting (rules.ts = lift plan checks, material flow, cable pulls)
                     (schemas.ts = Zod validation, repo.ts = company-scoped repository, service.ts)
-src/platform/       auth, authz, audit, db, storage, errors, config, i18n, ratelimit, ai (interface), integrations (interfaces)
+src/platform/       auth, authz, audit, db, storage, errors, config, i18n, ratelimit, labels (QR label PDF), ai (interface), integrations (interfaces)
 src/ui/             app shell, responsive navigation, shadcn/ui components
 prisma/             schema.prisma, migrations/, seed.ts
 tests/              integration/, isolation/, e2e/, helpers/
