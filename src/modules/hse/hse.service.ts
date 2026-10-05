@@ -232,7 +232,8 @@ export const hseObservationService = {
     if (!o) throw new NotFoundError();
     const can = requireRecordVisible(ctx, o);
     const [photos, actions] = await Promise.all([repo.listPhotos("OBSERVATION", o.id), can.view ? repo.listActions({ projectId: o.projectId, sourceType: "OBSERVATION", sourceId: o.id }) : Promise.resolve([])]);
-    const users = await userNames(repo, [o.createdById, o.triagedById, o.closedById]);
+    // Own-only (external) reporters never get internal staff names or e-mails.
+    const users = can.ownOnly ? {} : await userNames(repo, [o.createdById, o.triagedById, o.closedById]);
     return { ...o, photos: photos.map((p) => ({ ...p, sizeBytes: Number(p.sizeBytes) })), actions, users, can: observationCan(ctx, can, o), ownOnly: can.ownOnly };
   },
 
@@ -333,7 +334,8 @@ export const incidentService = {
       can.view ? repo.listActions({ projectId: i.projectId, sourceType: "INCIDENT", sourceId: i.id }) : Promise.resolve([]),
       can.personal ? repo.listPersons(i.id) : Promise.resolve(null),
     ]);
-    const users = await userNames(repo, [i.createdById, i.triagedById, i.investigatorId, i.closedById]);
+    // Own-only (external) reporters never get internal staff names or e-mails.
+    const users = can.ownOnly ? {} : await userNames(repo, [i.createdById, i.triagedById, i.investigatorId, i.closedById]);
     const base = can.ownOnly ? { ...i, rootCause: null, lostDays: null } : i;
     return { ...base, photos: photos.map((p) => ({ ...p, sizeBytes: Number(p.sizeBytes) })), actions, persons, users, can: incidentCan(ctx, can, i, actions), ownOnly: can.ownOnly };
   },

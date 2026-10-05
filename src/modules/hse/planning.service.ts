@@ -247,7 +247,8 @@ export const workPermitService = {
   async get(ctx: RequestContext, permitId: string) {
     const repo = new HseRepo(readClient(), ctx.company.id);
     const { p, can } = await loadPermit(repo, ctx, permitId);
-    const users = await userNames(repo, [p.createdById, p.decidedById, p.closedById]);
+    // Own-only (external) reporters never get internal staff names or e-mails.
+    const users = can.ownOnly ? {} : await userNames(repo, [p.createdById, p.decidedById, p.closedById]);
     return { ...p, users, can: permitCan(ctx, can, p), ownOnly: can.ownOnly };
   },
 
