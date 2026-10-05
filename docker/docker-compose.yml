@@ -33,6 +33,13 @@ services:
     volumes:
       - miniodata:/data
 
+  azurite:
+    # Azure Blob Storage emulator: production storage on Azure (ADR 0024).
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
+    ports:
+      - "10000:10000"
+
 volumes:
   pgdata:
   miniodata:

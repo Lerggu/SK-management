@@ -64,6 +64,8 @@ jobs:
           docker run -d --name minio -p 9000:9000 \
             -e MINIO_ROOT_USER=sk_minio -e MINIO_ROOT_PASSWORD=sk_minio_password \
             pgsty/minio:latest server /data
+      - name: Start Azurite (Azure Blob emulator)
+        run: docker run -d --name azurite -p 10000:10000 mcr.microsoft.com/azure-storage/azurite azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
