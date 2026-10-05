@@ -108,6 +108,6 @@ test.describe("external roles", () => {
     await page.goto("/c/sk-infra-demo/dashboard");
     await expect(page.getByRole("link", { name: "Tahti" })).toHaveCount(0);
     await page.goto("/c/sk-infra-demo/takt");
-    await expect(page.getByText("Ei tahtisuunnitelmia")).toBeVisible();
+    await expect(page).toHaveURL(/\/portal/);
   });
 });

@@ -4,6 +4,7 @@ A multi-company construction and industrial project control platform for SK Infr
 - **V1 — Foundation:** companies, users, roles and permissions, projects and sites, workforce, equipment, documents, the audit trail and a responsive mobile/desktop UI ([report](docs/V1_REPORT.md)).
 - **V2 — Site execution & project finance foundation:** time tracking with weekly approval, payroll CSV export, the site diary with signing, budget versions, project costs and budget vs actual ([plan](docs/V2_PLAN.md), [report](docs/V2_REPORT.md)).
 - **V3 — Takt & look-ahead:** takt structure (buildings, takt areas, work packages), versioned takt plans with a locked baseline, the takt board, dependencies and constraints with readiness states, progress, MS Project XML / P6 XER import and the 2/6/12-week resource look-ahead ([plan](docs/V3_PLAN.md), [report](docs/V3_REPORT.md)).
+- **V7 — HSE & portals:** safety observations, near misses and incidents with photos from the phone, triage → investigation → approved corrective actions, immediate serious-incident alerts, permits to work, risk assessments, MVR/TR inspections, LTIF and other key figures; client and subcontractor portals with e-mail link sign-in, external document sharing and electronic client approval of variations; a dedicated external-boundary security suite ([plan](docs/V7_PLAN.md), [report](docs/V7_REPORT.md)).
 - **V6 — Commercial:** CRM and sales pipeline, quotes with versions and Project Director approval, contracts and milestones, variations (§21), invoice candidates from approved data with immutable CSV/JSON export, internal group invoicing at the owner's billing rate, and forecast/EAC ([plan](docs/V6_PLAN.md), [report](docs/V6_REPORT.md)).
 - **V5 — Lifting & material flow:** lift plans with checks and versioning, approved by the person responsible for lifting (new Lifting Supervisor role), lifting accessory register, rigging crew via bookings, material batches, cable drums with pulls in metres, QR label PDFs and mobile scanning ([plan](docs/V5_PLAN.md), [report](docs/V5_REPORT.md)).
 - **V4 — Logistics:** resource bookings with conflict detection (including cross-company bookings within the group), logistics requests with approval, gates, unloading and storage, deliveries in 30-minute gate slots with a mobile gate view, and takt linkage ([plan](docs/V4_PLAN.md), [report](docs/V4_REPORT.md)).
@@ -11,7 +12,7 @@ A multi-company construction and industrial project control platform for SK Infr
 - Build specification: [`docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md`](docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md)
 - Functional specification (Finnish): [`docs/specs/SK_management_master.md`](docs/specs/SK_management_master.md)
 - Architecture decisions: [`docs/adr/`](docs/adr)
-- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md), [`docs/V4_REPORT.md`](docs/V4_REPORT.md), [`docs/V5_REPORT.md`](docs/V5_REPORT.md), [`docs/V6_REPORT.md`](docs/V6_REPORT.md)
+- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md), [`docs/V4_REPORT.md`](docs/V4_REPORT.md), [`docs/V5_REPORT.md`](docs/V5_REPORT.md), [`docs/V6_REPORT.md`](docs/V6_REPORT.md), [`docs/V7_REPORT.md`](docs/V7_REPORT.md)
 
 ## Stack
 
@@ -39,7 +40,7 @@ Sign in on `/sign-in` with **Kehityskirjautuminen** (dev login) and pick a demo 
 | `pd@skinfra.example.com` | SK Infra Demo — Project Director |
 | `pm@skinfra.example.com` | SK Infra Demo — Project Manager (assigned projects) |
 | `site.manager@…`, `supervisor@…`, `logistics@…`, `hse@…`, `employee@skinfra.example.com` | Other SK Infra Demo roles |
-| `subcontractor@example.com`, `client@example.com` | External roles (no cost/rate data) |
+| `subcontractor@example.com`, `client@example.com` | External roles (no cost/rate data). V7: they use the portal; `client@` is the Client approver of NDC-001 |
 | `ceo@purent.example.com`, `pm@purent.example.com` | Purent Demo |
 
 V2 demo data: `employee@`, `supervisor@` and `site.manager@skinfra.example.com` have linked employee records. Last week's crew hours are approved, the employee has submitted hours this week, there is a signed diary (last Friday) and a draft one (today), and NDC-001 has an active budget with recorded costs. Try **Tunnit** as the employee, **Tunnit → Hyväksyntä** as the site manager, and **Projektit → NDC-001 → Talous** as the project manager or CEO.
@@ -72,6 +73,18 @@ Try:
 - Approve the phase-2 quote as `pd@skinfra.example.com` (Project Director).
 - **Sopimus ja ennuste** on project NDC-001.
 - **Laskutus** to export a CSV.
+
+V7 demo data (NDC-001):
+- **HSE:** observations and a near miss (by the subcontractor), a closed first-aid incident, an open lost-time incident under investigation with fictional injured-person data and a corrective action awaiting the PM's approval.
+- **Planning and records:** two toolbox talks, three MVR inspections (index 88 → 94), an approved risk assessment linked to the transformer lift, and permits requested by the subcontractor.
+- **Portal content:** the 110 kV drawing shared with the client and subcontractors (only approved revision A is visible to them), and the variation "UPS-tilan lisäpistorasiat" waiting for the client in the portal.
+
+Try:
+- **Työturvallisuus** as `employee@` on a phone (report with a photo) and as `hse@skinfra.example.com`.
+- The portal as `client@example.com` (approve the variation) and `subcontractor@example.com` (report, request a permit).
+- The e-mail link: enter `subcontractor@example.com` under "Asiakkaat ja aliurakoitsijat" on the sign-in page and open the link from `/dev/mailbox` (development only).
+
+E-mail: set `SMTP_URL` (e.g. `smtp://user:pass@smtp.example.com:587`) and `MAIL_FROM` for real delivery. Without SMTP, development uses the dev mailbox and production hides the e-mail sign-in.
 
 All seed data is fictional. Never put real personal data in seed files.
 

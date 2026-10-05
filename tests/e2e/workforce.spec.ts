@@ -39,8 +39,8 @@ test.describe("client", () => {
   test("cannot see workforce, rates or equipment", async ({ page, request }) => {
     await page.goto("/c/sk-infra-demo/dashboard");
     await expect(page.getByRole("link", { name: "Henkilöstö" })).toHaveCount(0);
-    const res = await page.goto("/c/sk-infra-demo/workforce");
-    expect(res?.status()).toBe(404);
+    await page.goto("/c/sk-infra-demo/workforce");
+    await expect(page).toHaveURL(/\/portal/);
     const api = await page.request.get("/api/v1/companies/sk-infra-demo/employees");
     expect(api.status()).toBe(403);
     void request;

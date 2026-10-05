@@ -11,6 +11,8 @@ export function proxy(request: NextRequest) {
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
   const headers = new Headers(request.headers);
   headers.set("x-request-id", requestId);
+  // V7: lets the company layout keep external members inside the portal.
+  headers.set("x-pathname", request.nextUrl.pathname);
 
   const { pathname } = request.nextUrl;
   const hasSession = SESSION_COOKIES.some((n) => request.cookies.has(n));

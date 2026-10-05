@@ -287,6 +287,9 @@ function incidentCan(ctx: RequestContext, can: HseCan, i: IncidentRow, actions: 
         ? can.investigate && i.status === "INVESTIGATING" && !!i.rootCause
         : (can.manage || can.investigate) && (i.status === "TRIAGED" || i.status === "INVESTIGATING")),
     actionsPending: !actionsApproved,
+    // A closer exists but unapproved actions still block closing.
+    closeBlocked: !actionsApproved && i.status !== "CLOSED" && i.status !== "REPORTED" && (investigation ? can.investigate : can.manage || can.investigate),
+    approveActions: can.approveActions,
     addAction: can.manage && i.status !== "CLOSED" && i.status !== "REPORTED",
     addPerson: can.personal && i.status !== "CLOSED",
     addPhoto: i.status !== "CLOSED" && (can.manage || i.createdById === ctx.user.id),

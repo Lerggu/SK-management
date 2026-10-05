@@ -134,10 +134,8 @@ test.describe("client", () => {
   test("cannot open materials or scan codes", async ({ page }) => {
     const res = await page.goto("/c/sk-infra-demo/materials/labels?kind=drum&siteId=00000000-0000-0000-0000-000000000000");
     expect(res?.status()).toBe(404);
+    // V7: internal pages redirect external members to the portal.
     await page.goto("/c/sk-infra-demo/scan");
-    const form = page.getByTestId("scan-form");
-    await form.getByLabel("Tunnus").fill("KK-0001");
-    await form.getByRole("button", { name: "Avaa" }).click();
-    await expect(form.getByText("Koodia ei löytynyt tai sinulla ei ole siihen oikeutta")).toBeVisible();
+    await expect(page).toHaveURL(/\/portal/);
   });
 });

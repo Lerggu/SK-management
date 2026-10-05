@@ -102,6 +102,6 @@ test.describe("external roles", () => {
     await page.goto("/c/sk-infra-demo/dashboard");
     await expect(page.getByRole("link", { name: "Logistiikka" })).toHaveCount(0);
     await page.goto("/c/sk-infra-demo/logistics");
-    await expect(page.getByText("Ei työmaita, joihin sinulla on logistiikkaoikeus.")).toBeVisible();
+    await expect(page).toHaveURL(/\/portal/);
   });
 });

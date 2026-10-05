@@ -3,22 +3,24 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { isDevLoginEnabled, isEntraConfigured } from "@/platform/config/env";
 import { listDevLoginUsers } from "@/modules/identity/service";
+import { isEmailSignInAvailable } from "@/modules/identity/email-sign-in";
 import Image from "next/image";
 import { Button } from "@/ui/components/button";
 import { getSessionUserId } from "@/app/_lib/context";
-import { devSignInAction, entraSignInAction } from "./actions";
+import { devSignInAction, entraSignInAction, requestEmailLinkAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("auth"))("signInTitle") };
 }
 
-const ERRORS: Record<string, string> = { not_invited: "errorNotInvited", rate_limited: "errorRateLimited" };
+const ERRORS: Record<string, string> = { not_invited: "errorNotInvited", rate_limited: "errorRateLimited", link_invalid: "errorLinkInvalid" };
 
-export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string }> }) {
   if (await getSessionUserId()) redirect("/");
   const t = await getTranslations("auth");
   const tc = await getTranslations("common");
-  const { error } = await searchParams;
+  const { error, sent } = await searchParams;
+  const emailAvailable = isEmailSignInAvailable();
   const devEnabled = isDevLoginEnabled();
   const devUsers = devEnabled ? await listDevLoginUsers() : [];
 
@@ -35,6 +37,11 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
               {t(ERRORS[error] ?? "errorGeneric")}
             </p>
           )}
+          {sent && (
+            <p role="status" className="mt-4 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-800" data-testid="link-sent">
+              {t("linkSent")}
+            </p>
+          )}
           <div className="mt-6">
             {isEntraConfigured() ? (
               <form action={entraSignInAction}>
@@ -46,6 +53,19 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
               <p className="text-sm text-muted-foreground">{t("notConfigured")}</p>
             )}
           </div>
+          {emailAvailable && (
+            <form action={requestEmailLinkAction} className="mt-6 space-y-2 border-t pt-5" data-testid="email-link-form">
+              <h2 className="text-sm font-semibold">{t("externalTitle")}</h2>
+              <p className="text-xs text-muted-foreground">{t("externalHint")}</p>
+              <label htmlFor="email-link" className="sr-only">
+                {t("email")}
+              </label>
+              <input id="email-link" name="email" type="email" autoComplete="email" inputMode="email" required placeholder={t("email")} className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm" />
+              <Button type="submit" size="lg" variant="outline" className="w-full">
+                {t("sendLink")}
+              </Button>
+            </form>
+          )}
         </div>
 
         {devEnabled && (

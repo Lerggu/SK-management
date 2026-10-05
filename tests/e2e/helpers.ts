@@ -13,6 +13,8 @@ export const USERS = {
   purentCeo: "ceo@purent.example.com",
   lifting: "lifting@skinfra.example.com",
   pd: "pd@skinfra.example.com",
+  hse: "hse@skinfra.example.com",
+  subcontractor: "subcontractor@example.com",
 } as const;
 
 export const authFile = (user: keyof typeof USERS) => `tests/e2e/.auth/${user}.json`;
