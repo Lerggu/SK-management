@@ -2231,6 +2231,7 @@
     },
     "toolNames": {
       "project_overview": "Project details",
+      "lookahead_shortages": "Resource look-ahead",
       "schedule_status": "Schedule",
       "cost_forecast": "Cost forecast",
       "variations": "Variations",
@@ -2242,6 +2243,7 @@
       "alreadyDecided": "The recommendation has already been decided.",
       "invalidResult": "The AI returned an invalid answer.",
       "failed": "The AI run failed."
-    }
+    },
+    "findings": "Findings ({count})"
   }
 }

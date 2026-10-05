@@ -9,6 +9,7 @@ import { projectPermissions, type PermissionKey, type RequestContext } from "@/p
 import type { AiTool } from "@/platform/ai";
 import { projectService } from "../projects/service";
 import { scheduleSummaryService } from "../takt/summary.service";
+import { lookaheadService } from "../takt/lookahead.service";
 import { forecastService, variationService } from "../commercial/project.service";
 import { hseOverviewService } from "../hse/hse.service";
 import { AiRepo } from "./repo";
@@ -55,6 +56,22 @@ const TOOLS: ToolDef[] = [
           area: a.taktArea.name,
         })),
         openConstraints: constraints.map((c) => ({ activity: c.activity.name, type: c.type, description: clip(c.description), dueDate: iso(c.dueDate) })),
+      };
+    },
+  },
+  {
+    name: "lookahead_shortages",
+    description: "6-week resource look-ahead: weekly crew (by trade) and equipment-type demand against own capacity and bookings, with shortages.",
+    inputSchema: NO_INPUT,
+    permission: "takt.view",
+    async execute(ctx, projectId) {
+      const l = await lookaheadService.compute(ctx, { projectId, weeks: 6 });
+      return {
+        from: l.from,
+        to: l.to,
+        weekStarts: l.weekStarts,
+        shortageCells: l.shortages,
+        rows: l.rows.map((r) => ({ kind: r.kind, resource: r.label, capacity: r.capacity, weeks: r.cells.map((c) => ({ peak: c.peak, booked: c.booked, shortage: c.shortage })) })),
       };
     },
   },

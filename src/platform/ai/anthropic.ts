@@ -51,9 +51,9 @@ export class AnthropicProvider implements AiProvider {
   readonly model = ANTHROPIC_MODEL;
   private readonly client: Anthropic;
 
-  constructor(apiKey = process.env.ANTHROPIC_API_KEY) {
+  constructor(apiKey = process.env.ANTHROPIC_API_KEY, options: { fetch?: typeof fetch; maxRetries?: number } = {}) {
     if (!apiKey) throw new AiProviderError("ANTHROPIC_API_KEY is not configured");
-    this.client = new Anthropic({ apiKey, maxRetries: 2, timeout: 120_000 });
+    this.client = new Anthropic({ apiKey, maxRetries: options.maxRetries ?? 2, timeout: 120_000, fetch: options.fetch });
   }
 
   async run(request: AiRunRequest): Promise<AiRunResult> {

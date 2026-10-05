@@ -49,7 +49,7 @@ describe("AI project review", () => {
     const run = await aiProjectControllerService.review(t.ownerCtx, projectId);
     expect(run.status).toBe("SUCCEEDED");
     expect(run.provider).toBe("fake");
-    expect(run.toolCalls.map((c) => c.name).sort()).toEqual(["cost_forecast", "hse_metrics", "project_overview", "schedule_status", "variations"]);
+    expect(run.toolCalls.map((c) => c.name).sort()).toEqual(["cost_forecast", "hse_metrics", "lookahead_shortages", "project_overview", "schedule_status", "variations"]);
     expect(run.result?.items.length).toBeGreaterThan(0);
     expect(Number(run.costEur)).toBeCloseTo(0.046, 6); // 0.05 USD × 0.92
 
@@ -66,7 +66,7 @@ describe("AI project review", () => {
   it("offers only tools the user may use", async () => {
     useFake();
     await aiProjectControllerService.review(without(t.ownerCtx, "commercial.view", "hse.view"), projectId);
-    expect(fake.requests[0].tools.map((x) => x.name).sort()).toEqual(["project_overview", "schedule_status"]);
+    expect(fake.requests[0].tools.map((x) => x.name).sort()).toEqual(["lookahead_shortages", "project_overview", "schedule_status"]);
   });
 
   it("sends no personal data (names, e-mails, user ids) to the provider", async () => {

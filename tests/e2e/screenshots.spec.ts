@@ -154,3 +154,14 @@ test("capture V7 views", async ({ browser }, testInfo) => {
   await sub.goto("/c/sk-infra-demo/portal");
   await sub.screenshot({ path: `${dir}/portal-subcontractor.png`, fullPage: true, caret: "initial" });
 });
+
+/** V8 view: the AI project controller (as PM, fake provider). */
+test("capture V8 views", async ({ browser }, testInfo) => {
+  const dir = `docs/screenshots/${testInfo.project.name}`;
+  const pm = await (await browser.newContext({ storageState: authFile("pm"), ...testInfo.project.use })).newPage();
+  await pm.goto("/c/sk-infra-demo/projects");
+  await pm.getByRole("link", { name: /NDC-001/ }).first().click();
+  await pm.getByRole("link", { name: "Tekoälyohjaaja" }).click();
+  await pm.waitForURL(/\/ai$/);
+  await pm.screenshot({ path: `${dir}/ai-controller.png`, fullPage: true, caret: "initial" });
+});

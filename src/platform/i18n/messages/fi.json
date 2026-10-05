@@ -2231,6 +2231,7 @@
     },
     "toolNames": {
       "project_overview": "Projektin perustiedot",
+      "lookahead_shortages": "Resurssien ennakointi",
       "schedule_status": "Aikataulu",
       "cost_forecast": "Kustannusennuste",
       "variations": "Lisä- ja muutostyöt",
@@ -2242,6 +2243,7 @@
       "alreadyDecided": "Suositus on jo käsitelty.",
       "invalidResult": "Tekoäly palautti virheellisen vastauksen.",
       "failed": "Tekoälyajo epäonnistui."
-    }
+    },
+    "findings": "Havainnot ({count})"
   }
 }
