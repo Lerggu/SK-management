@@ -42,12 +42,12 @@ gh repo clone Lerggu/SK-management && cd SK-management
 ```
 
 ## 3. Microsoft-kirjautumisen sovellusrekisteröinti (Entra ID)
-1. Avaa **Microsoft Entra admin center → App registrations → New registration**.
+1. Avaa **Microsoft Entra admin center → App registrations → New registration**. Kirjaudu **yrityksen Microsoft 365 -ylläpitäjän tunnuksella**, jotta rekisteröinti syntyy yrityksen hakemistoon eikä henkilökohtaiseen hakemistoon. Tämä pätee, vaikka Azure-tilaus olisi tehty toisella tilillä.
 2. Täytä tiedot:
    - **Name:** `SK Management`
    - **Supported account types:** *Accounts in this organizational directory only*
    - **Redirect URI (Web):** `https://<APP>.azurewebsites.net/api/auth/callback/microsoft-entra-id`
-3. Kopioi talteen **Application (client) ID**.
+3. Kopioi talteen **Application (client) ID** ja **Directory (tenant) ID**.
 4. Luo salaisuus kohdassa **Certificates & secrets → New client secret** (voimassa 24 kk). Kopioi sen **Value** talteen, sillä se näkyy vain kerran. Merkitse kalenteriin uusinta ennen vanhenemista.
 5. Tarkista **API permissions**: `User.Read` (Delegated) riittää. Valitse lopuksi *Grant admin consent*.
 
@@ -60,6 +60,7 @@ Muokkaa ensin tiedostoa `infra/main.parameters.json` (Cloud Shellin `code`-edito
 |---|---|
 | `keyVaultAdminObjectId` | komennon `az ad signed-in-user show --query id -o tsv` tuloste |
 | `entraClientId` | vaiheen 3 Application (client) ID |
+| `entraTenantId` | vaiheen 3 rekisteröinnin **Directory (tenant) ID** (yrityksen Microsoft 365 -hakemisto) |
 | `mailFrom` | lähettäjäosoite, esim. `SK Management <sk-management@skinfra.fi>` |
 | `bootstrapOwnerEmail`, `bootstrapOwnerName` | ensimmäinen pääkäyttäjä: hänen Microsoft-tilinsä sähköposti ja nimi |
 | `bootstrapCompanies` | yritykset muodossa `Nimi|tunnus|Y-tunnus;…`, esim. `SK Infra Oy|sk-infra|1234567-8;Purent Oy|purent` |

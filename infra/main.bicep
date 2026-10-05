@@ -38,6 +38,9 @@ param githubRepository string = 'Lerggu/SK-management'
 @description('Application (client) id of the Microsoft Entra app registration for user sign-in.')
 param entraClientId string
 
+@description('Directory (tenant) id of the Microsoft 365 organization whose users sign in. Defaults to the subscription\'s tenant.')
+param entraTenantId string = tenant().tenantId
+
 @description('Sender address of e-mails, e.g. "SK Management <sk-management@company.fi>".')
 param mailFrom string = 'SK Management <no-reply@example.com>'
 
@@ -191,7 +194,7 @@ var baseSettings = [
   { name: 'AUTH_TRUST_HOST', value: 'true' }
   { name: 'AUTH_MICROSOFT_ENTRA_ID_ID', value: entraClientId }
   { name: 'AUTH_MICROSOFT_ENTRA_ID_SECRET', value: '@Microsoft.KeyVault(${kvRef}entra-client-secret)' }
-  { name: 'AUTH_MICROSOFT_ENTRA_ID_ISSUER', value: '${environment().authentication.loginEndpoint}${tenant().tenantId}/v2.0' }
+  { name: 'AUTH_MICROSOFT_ENTRA_ID_ISSUER', value: '${environment().authentication.loginEndpoint}${entraTenantId}/v2.0' }
   { name: 'STORAGE_PROVIDER', value: 'azure' }
   { name: 'AZURE_STORAGE_ACCOUNT_URL', value: storage.properties.primaryEndpoints.blob }
   { name: 'AZURE_STORAGE_CONTAINER', value: documents.name }

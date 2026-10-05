@@ -5,6 +5,7 @@
     "prefix": { "value": "skm" },
     "keyVaultAdminObjectId": { "value": "<IT-ylläpitäjän object id: az ad signed-in-user show --query id -o tsv>" },
     "entraClientId": { "value": "<Entra-sovellusrekisteröinnin Application (client) ID>" },
+    "entraTenantId": { "value": "<yrityksen Microsoft 365 -hakemiston Directory (tenant) ID>" },
     "mailFrom": { "value": "SK Management <sk-management@yritys.fi>" },
     "enableSmtp": { "value": false },
     "enableAi": { "value": false },
