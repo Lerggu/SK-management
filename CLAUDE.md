@@ -8,9 +8,9 @@ This file is the standing brief for Claude Code in this repository. Read it at t
 
 Read both fully before any architectural change. If this file and the Build Master conflict, the Build Master wins, except where the owner-approved decisions below are more specific.
 
-## Current release: V7 — HSE & Portals (APPROVED by owner 2026-10-05)
-V1 — Foundation (`docs/V1_REPORT.md`), V2 — Site Execution & Project Finance (`docs/V2_REPORT.md`), V3 — Takt & Look-ahead (`docs/V3_REPORT.md`), V4 — Logistics (`docs/V4_REPORT.md`), V5 — Lifting & Material Flow (`docs/V5_REPORT.md`) and V6 — Commercial (`docs/V6_REPORT.md`) are complete. V7 scope and owner decisions: `docs/V7_PLAN.md`; report: `docs/V7_REPORT.md`.
-Do not implement V8 functionality. Do not start V8 without explicit owner approval.
+## Current release: V8 — AI & Optimization (APPROVED by owner 2026-10-05; stop report delivered)
+V1–V7 are complete (`docs/V1_REPORT.md` … `docs/V7_REPORT.md`). V8 scope and owner decisions: `docs/V8_PLAN.md` (RLS first; AI Project Controller on the Claude API; 10 €/month/company cap; no personal data; `ai.use`); report: `docs/V8_REPORT.md`.
+The AI Logistics Controller (§27) and resource optimization are deferred: do not start them without explicit owner approval. Never put API keys in files or commits; `SK_ANTHROPIC_API_KEY`/`ANTHROPIC_API_KEY` come from the environment only.
 
 ## Owner requirements (binding)
 1. Finnish is the default UI language; English is available from V1 (i18n from day one, no hard-coded UI strings).

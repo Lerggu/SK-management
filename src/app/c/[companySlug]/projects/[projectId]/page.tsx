@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { BookOpen, ChartGantt, Pencil, Plus, Wallet, Handshake } from "lucide-react";
+import { BookOpen, ChartGantt, Pencil, Plus, Wallet, Handshake, Sparkles } from "lucide-react";
 import { hasPermission, projectPermissions } from "@/platform/authz";
 import { diaryService } from "@/modules/diary/service";
 import { projectService, siteService } from "@/modules/projects/service";
@@ -59,7 +59,7 @@ export default async function ProjectPage({ params }: Props) {
         backHref={`${base}/projects`}
         backLabel={t("title")}
         actions={
-          (editable || perms.has("finance.view") || perms.has("takt.view") || perms.has("commercial.view")) && (
+          (editable || perms.has("finance.view") || perms.has("takt.view") || perms.has("commercial.view") || perms.has("ai.use")) && (
             <>
               {perms.has("takt.view") && (
                 <Button asChild variant="outline">
@@ -79,6 +79,13 @@ export default async function ProjectPage({ params }: Props) {
                 <Button asChild variant="outline">
                   <Link href={`${base}/projects/${project.id}/commercial`}>
                     <Handshake aria-hidden /> {tp("commercial")}
+                  </Link>
+                </Button>
+              )}
+              {perms.has("ai.use") && (
+                <Button asChild variant="outline">
+                  <Link href={`${base}/projects/${project.id}/ai`}>
+                    <Sparkles aria-hidden /> {tp("ai")}
                   </Link>
                 </Button>
               )}

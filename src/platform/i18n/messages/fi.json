@@ -166,7 +166,8 @@
     "finance": "Talous",
     "openDiary": "Päiväkirja tänään",
     "takt": "Tahti",
-    "commercial": "Sopimus ja ennuste"
+    "commercial": "Sopimus ja ennuste",
+    "ai": "Tekoälyohjaaja"
   },
   "workforce": {
     "title": "Henkilöstö",
@@ -454,7 +455,8 @@
       "permit_approve": "Hyväksyy tai hylkää työluvat",
       "portal_client": "Käyttää asiakasportaalia",
       "portal_subcontractor": "Käyttää aliurakoitsijaportaalia",
-      "variation_client_approve": "Hyväksyy tai hylkää muutostyöt asiakkaan puolesta"
+      "variation_client_approve": "Hyväksyy tai hylkää muutostyöt asiakkaan puolesta",
+      "ai_use": "Tekoälyohjaajan käyttö (lähettää käyttäjän näkemiä projektitietoja tekoälypalveluun)"
     },
     "calendar": "Työkalenteri"
   },
@@ -660,7 +662,11 @@
       "work_permit_reject": "Työlupa hylätty",
       "work_permit_close": "Työlupa suljettu",
       "hse_inspection_create": "Turvallisuustarkastus kirjattu",
-      "hse_photo_add": "HSE-kuva lisätty"
+      "hse_photo_add": "HSE-kuva lisätty",
+      "ai_run": "Tekoälyajo",
+      "ai_recommendation_accept": "Tekoälysuositus hyväksytty",
+      "ai_recommendation_dismiss": "Tekoälysuositus hylätty",
+      "company_ai_budget_update": "Tekoälyn kuukausikatto muutettu"
     }
   },
   "errors": {
@@ -789,7 +795,8 @@
     "riskAssessmentEmpty": "Lisää riskiarvioon vähintään yksi vaara",
     "clientApprovalPending": "Muutostyö odottaa jo asiakkaan päätöstä",
     "clientDecisionFinal": "Päätös on jo tehty",
-    "clientSnapshotChanged": "Muutostyö on muuttunut – lataa sivu ja tarkista se uudelleen"
+    "clientSnapshotChanged": "Muutostyö on muuttunut – lataa sivu ja tarkista se uudelleen",
+    "tooShort": "Liian lyhyt"
   },
   "time": {
     "title": "Tunnit",
@@ -2168,5 +2175,75 @@
     "approve": "Hyväksyn muutostyön",
     "reject": "Hylkään",
     "notSignature": "Hyväksyntä tallentuu nimelläsi, aikaleimalla ja versiotunnisteella. Se ei ole sähköinen allekirjoitus."
+  },
+  "ai": {
+    "title": "Tekoälyohjaaja",
+    "intro": "Tekoäly analysoi projektin aikataulun, kustannusennusteen, lisätyöt ja työturvallisuuden niiden tietojen pohjalta, jotka sinulla on oikeus nähdä.",
+    "advisory": "Vastaukset ovat suosituksia. Tekoäly ei muuta mitään – päätökset tekee aina ihminen.",
+    "dataNotice": "Projektitiedot lähetetään tekoälypalveluun ({provider}). Henkilötietoja (nimiä, sähköposteja) ei lähetetä.",
+    "testProvider": "Testitila: tekoälymallia ei ole kytketty (ANTHROPIC_API_KEY puuttuu). Vastaukset ovat esimerkkejä.",
+    "unavailable": "Tekoäly ei ole käytössä tässä ympäristössä.",
+    "budget": "Kuukausikatto",
+    "budgetUsed": "{used} / {limit} käytetty tässä kuussa",
+    "budgetExhausted": "Kuukauden tekoälykatto on käytetty. Uusia ajoja voi tehdä ensi kuussa tai kun kattoa nostetaan.",
+    "monthlyBudget": "Kuukausikatto (€)",
+    "saveBudget": "Tallenna katto",
+    "review": "Tee projektikatsaus",
+    "reviewHint": "Katsaus käy läpi aikataulun, kustannukset, lisätyöt ja turvallisuuden ja nostaa esiin tärkeimmät riskit.",
+    "running": "Analysoidaan… tämä voi kestää minuutin.",
+    "ask": "Kysy",
+    "question": "Kysymys projektista",
+    "questionPlaceholder": "Esim. Mikä uhkaa katetta eniten?",
+    "recommendations": "Avoimet suositukset",
+    "noRecommendations": "Ei avoimia suosituksia.",
+    "accept": "Hyväksy",
+    "dismiss": "Hylkää",
+    "decided": "Käsitellyt suositukset",
+    "runs": "Ajohistoria",
+    "noRuns": "Ei vielä ajoja.",
+    "evidence": "Lähteet",
+    "tools": "Käytettävissä olevat tietolähteet",
+    "cost": "Kustannus",
+    "model": "Malli",
+    "kinds": {
+      "FACT": "Fakta",
+      "FORECAST": "Ennuste",
+      "AI_RECOMMENDATION": "AI-suositus"
+    },
+    "severities": {
+      "INFO": "Tieto",
+      "WARNING": "Huomio",
+      "CRITICAL": "Kriittinen"
+    },
+    "runKinds": {
+      "REVIEW": "Projektikatsaus",
+      "QUESTION": "Kysymys"
+    },
+    "runStatuses": {
+      "SUCCEEDED": "Valmis",
+      "FAILED": "Epäonnistui",
+      "BLOCKED_BUDGET": "Katto täynnä"
+    },
+    "recStatuses": {
+      "PROPOSED": "Ehdotettu",
+      "ACCEPTED": "Hyväksytty",
+      "DISMISSED": "Hylätty"
+    },
+    "toolNames": {
+      "project_overview": "Projektin perustiedot",
+      "lookahead_shortages": "Resurssien ennakointi",
+      "schedule_status": "Aikataulu",
+      "cost_forecast": "Kustannusennuste",
+      "variations": "Lisä- ja muutostyöt",
+      "hse_metrics": "Työturvallisuus"
+    },
+    "errors": {
+      "unavailable": "Tekoäly ei ole käytössä.",
+      "budgetExhausted": "Kuukauden tekoälykatto on käytetty.",
+      "alreadyDecided": "Suositus on jo käsitelty.",
+      "invalidResult": "Tekoäly palautti virheellisen vastauksen.",
+      "failed": "Tekoälyajo epäonnistui."
+    },
+    "findings": "Havainnot ({count})"
   }
 }

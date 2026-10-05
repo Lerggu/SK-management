@@ -5,6 +5,7 @@ A multi-company construction and industrial project control platform for SK Infr
 - **V2 — Site execution & project finance foundation:** time tracking with weekly approval, payroll CSV export, the site diary with signing, budget versions, project costs and budget vs actual ([plan](docs/V2_PLAN.md), [report](docs/V2_REPORT.md)).
 - **V3 — Takt & look-ahead:** takt structure (buildings, takt areas, work packages), versioned takt plans with a locked baseline, the takt board, dependencies and constraints with readiness states, progress, MS Project XML / P6 XER import and the 2/6/12-week resource look-ahead ([plan](docs/V3_PLAN.md), [report](docs/V3_REPORT.md)).
 - **V7 — HSE & portals:** safety observations, near misses and incidents with photos from the phone, triage → investigation → approved corrective actions, immediate serious-incident alerts, permits to work, risk assessments, MVR/TR inspections, LTIF and other key figures; client and subcontractor portals with e-mail link sign-in, external document sharing and electronic client approval of variations; a dedicated external-boundary security suite ([plan](docs/V7_PLAN.md), [report](docs/V7_REPORT.md)).
+- **V8 — AI & row-level security:** PostgreSQL row-level security for every company table; AI Project Controller on the Claude API (project review and questions, facts/forecasts/recommendations with evidence, human accept/dismiss, every run stored, monthly cost cap per company, no personal data) ([plan](docs/V8_PLAN.md), [report](docs/V8_REPORT.md)).
 - **V6 — Commercial:** CRM and sales pipeline, quotes with versions and Project Director approval, contracts and milestones, variations (§21), invoice candidates from approved data with immutable CSV/JSON export, internal group invoicing at the owner's billing rate, and forecast/EAC ([plan](docs/V6_PLAN.md), [report](docs/V6_REPORT.md)).
 - **V5 — Lifting & material flow:** lift plans with checks and versioning, approved by the person responsible for lifting (new Lifting Supervisor role), lifting accessory register, rigging crew via bookings, material batches, cable drums with pulls in metres, QR label PDFs and mobile scanning ([plan](docs/V5_PLAN.md), [report](docs/V5_REPORT.md)).
 - **V4 — Logistics:** resource bookings with conflict detection (including cross-company bookings within the group), logistics requests with approval, gates, unloading and storage, deliveries in 30-minute gate slots with a mobile gate view, and takt linkage ([plan](docs/V4_PLAN.md), [report](docs/V4_REPORT.md)).
@@ -12,7 +13,7 @@ A multi-company construction and industrial project control platform for SK Infr
 - Build specification: [`docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md`](docs/specs/SK_MANAGEMENT_CLAUDE_MASTER.md)
 - Functional specification (Finnish): [`docs/specs/SK_management_master.md`](docs/specs/SK_management_master.md)
 - Architecture decisions: [`docs/adr/`](docs/adr)
-- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md), [`docs/V4_REPORT.md`](docs/V4_REPORT.md), [`docs/V5_REPORT.md`](docs/V5_REPORT.md), [`docs/V6_REPORT.md`](docs/V6_REPORT.md), [`docs/V7_REPORT.md`](docs/V7_REPORT.md)
+- Release reports: [`docs/V1_REPORT.md`](docs/V1_REPORT.md), [`docs/V2_REPORT.md`](docs/V2_REPORT.md), [`docs/V3_REPORT.md`](docs/V3_REPORT.md), [`docs/V4_REPORT.md`](docs/V4_REPORT.md), [`docs/V5_REPORT.md`](docs/V5_REPORT.md), [`docs/V6_REPORT.md`](docs/V6_REPORT.md), [`docs/V7_REPORT.md`](docs/V7_REPORT.md), [`docs/V8_REPORT.md`](docs/V8_REPORT.md)
 
 ## Stack
 
@@ -115,8 +116,11 @@ All schema changes go through Prisma migrations. Triggers, check constraints and
 | `pnpm test:e2e` | Playwright at desktop and mobile (Pixel 7) viewports on a fresh E2E database; also writes `docs/screenshots/` |
 | `pnpm lint` / `pnpm typecheck` / `pnpm depcruise` | ESLint, TypeScript, architecture layer rules |
 | `pnpm check` | lint + typecheck + depcruise + unit + integration |
+| `pnpm ai:verify` | One **live** AI project review against the seeded dev database (needs `ANTHROPIC_API_KEY`; costs a few cents and counts toward the monthly cap) |
 
 Integration and E2E tests need the docker-compose services running. `RATE_LIMIT_SIGN_IN` raises the sign-in rate limit; it is meant only for automated test environments (Playwright sets it). E2E starts `next dev` on port 3100, because the dev login is disabled in production builds. If Playwright's bundled browser is not installed, set `PW_CHROMIUM=/path/to/chromium`.
+
+Tests, CI and E2E never call a real AI service: they use the deterministic fake provider (`AI_PROVIDER=fake` in E2E).
 
 **Tenant isolation rule:** every service method listed in `src/modules/registry.ts` must have a case in `tests/isolation/isolation.test.ts`. CI fails otherwise.
 
@@ -137,7 +141,7 @@ src/modules/        domain modules: identity, companies, projects, workforce, eq
                     lifting (rules.ts = lift plan checks, material flow, cable pulls),
                     commercial (rules.ts = quote/variation pricing, forecast/EAC, CSV export)
                     (schemas.ts = Zod validation, repo.ts = company-scoped repository, service.ts)
-src/platform/       auth, authz, audit, db, storage, errors, config, i18n, ratelimit, labels (QR label PDF), ai (interface), integrations (interfaces)
+src/platform/       auth, authz, audit, db, storage, errors, config, i18n, ratelimit, labels (QR label PDF), ai (provider port, Claude adapter, fake), integrations (interfaces)
 src/ui/             app shell, responsive navigation, shadcn/ui components
 prisma/             schema.prisma, migrations/, seed.ts
 tests/              integration/, isolation/, e2e/, helpers/
@@ -152,3 +156,17 @@ docs/               adr/, specs/, screenshots/, release plans and reports
 - Audit log is append-only (DB triggers). Sensitive values are masked.
 - Uploaded files are served only as attachments with `nosniff`. Active content types are refused.
 - Secrets come from the environment only. `.env` is git-ignored.
+- Row-level security (V8, [ADR 0022](docs/adr/0022-row-level-security.md)): company-scoped service calls run as the `sk_app` role with the company in a transaction setting, so the database itself refuses other companies' rows.
+
+## AI (V8)
+
+The AI Project Controller (project page → "Tekoälyohjaaja") is described in [ADR 0023](docs/adr/0023-ai-project-controller.md).
+
+| Variable | Purpose |
+|---|---|
+| `SK_ANTHROPIC_API_KEY` (or `ANTHROPIC_API_KEY`) | Enables the Claude provider. Hosted Claude Code environments reserve `ANTHROPIC_API_KEY`, so use `SK_ANTHROPIC_API_KEY` there. Set it only in the environment, e.g. the cloud environment settings or a secret manager; never in a file in the repository and never in chat. Without it, development uses the clearly labelled fake provider, and production has AI turned off. |
+| `AI_EUR_PER_USD` | USD → EUR rate for the cost cap (default `0.92`) |
+| `AI_PROVIDER=fake` | Forces the fake provider outside production (E2E, demos) |
+
+- **Who can use it:** users with the `ai.use` permission (CEO, Project Director and Project Manager templates).
+- **Monthly cap:** 10 € per company by default; users with `company.manage` can change it on the AI page.

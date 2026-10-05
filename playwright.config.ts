@@ -33,6 +33,6 @@ export default defineConfig({
     url: `${baseURL}/sign-in`,
     timeout: 180_000,
     reuseExistingServer: !process.env.CI,
-    env: { DATABASE_URL: e2eDb, DEV_LOGIN_ENABLED: "true", RATE_LIMIT_SIGN_IN: "200", AUTH_URL: baseURL, NEXT_TELEMETRY_DISABLED: "1" },
+    env: { DATABASE_URL: e2eDb, DEV_LOGIN_ENABLED: "true", RATE_LIMIT_SIGN_IN: "200", AI_PROVIDER: "fake", AUTH_URL: baseURL, NEXT_TELEMETRY_DISABLED: "1" },
   },
 });

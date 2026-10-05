@@ -81,6 +81,9 @@ export const PERMISSIONS = {
   "portal.client": { category: "portal", sensitive: false, description: "Use the client portal" },
   "portal.subcontractor": { category: "portal", sensitive: false, description: "Use the subcontractor portal" },
   "variation.client_approve": { category: "portal", sensitive: false, description: "Approve or reject variations on behalf of the client" },
+
+  // V8 — AI project controller (sends project data the user can see to the AI provider)
+  "ai.use": { category: "ai", sensitive: true, description: "Use the AI project controller (sends project data the user can see to the AI provider)" },
 } as const satisfies Record<string, { category: string; sensitive: boolean; description: string }>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -218,6 +221,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "hse.action.approve",
       "hse.serious.notify",
       "permit.approve",
+      "ai.use",
     ),
   },
   {
@@ -263,6 +267,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "hse.create",
       "hse.manage",
       "hse.action.approve",
+      "ai.use",
     ),
   },
   {
