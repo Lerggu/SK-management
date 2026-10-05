@@ -1,4 +1,6 @@
-# V6 — Commercial: plan (DRAFT, awaiting owner approval to start)
+# V6 — Commercial: plan
+
+- Approved by the owner: 2026-10-05 ("saa aloittaa V6"; decisions below, recommendations accepted)
 
 - Scope: Build Master §21 (variations), §22 (financial project control), §31 (integration adapters), §40 (V6). Functional master: CRM & Sales (pipeline), quote calculation, and "V6: quotes, variations and invoicing data".
 - Out of scope:
@@ -56,7 +58,8 @@ Proposed acceptance criteria:
   - Extends `finance/calculations.ts`: committed, actual, forecast cost, forecast revenue, invoiced, unbilled, margin € / %, and EAC.
   - All formulas are unit tested.
 - **Permissions (migration)**
-  - `crm.view`, `crm.manage`, `commercial.manage`, `commercial.approve`, `invoice.manage`, `forecast.view`.
+  - `crm.view`, `crm.manage`, `commercial.view`, `commercial.manage`, `commercial.approve`, `invoice.manage`.
+  - Implementation note: forecasts are covered by `commercial.view`, so no separate `forecast.view` was added.
   - Prices, margins and costs are sensitive: Client and Subcontractor never receive them.
 
 ## Migration impact
