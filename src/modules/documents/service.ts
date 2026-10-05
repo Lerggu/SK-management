@@ -271,6 +271,7 @@ export const documentService = {
       const doc = await repo.find(version.documentId);
       if (!doc) throw new NotFoundError();
       requireDocumentPermission(ctx, doc, "documents.view");
+      if (ctx.external) throw new ForbiddenError("External members cannot approve documents");
       if (version.status !== "CURRENT") throw new ValidationError({ _form: ["validation.versionNotCurrent"] });
       const needed = approvalTransitionPermission(version.approvalState, state);
       if (!needed) throw new ValidationError({ state: ["validation.invalidTransition"] });

@@ -101,7 +101,8 @@ export const hseOverviewService = {
     const own = can.ownOnly ? ctx.user.id : undefined;
     const [sites, liftPlans, observations, incidents, permits] = await Promise.all([
       repo.listSites(project.id),
-      repo.listLiftPlans(project.id),
+      // Lift plans are internal: own-only reporters (subcontractors) do not see them.
+      can.ownOnly ? Promise.resolve([]) : repo.listLiftPlans(project.id),
       repo.listObservations(project.id, own),
       repo.listIncidents(project.id, own),
       repo.listPermits(project.id, own),
