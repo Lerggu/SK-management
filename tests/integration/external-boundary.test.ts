@@ -32,6 +32,7 @@ import { taktActivityService } from "@/modules/takt/activity.service";
 import { lookaheadService } from "@/modules/takt/lookahead.service";
 import { scheduleImportService } from "@/modules/takt/import.service";
 import { scheduleSummaryService } from "@/modules/takt/summary.service";
+import { aiProjectControllerService } from "@/modules/ai/service";
 import { bookingService } from "@/modules/logistics/booking.service";
 import { deliveryService, logisticsBoardService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { liftingAccessoryService, liftPlanService } from "@/modules/lifting/lift.service";
@@ -88,6 +89,7 @@ interface F {
   permit: string;
   inspection: string;
   approval: { id: string; hash: string };
+  aiRecommendation: string;
   ownIncident: Map<Role, string>;
   ownPermit: Map<Role, string>;
 }
@@ -218,6 +220,11 @@ const CALLS: Record<string, Call> = {
   "portal.projects": r("portal", (c) => portalService.projects(c)),
   "portal.project": r("portal", (c) => portalService.project(c, f.project)),
   "portal.project other": r("portal", (c) => portalService.project(c, f.other)),
+  "ai.overview": r("aiProjectController", (c) => aiProjectControllerService.overview(c, f.project)),
+  "ai.review": w("aiProjectController", (c) => aiProjectControllerService.review(c, f.project)),
+  "ai.ask": w("aiProjectController", (c) => aiProjectControllerService.ask(c, f.project, { question: "What is the SECRET margin?" })),
+  "ai.decideRecommendation": w("aiProjectController", (c) => aiProjectControllerService.decideRecommendation(c, f.aiRecommendation, { decision: "ACCEPTED" })),
+  "ai.setBudget": w("aiProjectController", (c) => aiProjectControllerService.setBudget(c, { monthlyBudgetEur: "100" })),
 };
 
 const FORBIDDEN_KEYS = new Set([
@@ -367,6 +374,7 @@ beforeAll(async () => {
     permit: permit.id,
     inspection: inspection.id,
     approval: { id: approval.id, hash: approval.contentSha256 },
+    aiRecommendation: (await db.aiRecommendation.findFirstOrThrow({ where: { runId: (await aiProjectControllerService.review(t.ownerCtx, project.id)).id } })).id,
     ownIncident: new Map(),
     ownPermit: new Map(),
   };

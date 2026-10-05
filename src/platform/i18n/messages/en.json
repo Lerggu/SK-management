@@ -166,7 +166,8 @@
     "finance": "Finance",
     "openDiary": "Today's diary",
     "takt": "Takt",
-    "commercial": "Contract & forecast"
+    "commercial": "Contract & forecast",
+    "ai": "AI controller"
   },
   "workforce": {
     "title": "Workforce",
@@ -454,7 +455,8 @@
       "permit_approve": "Approve or reject permits to work",
       "portal_client": "Use the client portal",
       "portal_subcontractor": "Use the subcontractor portal",
-      "variation_client_approve": "Approve or reject variations on behalf of the client"
+      "variation_client_approve": "Approve or reject variations on behalf of the client",
+      "ai_use": "Use the AI project controller (sends project data the user can see to the AI provider)"
     },
     "calendar": "Work calendar"
   },
@@ -660,7 +662,11 @@
       "work_permit_reject": "Permit rejected",
       "work_permit_close": "Permit closed",
       "hse_inspection_create": "Safety inspection recorded",
-      "hse_photo_add": "HSE photo added"
+      "hse_photo_add": "HSE photo added",
+      "ai_run": "AI run",
+      "ai_recommendation_accept": "AI recommendation accepted",
+      "ai_recommendation_dismiss": "AI recommendation dismissed",
+      "company_ai_budget_update": "AI monthly cap changed"
     }
   },
   "errors": {
@@ -789,7 +795,8 @@
     "riskAssessmentEmpty": "Add at least one hazard to the risk assessment",
     "clientApprovalPending": "The variation is already waiting for the client",
     "clientDecisionFinal": "The decision has already been made",
-    "clientSnapshotChanged": "The variation has changed – reload and review it again"
+    "clientSnapshotChanged": "The variation has changed – reload and review it again",
+    "tooShort": "Too short"
   },
   "time": {
     "title": "Hours",
@@ -2168,5 +2175,73 @@
     "approve": "Approve the variation",
     "reject": "Reject",
     "notSignature": "The approval is stored with your name, a timestamp and the version fingerprint. It is not an electronic signature."
+  },
+  "ai": {
+    "title": "AI project controller",
+    "intro": "The AI analyses the project schedule, cost forecast, variations and safety from the data you are allowed to see.",
+    "advisory": "Answers are recommendations. The AI does not change anything – a person always decides.",
+    "dataNotice": "Project data is sent to the AI service ({provider}). Personal data (names, e-mails) is not sent.",
+    "testProvider": "Test mode: no AI model is connected (ANTHROPIC_API_KEY missing). Answers are examples.",
+    "unavailable": "AI is not available in this environment.",
+    "budget": "Monthly cap",
+    "budgetUsed": "{used} / {limit} used this month",
+    "budgetExhausted": "The monthly AI cap has been used. New runs are possible next month or when the cap is raised.",
+    "monthlyBudget": "Monthly cap (€)",
+    "saveBudget": "Save cap",
+    "review": "Run project review",
+    "reviewHint": "The review goes through schedule, cost, variations and safety and highlights the most important risks.",
+    "running": "Analysing… this can take a minute.",
+    "ask": "Ask",
+    "question": "Question about the project",
+    "questionPlaceholder": "E.g. What threatens the margin most?",
+    "recommendations": "Open recommendations",
+    "noRecommendations": "No open recommendations.",
+    "accept": "Accept",
+    "dismiss": "Dismiss",
+    "decided": "Decided recommendations",
+    "runs": "Run history",
+    "noRuns": "No runs yet.",
+    "evidence": "Sources",
+    "tools": "Available data sources",
+    "cost": "Cost",
+    "model": "Model",
+    "kinds": {
+      "FACT": "Fact",
+      "FORECAST": "Forecast",
+      "AI_RECOMMENDATION": "AI recommendation"
+    },
+    "severities": {
+      "INFO": "Info",
+      "WARNING": "Warning",
+      "CRITICAL": "Critical"
+    },
+    "runKinds": {
+      "REVIEW": "Project review",
+      "QUESTION": "Question"
+    },
+    "runStatuses": {
+      "SUCCEEDED": "Done",
+      "FAILED": "Failed",
+      "BLOCKED_BUDGET": "Cap reached"
+    },
+    "recStatuses": {
+      "PROPOSED": "Proposed",
+      "ACCEPTED": "Accepted",
+      "DISMISSED": "Dismissed"
+    },
+    "toolNames": {
+      "project_overview": "Project details",
+      "schedule_status": "Schedule",
+      "cost_forecast": "Cost forecast",
+      "variations": "Variations",
+      "hse_metrics": "Safety"
+    },
+    "errors": {
+      "unavailable": "AI is not available.",
+      "budgetExhausted": "The monthly AI cap has been used.",
+      "alreadyDecided": "The recommendation has already been decided.",
+      "invalidResult": "The AI returned an invalid answer.",
+      "failed": "The AI run failed."
+    }
   }
 }

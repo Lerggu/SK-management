@@ -11,6 +11,9 @@ setStorageForTests(new MemoryObjectStorage());
 // V7: e-mails go to an in-memory mailbox (getMailer() as MemoryMailer).
 const { setMailerForTests, MemoryMailer } = await import("@/platform/mail");
 setMailerForTests(new MemoryMailer());
+// V8: never call a real AI provider from tests, even when ANTHROPIC_API_KEY is set.
+const { setAiProviderForTests, FakeAiProvider } = await import("@/platform/ai");
+setAiProviderForTests(new FakeAiProvider());
 // V8: wrap all services in the tenant scope (row-level security), as the app does.
 await import("@/modules/registry");
 

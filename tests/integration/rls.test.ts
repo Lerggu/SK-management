@@ -38,6 +38,18 @@ describe("row-level security", () => {
     expect(methods.filter(([, fn]) => !isTenantScoped(fn)).map(([n]) => n)).toEqual([]);
   });
 
+  it("every table with a company_id has row-level security and a tenant policy", async () => {
+    const rows = await db.$queryRaw<{ table: string; rls: boolean; policies: number }[]>`
+      SELECT c.relname AS table, c.relrowsecurity AS rls,
+             (SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'public' AND p.tablename = c.relname) AS policies
+      FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public' AND c.relkind = 'r'
+        AND EXISTS (SELECT 1 FROM information_schema.columns col WHERE col.table_schema = 'public' AND col.table_name = c.relname AND col.column_name = 'company_id')`;
+    expect(rows.length).toBeGreaterThan(50);
+    expect(rows.filter((r) => !r.rls || r.policies === 0).map((r) => r.table)).toEqual([]);
+    expect(rows.map((r) => r.table)).toEqual(expect.arrayContaining(["ai_runs", "ai_recommendations"]));
+  });
+
   it("an unfiltered query sees only the scoped company — reads and transactions", async () => {
     const codes = await withTenantScope(scopeOf(a), () => readClient().project.findMany({ select: { code: true } }));
     expect(codes.map((p) => p.code)).toEqual(["A-RLS"]);

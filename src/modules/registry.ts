@@ -28,6 +28,7 @@ import { hseActionService, hseObservationService, hseOverviewService, hsePhotoSe
 import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "./hse/planning.service";
 import { scheduleSummaryService } from "./takt/summary.service";
 import { portalService } from "./portal/service";
+import { aiProjectControllerService } from "./ai/service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -94,6 +95,8 @@ export const SERVICE_REGISTRY = {
   clientApproval: clientApprovalService,
   scheduleSummary: scheduleSummaryService,
   portal: portalService,
+  // V8
+  aiProjectController: aiProjectControllerService,
 } as const;
 
 // ── V8: tenant scope for row-level security ──────────────────────────

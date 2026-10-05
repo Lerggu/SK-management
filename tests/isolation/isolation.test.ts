@@ -42,6 +42,7 @@ import { hseActionService, hseObservationService, hseOverviewService, hsePhotoSe
 import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
 import { scheduleSummaryService } from "@/modules/takt/summary.service";
 import { portalService } from "@/modules/portal/service";
+import { aiProjectControllerService } from "@/modules/ai/service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -100,6 +101,7 @@ interface World {
   b6: { customer: string; variation: string };
   v7: { observation: string; incident: string; action: string; photo: string; risk: string; riskItem: string; permit: string; inspection: string; approval: string; approvalHash: string; variation: string };
   b7: { incident: string; clientApprover: RequestContext };
+  v8: { run: string; recommendation: string };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
@@ -240,6 +242,9 @@ beforeAll(async () => {
   await variationService.submitForReview(actx, portalVariation.id);
   await variationService.approveInternal(await createMember(a, "PROJECT_DIRECTOR"), portalVariation.id, { decision: "APPROVE" });
   const approval = await db.variationClientApproval.findFirstOrThrow({ where: { variationId: portalVariation.id } });
+  // ── V8 data in company A (deterministic test AI provider) ──
+  const aiRun = await aiProjectControllerService.review(actx, project.id);
+  const aiRecommendation = await db.aiRecommendation.findFirstOrThrow({ where: { runId: aiRun.id } });
 
   // ── V3 data in company B (for cross-references) ──
   const bBuilding = await taktStructureService.createBuilding(b.ownerCtx, { siteId: bSite.id, name: "B building" });
@@ -325,6 +330,7 @@ beforeAll(async () => {
       variation: portalVariation.id,
     },
     b7: { incident: bIncident.id, clientApprover: bClientApprover },
+    v8: { run: aiRun.id, recommendation: aiRecommendation.id },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
@@ -960,6 +966,14 @@ const cases: Record<string, Case> = {
     expect((await portalService.projects(w.b7.clientApprover)).map((p) => p.id)).toEqual([w.bProject]);
   },
   "portal.project": () => expectNotFound(portalService.project(w.b7.clientApprover, w.ids.project)),
+  "aiProjectController.overview": () => expectNotFound(aiProjectControllerService.overview(w.bCtx, w.ids.project)),
+  "aiProjectController.review": () => expectNotFound(aiProjectControllerService.review(w.bCtx, w.ids.project)),
+  "aiProjectController.ask": () => expectNotFound(aiProjectControllerService.ask(w.bCtx, w.ids.project, { question: "What is the margin?" })),
+  "aiProjectController.decideRecommendation": () => expectNotFound(aiProjectControllerService.decideRecommendation(w.bCtx, w.v8.recommendation, { decision: "ACCEPTED" })),
+  "aiProjectController.setBudget": async () => {
+    await aiProjectControllerService.setBudget(w.bCtx, { monthlyBudgetEur: "25" });
+    expect((await db.company.findUniqueOrThrow({ where: { id: w.a.companyId } })).aiMonthlyBudgetEur.toString()).toBe("10");
+  },
 
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
@@ -1031,5 +1045,7 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.workPermit.findUniqueOrThrow({ where: { id: w.v7.permit } })).status).toBe("REQUESTED");
     expect((await db.variationClientApproval.findUniqueOrThrow({ where: { id: w.v7.approval } })).decision).toBe("PENDING");
     expect((await db.document.findUniqueOrThrow({ where: { id: w.ids.document } })).sharedWithClient).toBe(false);
+    expect((await db.aiRecommendation.findUniqueOrThrow({ where: { id: w.v8.recommendation } })).status).toBe("PROPOSED");
+    expect(await db.aiRun.count({ where: { companyId: w.a.companyId } })).toBe(1);
   });
 });

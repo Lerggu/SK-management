@@ -36,6 +36,7 @@ import { clientApprovalService } from "@/modules/commercial/client-approval.serv
 import { hseActionService, hseObservationService, hseOverviewService, incidentService } from "@/modules/hse/hse.service";
 import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
 import { scheduleSummaryService } from "@/modules/takt/summary.service";
+import { aiProjectControllerService } from "@/modules/ai/service";
 import { portalService } from "@/modules/portal/service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
@@ -193,6 +194,10 @@ const ACTIONS: Record<string, Action> = {
     const a = await f.v7.pendingApproval();
     return clientApprovalService.decide(c, a.id, { decision: "APPROVED", contentSha256: a.contentSha256 });
   },
+  // V8
+  "open AI project controller": (c, f) => aiProjectControllerService.overview(c, f.projectId),
+  "run AI project review": (c, f) => aiProjectControllerService.review(c, f.projectId),
+  "set AI monthly budget": (c) => aiProjectControllerService.setBudget(c, { monthlyBudgetEur: "10" }),
 };
 
 // Columns follow ROLES order: CEO PD PM SM SUP LOG HSE EMP SUB CLI LIFT CA
@@ -283,6 +288,10 @@ const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
   "portal schedule":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "✓", "✓"],
   "portal HSE figures":      ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "✓", "✓"],
   "approve variation in portal":["N", "N", "N", "N", "N", "N", "N", "N", "N", "F", "N", "✓"],
+  // V8 — AI project controller (ai.use); never for external roles
+  "open AI project controller":["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "run AI project review":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  "set AI monthly budget":   ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
 };
 
 let f: Fixture;

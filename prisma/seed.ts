@@ -11,6 +11,8 @@
  */
 import { db } from "@/platform/db";
 import "@/modules/registry"; // V8: services run under row-level security
+import { FakeAiProvider, setAiProviderForTests } from "@/platform/ai";
+import { aiProjectControllerService } from "@/modules/ai/service";
 import { writeAudit } from "@/platform/audit";
 import type { RequestContext, RequestMeta, UserContext } from "@/platform/authz";
 import { resolveRequestContext } from "@/modules/companies/context";
@@ -610,6 +612,22 @@ async function main() {
   const permit = await workPermitService.request(subCtx, { projectId: ndc.id, siteId: hallA.id, type: "HOT_WORK", description: "Kannakkeiden hitsaus", contractor: "Aliurakka Demo Oy", validFrom: at(1, "07:00"), validTo: at(1, "15:00"), precautions: "Sammutin ja palovartija" });
   await workPermitService.decide(smCtx, permit.id, { decision: "APPROVE", note: "Palovartija nimetty" });
   await workPermitService.request(subCtx, { projectId: ndc.id, siteId: hallA.id, type: "WORK_AT_HEIGHT", description: "Hyllyasennus nostimelta", contractor: "Aliurakka Demo Oy", validFrom: at(2, "07:00"), validTo: at(2, "15:00") });
+
+  // ── V8: one example AI review (never a real AI call from the seed) ─
+  setAiProviderForTests(
+    new FakeAiProvider({
+      respond: (outputs) => ({
+        summary: `Esimerkkikatsaus (testitila, ei tekoälymallia). Luettuja tietolähteitä: ${Object.keys(outputs).length}.`,
+        items: [
+          { kind: "FACT", severity: "WARNING", title: "Esimerkki: avoin vakava tapaturma", detail: "Työturvallisuuden tunnusluvuissa on avoin poissaoloon johtanut tapaturma.", evidence: ["hse_metrics"] },
+          { kind: "FORECAST", severity: "INFO", title: "Esimerkki: aikataulun eteneminen", detail: "Tahtisuunnitelman eteneminen on luettu aikataulutiedoista.", evidence: ["schedule_status"] },
+          { kind: "AI_RECOMMENDATION", severity: "WARNING", title: "Esimerkki: käy läpi asiakkaan päätöstä odottavat lisätyöt", detail: "Sovi asiakkaan kanssa päätösaikataulu, jotta lisätyöt voidaan laskuttaa.", evidence: ["variations"] },
+        ],
+      }),
+    }),
+  );
+  await aiProjectControllerService.review(pmCtx, ndc.id);
+  setAiProviderForTests(undefined);
 
   console.log("✔ Seed complete (fictional data).");
   console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, pd@skinfra.example.com, hse@skinfra.example.com, client@example.com (client approver), subcontractor@example.com, ceo@purent.example.com …");

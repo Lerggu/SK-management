@@ -157,19 +157,21 @@ model Organization {
 }
 
 model Company {
-  id              String    @id @default(uuid(7)) @db.Uuid
-  organizationId  String    @map("organization_id") @db.Uuid
-  slug            String    @unique
-  name            String
-  businessId      String?   @map("business_id")
-  defaultCurrency String    @default("EUR") @map("default_currency") @db.Char(3)
-  defaultLocale   String    @default("fi") @map("default_locale")
-  timezone        String    @default("Europe/Helsinki")
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdById     String?   @map("created_by") @db.Uuid
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  updatedById     String?   @map("updated_by") @db.Uuid
-  archivedAt      DateTime? @map("archived_at") @db.Timestamptz(6)
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  slug               String    @unique
+  name               String
+  businessId         String?   @map("business_id")
+  defaultCurrency    String    @default("EUR") @map("default_currency") @db.Char(3)
+  defaultLocale      String    @default("fi") @map("default_locale")
+  timezone           String    @default("Europe/Helsinki")
+  /// V8: monthly AI usage cap per company (owner decision: 10 €/month).
+  aiMonthlyBudgetEur Decimal   @default(10) @map("ai_monthly_budget_eur") @db.Decimal(14, 2)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById        String?   @map("created_by") @db.Uuid
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById        String?   @map("updated_by") @db.Uuid
+  archivedAt         DateTime? @map("archived_at") @db.Timestamptz(6)
 
   organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   memberships        CompanyMembership[]
@@ -200,6 +202,7 @@ model Company {
   candidates         InvoiceCandidate[]   @relation("CandidateCompany")
   billedCandidates   InvoiceCandidate[]   @relation("CandidateBillTo")
   invoiceExports     InvoiceExportBatch[]
+  aiRuns             AiRun[]
 
   @@index([organizationId])
   @@map("companies")
@@ -478,6 +481,8 @@ model Project {
   hseInspections    HseInspection[]
   hsePhotos         HsePhoto[]
   clientApprovals   VariationClientApproval[]
+  aiRuns            AiRun[]
+  aiRecommendations AiRecommendation[]
 
   @@unique([companyId, id])
   @@unique([companyId, code])
@@ -2854,4 +2859,94 @@ model DevMailOutbox {
 
   @@index([to, createdAt])
   @@map("dev_mail_outbox")
+}
+
+// ─── V8: AI Project Controller (Build Master §26, ADR 0023) ─────────────
+
+enum AiRunKind {
+  REVIEW
+  QUESTION
+}
+
+enum AiRunStatus {
+  SUCCEEDED
+  FAILED
+  BLOCKED_BUDGET
+}
+
+enum AiSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AiRecommendationStatus {
+  PROPOSED
+  ACCEPTED
+  DISMISSED
+}
+
+/// One AI run (§26: user, scope, provider/model, prompt version, tool calls,
+/// structured result, cost). Append-only (database trigger).
+/// Cost is a usage metric with 6 decimals so sub-cent runs add up exactly
+/// against the monthly cap; it is not an accounting amount.
+model AiRun {
+  id               String      @id @default(uuid(7)) @db.Uuid
+  companyId        String      @map("company_id") @db.Uuid
+  projectId        String      @map("project_id") @db.Uuid
+  requestedById    String      @map("requested_by") @db.Uuid
+  kind             AiRunKind
+  question         String?
+  locale           String
+  provider         String
+  model            String
+  promptVersion    String      @map("prompt_version")
+  toolCalls        Json        @default("[]") @map("tool_calls")
+  result           Json?
+  inputTokens      Int         @default(0) @map("input_tokens")
+  outputTokens     Int         @default(0) @map("output_tokens")
+  cacheReadTokens  Int         @default(0) @map("cache_read_tokens")
+  cacheWriteTokens Int         @default(0) @map("cache_write_tokens")
+  costEur          Decimal     @default(0) @map("cost_eur") @db.Decimal(14, 6)
+  currency         String      @default("EUR") @db.Char(3)
+  status           AiRunStatus
+  error            String?
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company         Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project         Project            @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  recommendations AiRecommendation[]
+
+  @@unique([companyId, id])
+  @@index([companyId, createdAt])
+  @@index([companyId, projectId, createdAt])
+  @@map("ai_runs")
+}
+
+/// An AI_RECOMMENDATION item of a run's answer (facts and forecasts stay in
+/// the run's result). Recommendations need a human decision
+/// (accept or dismiss, once); AI never changes operational data itself.
+model AiRecommendation {
+  id           String                 @id @default(uuid(7)) @db.Uuid
+  companyId    String                 @map("company_id") @db.Uuid
+  projectId    String                 @map("project_id") @db.Uuid
+  runId        String                 @map("run_id") @db.Uuid
+  position     Int
+  severity     AiSeverity
+  title        String
+  detail       String
+  evidence     Json                   @default("[]")
+  status       AiRecommendationStatus @default(PROPOSED)
+  decidedAt    DateTime?              @map("decided_at") @db.Timestamptz(6)
+  decidedById  String?                @map("decided_by") @db.Uuid
+  decisionNote String?                @map("decision_note")
+  createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  run     AiRun   @relation(fields: [companyId, runId], references: [companyId, id], onDelete: Restrict)
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@unique([runId, position])
+  @@index([companyId, projectId, status])
+  @@map("ai_recommendations")
 }
