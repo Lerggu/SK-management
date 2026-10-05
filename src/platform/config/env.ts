@@ -20,6 +20,11 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_FORCE_PATH_STYLE: boolString,
+  // Production on Azure (ADR 0024): Blob Storage with managed identity.
+  STORAGE_PROVIDER: z.enum(["s3", "azure"]).default("s3"),
+  AZURE_STORAGE_ACCOUNT_URL: z.string().optional(),
+  AZURE_STORAGE_CONNECTION_STRING: z.string().optional(),
+  AZURE_STORAGE_CONTAINER: z.string().default("documents"),
   UPLOAD_MAX_MB: z.coerce.number().positive().default(25),
   // V7: e-mail (sign-in links for external users, serious-incident alerts).
   SMTP_URL: z.string().optional(),

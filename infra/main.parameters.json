@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "prefix": { "value": "skm" },
+    "keyVaultAdminObjectId": { "value": "<IT-ylläpitäjän object id: az ad signed-in-user show --query id -o tsv>" },
+    "entraClientId": { "value": "<Entra-sovellusrekisteröinnin Application (client) ID>" },
+    "mailFrom": { "value": "SK Management <sk-management@yritys.fi>" },
+    "enableSmtp": { "value": false },
+    "enableAi": { "value": false },
+    "bootstrapOwnerEmail": { "value": "<ensimmäisen pääkäyttäjän Microsoft-sähköposti>" },
+    "bootstrapOwnerName": { "value": "<pääkäyttäjän nimi>" },
+    "bootstrapOrgName": { "value": "SK Group" },
+    "bootstrapOrgSlug": { "value": "sk-group" },
+    "bootstrapCompanies": { "value": "SK Infra Oy|sk-infra;Purent Oy|purent" }
+  }
+}

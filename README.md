@@ -158,6 +158,21 @@ docs/               adr/, specs/, screenshots/, release plans and reports
 - Secrets come from the environment only. `.env` is git-ignored.
 - Row-level security (V8, [ADR 0022](docs/adr/0022-row-level-security.md)): company-scoped service calls run as the `sk_app` role with the company in a transaction setting, so the database itself refuses other companies' rows.
 
+## Production (Azure)
+
+Production runs on Azure: App Service container, PostgreSQL 16 Flexible Server, Blob Storage, Key Vault and Container Registry, deployed from GitHub Actions with OIDC ([ADR 0024](docs/adr/0024-azure-hosting.md)). IT follows the step-by-step guide in [`docs/DEPLOY_AZURE.md`](docs/DEPLOY_AZURE.md).
+
+| Piece | Where |
+|---|---|
+| Container image | `Dockerfile`, `docker/entrypoint.sh` (migrations → one-time bootstrap → `next start` on 8080) |
+| Infrastructure | `infra/main.bicep`, `infra/main.parameters.json` |
+| Database roles (once) | `infra/db-bootstrap.sql` |
+| Deployment | `.github/workflows/deploy.yml` (after CI on `main`; inactive until the repository variables exist) |
+| Health check | `GET /api/health` |
+| First organization, owner and companies | `scripts/bootstrap.ts` (`BOOTSTRAP_*` settings, idempotent) |
+
+Local Azure storage emulation: the `azurite` service in docker-compose.
+
 ## AI (V8)
 
 The AI Project Controller (project page → "Tekoälyohjaaja") is described in [ADR 0023](docs/adr/0023-ai-project-controller.md).
