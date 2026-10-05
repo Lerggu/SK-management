@@ -98,7 +98,8 @@ test.describe("client approval in the portal", () => {
     await d.getByRole("button", { name: "Tallenna" }).click();
     await expect(page.getByTestId("variation-price")).toContainText("2 200,00");
     await page.getByRole("button", { name: "Lähetä sisäiseen tarkastukseen" }).click();
-    await expect(page.getByTestId("variation-approve-form")).toHaveCount(0);
+    // Pricing is editable only as a draft: wait until the submit has landed.
+    await expect(page.getByTestId("variation-draft-form")).toHaveCount(0);
     const url = page.url();
 
     const pd = await browser.newContext({ storageState: authFile("pd"), ...testInfo.project.use });
