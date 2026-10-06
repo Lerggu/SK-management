@@ -134,7 +134,9 @@ Jatkossa julkaisu tapahtuu automaattisesti aina, kun muutos yhdistetään `main`
 | Entra-salaisuuden uusinta | uusi client secret → `az keyvault secret set … entra-client-secret` → App Service → Restart |
 | Kulut | Cost Management -budjetti ja hälytykset |
 
-**Vianetsintä:** jos sovellus ei käynnisty, avaa App Service → Log stream. Yleisimmät syyt:
+**Vianetsintä:**
+- Jos julkaisun kirjautuminen epäonnistuu virheellä *AADSTS700213: No matching federated identity record*, katso julkaisulokin rivi *subject claim*. Lisää se julkaisutunnisteelle, esimerkiksi: `az identity federated-credential create -g <RG> --identity-name <skm-deploy-…> --name github-production-ids --issuer https://token.actions.githubusercontent.com --subject "<subject claim>" --audiences api://AzureADTokenExchange`. Aseta sama arvo myös parametriin `githubOidcSubject`.
+ jos sovellus ei käynnisty, avaa App Service → Log stream. Yleisimmät syyt:
 - Key Vaultista puuttuu salaisuus (`auth-secret` tai `entra-client-secret`);
 - vaihe 6 on ajamatta;
 - Redirect URI on kirjoitettu väärin.

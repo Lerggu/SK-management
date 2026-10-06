@@ -35,6 +35,9 @@ param keyVaultAdminObjectId string
 @description('GitHub repository allowed to deploy, as owner/name.')
 param githubRepository string = 'Lerggu/SK-management'
 
+@description('OIDC subject GitHub presents for the production environment. Newer repositories use immutable ids, e.g. repo:Owner@123/Repo@456:environment:production — copy it from the deploy log ("subject claim") if login fails.')
+param githubOidcSubject string = 'repo:${githubRepository}:environment:production'
+
 @description('Application (client) id of the Microsoft Entra app registration for user sign-in.')
 param entraClientId string
 
@@ -273,7 +276,7 @@ resource deployerGithub 'Microsoft.ManagedIdentity/userAssignedIdentities/federa
   name: 'github-production'
   properties: {
     issuer: 'https://token.actions.githubusercontent.com'
-    subject: 'repo:${githubRepository}:environment:production'
+    subject: githubOidcSubject
     audiences: ['api://AzureADTokenExchange']
   }
 }
