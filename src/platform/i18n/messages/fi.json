@@ -1885,7 +1885,10 @@
     "signInSubject": "Kirjautumislinkki – SK Management",
     "signInBody": "Hei {name},\n\nkirjaudu SK Managementiin tällä linkillä:\n{link}\n\nLinkki on voimassa {minutes} minuuttia ja toimii kerran. Jos et pyytänyt linkkiä, voit jättää tämän viestin huomiotta.",
     "seriousIncidentSubject": "VAKAVA TAPATURMA – {project} #{number}",
-    "seriousIncidentBody": "Projektissa {project} on ilmoitettu tapaturma #{number} (vakavuus: {severity}).\n\nAvaa ilmoitus: {link}\n\nViesti ei sisällä henkilötietoja."
+    "seriousIncidentBody": "Projektissa {project} on ilmoitettu tapaturma #{number} (vakavuus: {severity}).\n\nAvaa ilmoitus: {link}\n\nViesti ei sisällä henkilötietoja.",
+    "expiryReminderSubject": "Muistutus: {name} vanhenee {date}",
+    "expiryReminderOwnerBody": "Hei,\n\nkorttisi tai pätevyytesi \"{name}\" voimassaolo päättyy {date}. Huolehdi sen uusimisesta ajoissa ja toimita uusi todistus henkilöstökortillesi.\n\nHenkilöstökortti: {link}\n\nTämä on SK Managementin automaattinen muistutus.",
+    "expiryReminderMaintenanceBody": "Hei,\n\ntyöntekijän {employee} kortin tai pätevyyden \"{name}\" voimassaolo päättyy {date}.\n\nHenkilöstökortti: {link}\n\nTämä on SK Managementin automaattinen muistutus."
   },
   "hse": {
     "incidentSeverity": {

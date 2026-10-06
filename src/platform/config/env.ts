@@ -29,6 +29,10 @@ const envSchema = z.object({
   // V7: e-mail (sign-in links for external users, serious-incident alerts).
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().default("SK Management <no-reply@sk-management.invalid>"),
+  // HR (ADR 0025): hourly expiry-reminder job inside the app process.
+  // Default: on in production, off elsewhere ("on"/"off" overrides).
+  HR_REMINDERS: z.enum(["on", "off", ""]).optional(),
+  HR_REMINDER_INTERVAL_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -83,4 +87,12 @@ export function isSmtpConfigured(): boolean {
 /** Public base URL for links in e-mails (AUTH_URL), without a trailing slash. */
 export function appBaseUrl(): string {
   return (env().AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+/** Whether the in-process expiry-reminder scheduler runs (ADR 0025). */
+export function isReminderSchedulerEnabled(): boolean {
+  const v = env().HR_REMINDERS;
+  if (v === "on") return true;
+  if (v === "off") return false;
+  return isProduction();
 }

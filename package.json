@@ -18,6 +18,7 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:migrations": "tsx scripts/migration-check.ts",
+    "hr:reminders": "tsx scripts/run-reminders.ts",
     "ai:verify": "tsx scripts/ai-verify.ts",
     "test:e2e": "playwright test",
     "check": "pnpm lint && pnpm typecheck && pnpm depcruise && pnpm test"

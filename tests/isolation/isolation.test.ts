@@ -43,6 +43,20 @@ import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPe
 import { scheduleSummaryService } from "@/modules/takt/summary.service";
 import { portalService } from "@/modules/portal/service";
 import { aiProjectControllerService } from "@/modules/ai/service";
+import { competenceAreaService, hrSettingsService, jobProfileService, qualificationTypeService } from "@/modules/hr/settings.service";
+import {
+  assessmentService,
+  authorizationService,
+  clothingService,
+  companyItemService,
+  hrCardService,
+  languageService,
+  orientationService,
+  qualificationService,
+  trainingService,
+} from "@/modules/hr/card.service";
+import { employeeFileService } from "@/modules/hr/files.service";
+import { hrOverviewService } from "@/modules/hr/overview.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -102,6 +116,25 @@ interface World {
   v7: { observation: string; incident: string; action: string; photo: string; risk: string; riskItem: string; permit: string; inspection: string; approval: string; approvalHash: string; variation: string };
   b7: { incident: string; clientApprover: RequestContext };
   v8: { run: string; recommendation: string };
+  hr: {
+    worker: string;
+    area: string;
+    type: string;
+    profile: string;
+    requirement: string;
+    draft: string;
+    published: string;
+    training: string;
+    qualification: string;
+    orientation: string;
+    authorization: string;
+    language: string;
+    clothing: string;
+    item: string;
+    file: string;
+    photo: string;
+  };
+  bhr: { employee: string; area: string; type: string; profile: string };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
@@ -245,6 +278,32 @@ beforeAll(async () => {
   // ── V8 data in company A (deterministic test AI provider) ──
   const aiRun = await aiProjectControllerService.review(actx, project.id);
   const aiRecommendation = await db.aiRecommendation.findFirstOrThrow({ where: { runId: aiRun.id } });
+  // ── HR data in company A (ADR 0025) ──
+  const hrWorkerCtx = await createMember(a, "EMPLOYEE");
+  const hrWorker = await employeeService.create(actx, { employeeNumber: "A-HR1", firstName: "A", lastName: "Hr", email: "a.hr@example.test", userId: hrWorkerCtx.user.id });
+  await hrCardService.updateEmployment(actx, hrWorker.id, { supervisorId: employee.id, team: "A team" });
+  await hrSettingsService.update(actx, { reminderEmail: "a.hr.maintenance@example.test" });
+  const hrArea = await competenceAreaService.create(actx, { category: "A", name: "A area", isKey: true });
+  const hrType = await qualificationTypeService.create(actx, { name: "A card" });
+  const hrProfile = await jobProfileService.create(actx, { name: "A profile" });
+  const hrRequirement = await jobProfileService.addRequirement(actx, hrProfile.id, { kind: "QUALIFICATION", qualificationTypeId: hrType.id });
+  const hrDraft = await assessmentService.create(actx, hrWorker.id, { areaId: hrArea.id, level: "2", assessedOn: "2026-09-01" });
+  const hrPublished = await assessmentService.create(actx, hrWorker.id, { areaId: hrArea.id, level: "3", agreedActions: "A action", assessedOn: "2026-09-02", publish: "on" });
+  const hrTraining = await trainingService.add(actx, hrWorker.id, { name: "A training", completedOn: "2026-01-01" });
+  const hrQualification = await qualificationService.add(actx, hrWorker.id, { typeId: hrType.id, expiresOn: "2030-01-01", remindBeforeExpiry: "on" });
+  const hrOrientation = await orientationService.add(actx, hrWorker.id, { scope: "COMPANY", topic: "A orientation", instructorName: "A instructor" });
+  const hrAuthorization = await authorizationService.add(actx, hrWorker.id, { target: "A excavator", equipmentTypeId: type.id, grantedOn: "2026-01-01" });
+  const hrLanguage = await languageService.save(actx, hrWorker.id, { language: "fi", speaking: "NATIVE", understanding: "NATIVE", source: "SUPERVISOR" });
+  const hrClothing = await clothingService.issue(actx, hrWorker.id, { product: "A jacket", issuedOn: "2026-01-01" });
+  const hrItem = await companyItemService.add(actx, hrWorker.id, { name: "A phone", itemType: "PHONE", issuedOn: "2026-01-01" });
+  const pdf = { fileName: "a.pdf", bytes: new TextEncoder().encode("%PDF-1.4 A secret") };
+  const hrFile = await employeeFileService.upload(actx, hrWorker.id, { kind: "CERTIFICATE", targetType: "QUALIFICATION", targetId: hrQualification.id }, pdf);
+  const hrPhoto = await employeeFileService.uploadPhoto(actx, hrWorker.id, { fileName: "a.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]) });
+  // ── HR data in company B (for cross-references) ──
+  const bOwnEmployee = await db.employee.findFirstOrThrow({ where: { companyId: b.companyId, employeeNumber: "B-OWN" } });
+  const bHrArea = await competenceAreaService.create(b.ownerCtx, { category: "B", name: "B area" });
+  const bHrType = await qualificationTypeService.create(b.ownerCtx, { name: "B card" });
+  const bHrProfile = await jobProfileService.create(b.ownerCtx, { name: "B profile" });
 
   // ── V3 data in company B (for cross-references) ──
   const bBuilding = await taktStructureService.createBuilding(b.ownerCtx, { siteId: bSite.id, name: "B building" });
@@ -331,6 +390,25 @@ beforeAll(async () => {
     },
     b7: { incident: bIncident.id, clientApprover: bClientApprover },
     v8: { run: aiRun.id, recommendation: aiRecommendation.id },
+    hr: {
+      worker: hrWorker.id,
+      area: hrArea.id,
+      type: hrType.id,
+      profile: hrProfile.id,
+      requirement: hrRequirement.id,
+      draft: hrDraft.id,
+      published: hrPublished.id,
+      training: hrTraining.id,
+      qualification: hrQualification.id,
+      orientation: hrOrientation.id,
+      authorization: hrAuthorization.id,
+      language: hrLanguage.id,
+      clothing: hrClothing.id,
+      item: hrItem.id,
+      file: hrFile.id,
+      photo: hrPhoto.id,
+    },
+    bhr: { employee: bOwnEmployee.id, area: bHrArea.id, type: bHrType.id, profile: bHrProfile.id },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
@@ -975,6 +1053,146 @@ const cases: Record<string, Case> = {
     expect((await db.company.findUniqueOrThrow({ where: { id: w.a.companyId } })).aiMonthlyBudgetEur.toString()).toBe("10");
   },
 
+  // ── HR: personnel card and competence (ADR 0025) ──
+  "hrSettings.get": async () => {
+    expect((await hrSettingsService.get(w.bCtx)).reminderEmail).not.toBe("a.hr.maintenance@example.test");
+  },
+  "hrSettings.update": async () => {
+    await hrSettingsService.update(w.bCtx, { reminderEmail: "b@example.test" });
+    expect((await db.hrSettings.findUniqueOrThrow({ where: { companyId: w.a.companyId } })).reminderEmail).toBe("a.hr.maintenance@example.test");
+  },
+  "hrSettings.runReminders": async () => {
+    await hrSettingsService.runReminders(w.bCtx);
+    expect(await db.expiryReminder.count({ where: { companyId: w.a.companyId } })).toBe(0);
+  },
+  "competenceArea.list": async () => {
+    expect((await competenceAreaService.list(w.bCtx, { includeArchived: true })).map((a) => a.id)).not.toContain(w.hr.area);
+  },
+  "competenceArea.create": async () => {
+    const created = await competenceAreaService.create(w.bCtx, { category: "A", name: "A area" });
+    expect(created.companyId).toBe(w.b.companyId);
+  },
+  "competenceArea.update": () => expectNotFound(competenceAreaService.update(w.bCtx, w.hr.area, { category: "X", name: "X" })),
+  "competenceArea.archive": () => expectNotFound(competenceAreaService.archive(w.bCtx, w.hr.area)),
+  "competenceArea.restore": () => expectNotFound(competenceAreaService.restore(w.bCtx, w.hr.area)),
+  "competenceArea.addSuggested": async () => {
+    const before = await db.competenceArea.count({ where: { companyId: w.a.companyId } });
+    await competenceAreaService.addSuggested(w.bCtx);
+    expect(await db.competenceArea.count({ where: { companyId: w.a.companyId } })).toBe(before);
+  },
+  "qualificationType.list": async () => {
+    expect((await qualificationTypeService.list(w.bCtx, { includeArchived: true })).map((t) => t.id)).not.toContain(w.hr.type);
+  },
+  "qualificationType.create": async () => {
+    expect((await qualificationTypeService.create(w.bCtx, { name: "A card" })).companyId).toBe(w.b.companyId);
+  },
+  "qualificationType.update": () => expectNotFound(qualificationTypeService.update(w.bCtx, w.hr.type, { name: "X" })),
+  "qualificationType.archive": () => expectNotFound(qualificationTypeService.archive(w.bCtx, w.hr.type)),
+  "qualificationType.restore": () => expectNotFound(qualificationTypeService.restore(w.bCtx, w.hr.type)),
+  "qualificationType.addSuggested": async () => {
+    const before = await db.qualificationType.count({ where: { companyId: w.a.companyId } });
+    await qualificationTypeService.addSuggested(w.bCtx);
+    expect(await db.qualificationType.count({ where: { companyId: w.a.companyId } })).toBe(before);
+  },
+  "jobProfile.list": async () => {
+    expect((await jobProfileService.list(w.bCtx)).map((p) => p.id)).not.toContain(w.hr.profile);
+  },
+  "jobProfile.create": async () => {
+    expect((await jobProfileService.create(w.bCtx, { name: "A profile" })).companyId).toBe(w.b.companyId);
+  },
+  "jobProfile.update": () => expectNotFound(jobProfileService.update(w.bCtx, w.hr.profile, { name: "X" })),
+  "jobProfile.archive": () => expectNotFound(jobProfileService.archive(w.bCtx, w.hr.profile)),
+  "jobProfile.addRequirement": async () => {
+    await expectNotFound(jobProfileService.addRequirement(w.bCtx, w.hr.profile, { kind: "QUALIFICATION", qualificationTypeId: w.bhr.type }));
+    await expectRejected(jobProfileService.addRequirement(w.bCtx, w.bhr.profile, { kind: "QUALIFICATION", qualificationTypeId: w.hr.type }));
+    await expectRejected(jobProfileService.addRequirement(w.bCtx, w.bhr.profile, { kind: "COMPETENCE", areaId: w.hr.area, minLevel: "2" }));
+  },
+  "jobProfile.removeRequirement": () => expectNotFound(jobProfileService.removeRequirement(w.bCtx, w.hr.requirement)),
+  "hrCard.myEmployeeId": async () => {
+    expect(await hrCardService.myEmployeeId(w.bCtx)).toBe(w.bhr.employee);
+  },
+  "hrCard.get": () => expectNotFound(hrCardService.get(w.bCtx, w.hr.worker)),
+  "hrCard.updateEmployment": async () => {
+    await expectNotFound(hrCardService.updateEmployment(w.bCtx, w.hr.worker, { team: "B" }));
+    await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { supervisorId: w.ids.employee }));
+    await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { jobProfileId: w.hr.profile }));
+  },
+  "hrCard.updatePersonal": () => expectNotFound(hrCardService.updatePersonal(w.bCtx, w.hr.worker, { phone: "1" })),
+  "hrCard.updateDriving": () => expectNotFound(hrCardService.updateDriving(w.bCtx, w.hr.worker, { driverLicenceClasses: ["B"] })),
+  "competenceAssessment.create": async () => {
+    await expectNotFound(assessmentService.create(w.bCtx, w.hr.worker, { areaId: w.bhr.area, assessedOn: "2026-10-01" }));
+    await expectRejected(assessmentService.create(w.bCtx, w.bhr.employee, { areaId: w.hr.area, assessedOn: "2026-10-01" }));
+    await expectRejected(assessmentService.create(w.bCtx, w.bhr.employee, { areaId: w.bhr.area, actionOwnerEmployeeId: w.hr.worker, assessedOn: "2026-10-01" }));
+  },
+  "competenceAssessment.update": () => expectNotFound(assessmentService.update(w.bCtx, w.hr.draft, { areaId: w.bhr.area, assessedOn: "2026-10-01" })),
+  "competenceAssessment.publish": () => expectNotFound(assessmentService.publish(w.bCtx, w.hr.draft)),
+  "competenceAssessment.discardDraft": () => expectNotFound(assessmentService.discardDraft(w.bCtx, w.hr.draft)),
+  "competenceAssessment.comment": () => expectNotFound(assessmentService.comment(w.bCtx, w.hr.published, { comment: "x" })),
+  "competenceAssessment.completeAction": () => expectNotFound(assessmentService.completeAction(w.bCtx, w.hr.published)),
+  "competenceAssessment.createSelf": async () => {
+    await expectNotFound(assessmentService.createSelf(w.bCtx, w.hr.worker, { areaId: w.bhr.area, assessedOn: "2026-10-01" }));
+    await expectRejected(assessmentService.createSelf(w.bCtx, w.bhr.employee, { areaId: w.hr.area, assessedOn: "2026-10-01" }));
+  },
+  "training.add": () => expectNotFound(trainingService.add(w.bCtx, w.hr.worker, { name: "X", completedOn: "2026-01-01" })),
+  "training.update": () => expectNotFound(trainingService.update(w.bCtx, w.hr.training, { name: "X", completedOn: "2026-01-01" })),
+  "training.verify": () => expectNotFound(trainingService.verify(w.bCtx, w.hr.training)),
+  "training.archive": () => expectNotFound(trainingService.archive(w.bCtx, w.hr.training)),
+  "qualification.add": async () => {
+    await expectNotFound(qualificationService.add(w.bCtx, w.hr.worker, { name: "X", noExpiry: "on" }));
+    await expectRejected(qualificationService.add(w.bCtx, w.bhr.employee, { typeId: w.hr.type, noExpiry: "on" }));
+  },
+  "qualification.update": () => expectNotFound(qualificationService.update(w.bCtx, w.hr.qualification, { name: "X", noExpiry: "on" })),
+  "qualification.renew": () => expectNotFound(qualificationService.renew(w.bCtx, w.hr.qualification, { name: "X", noExpiry: "on" })),
+  "qualification.verify": () => expectNotFound(qualificationService.verify(w.bCtx, w.hr.qualification)),
+  "qualification.archive": () => expectNotFound(qualificationService.archive(w.bCtx, w.hr.qualification)),
+  "orientation.add": () => expectNotFound(orientationService.add(w.bCtx, w.hr.worker, { scope: "COMPANY", topic: "X", instructorName: "X" })),
+  "orientation.update": () => expectNotFound(orientationService.update(w.bCtx, w.hr.orientation, { scope: "COMPANY", topic: "X", instructorName: "X" })),
+  "orientation.acknowledge": () => expectNotFound(orientationService.acknowledge(w.bCtx, w.hr.orientation)),
+  "orientation.archive": () => expectNotFound(orientationService.archive(w.bCtx, w.hr.orientation)),
+  "equipmentAuthorization.add": async () => {
+    await expectNotFound(authorizationService.add(w.bCtx, w.hr.worker, { target: "X", grantedOn: "2026-01-01" }));
+    await expectRejected(authorizationService.add(w.bCtx, w.bhr.employee, { target: "X", equipmentTypeId: w.ids.equipmentType, grantedOn: "2026-01-01" }));
+  },
+  "equipmentAuthorization.update": () => expectNotFound(authorizationService.update(w.bCtx, w.hr.authorization, { target: "X", grantedOn: "2026-01-01" })),
+  "equipmentAuthorization.archive": () => expectNotFound(authorizationService.archive(w.bCtx, w.hr.authorization)),
+  "employeeLanguage.save": () => expectNotFound(languageService.save(w.bCtx, w.hr.worker, { language: "en", source: "SUPERVISOR" })),
+  "employeeLanguage.remove": () => expectNotFound(languageService.remove(w.bCtx, w.hr.language)),
+  "clothing.issue": () => expectNotFound(clothingService.issue(w.bCtx, w.hr.worker, { product: "X", issuedOn: "2026-01-01" })),
+  "clothing.cancel": () => expectNotFound(clothingService.cancel(w.bCtx, w.hr.clothing)),
+  "companyItem.add": () => expectNotFound(companyItemService.add(w.bCtx, w.hr.worker, { name: "X", itemType: "OTHER", issuedOn: "2026-01-01" })),
+  "companyItem.update": () => expectNotFound(companyItemService.update(w.bCtx, w.hr.item, { name: "X", itemType: "OTHER", issuedOn: "2026-01-01" })),
+  "companyItem.acknowledge": () => expectNotFound(companyItemService.acknowledge(w.bCtx, w.hr.item)),
+  "employeeFile.list": () => expectNotFound(employeeFileService.list(w.bCtx, w.hr.worker)),
+  "employeeFile.upload": async () => {
+    const pdf = { fileName: "b.pdf", bytes: new TextEncoder().encode("%PDF-1.4 B") };
+    await expectNotFound(employeeFileService.upload(w.bCtx, w.hr.worker, { kind: "OTHER" }, pdf));
+    await expectRejected(employeeFileService.upload(w.bCtx, w.bhr.employee, { kind: "CERTIFICATE", targetType: "QUALIFICATION", targetId: w.hr.qualification }, pdf));
+  },
+  "employeeFile.uploadPhoto": () => expectNotFound(employeeFileService.uploadPhoto(w.bCtx, w.hr.worker, { fileName: "b.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) })),
+  "employeeFile.rename": () => expectNotFound(employeeFileService.rename(w.bCtx, w.hr.file, { displayName: "X" })),
+  "employeeFile.archive": () => expectNotFound(employeeFileService.archive(w.bCtx, w.hr.file)),
+  "employeeFile.download": async () => {
+    await expectNotFound(employeeFileService.download(w.bCtx, w.hr.file));
+    await expectNotFound(employeeFileService.download(w.bCtx, w.hr.photo));
+  },
+  "hrOverview.matrix": async () => {
+    const m = await hrOverviewService.matrix(w.bCtx, { allAreas: true });
+    expect(m.rows.map((r) => r.employee.id)).not.toContain(w.hr.worker);
+    expect(m.areas.map((a) => a.id)).not.toContain(w.hr.area);
+  },
+  "hrOverview.qualifications": async () => {
+    const q = await hrOverviewService.qualifications(w.bCtx, { employeeId: w.hr.worker });
+    expect(q.rows).toEqual([]);
+    expect(JSON.stringify(await hrOverviewService.qualifications(w.bCtx))).not.toContain(w.hr.qualification);
+  },
+  "hrOverview.overview": async () => {
+    expect(JSON.stringify(await hrOverviewService.overview(w.bCtx))).not.toContain(w.hr.worker);
+  },
+  "hrOverview.search": async () => {
+    const r = await hrOverviewService.search(w.bCtx, { language: "fi" });
+    expect(r.employees.map((e) => e.id)).not.toContain(w.hr.worker);
+    expect(JSON.stringify(await hrOverviewService.search(w.bCtx, { areaId: w.hr.area, minLevel: "1" }))).not.toContain(w.hr.worker);
+  },
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -1047,5 +1265,12 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.document.findUniqueOrThrow({ where: { id: w.ids.document } })).sharedWithClient).toBe(false);
     expect((await db.aiRecommendation.findUniqueOrThrow({ where: { id: w.v8.recommendation } })).status).toBe("PROPOSED");
     expect(await db.aiRun.count({ where: { companyId: w.a.companyId } })).toBe(1);
+    expect((await db.competenceAssessment.findUniqueOrThrow({ where: { id: w.hr.draft } })).status).toBe("DRAFT");
+    expect((await db.competenceAssessment.findUniqueOrThrow({ where: { id: w.hr.published } })).employeeComment).toBeNull();
+    expect((await db.employeeQualification.findUniqueOrThrow({ where: { id: w.hr.qualification } })).replacedAt).toBeNull();
+    expect((await db.employeeFile.findUniqueOrThrow({ where: { id: w.hr.file } })).archivedAt).toBeNull();
+    expect((await db.clothingIssue.findUniqueOrThrow({ where: { id: w.hr.clothing } })).archivedAt).toBeNull();
+    expect((await db.companyItem.findUniqueOrThrow({ where: { id: w.hr.item } })).acknowledgedAt).toBeNull();
+    expect((await db.employee.findUniqueOrThrow({ where: { id: w.hr.worker } })).team).toBe("A team");
   });
 });

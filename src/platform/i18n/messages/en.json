@@ -1885,7 +1885,10 @@
     "signInSubject": "Sign-in link – SK Management",
     "signInBody": "Hello {name},\n\nsign in to SK Management with this link:\n{link}\n\nThe link is valid for {minutes} minutes and works once. If you did not ask for it, you can ignore this message.",
     "seriousIncidentSubject": "SERIOUS INCIDENT – {project} #{number}",
-    "seriousIncidentBody": "An incident #{number} has been reported in project {project} (severity: {severity}).\n\nOpen the report: {link}\n\nThis message contains no personal data."
+    "seriousIncidentBody": "An incident #{number} has been reported in project {project} (severity: {severity}).\n\nOpen the report: {link}\n\nThis message contains no personal data.",
+    "expiryReminderSubject": "Reminder: {name} expires on {date}",
+    "expiryReminderOwnerBody": "Hello,\n\nyour card or qualification \"{name}\" expires on {date}. Please renew it in time and add the new certificate to your personnel card.\n\nPersonnel card: {link}\n\nThis is an automatic reminder from SK Management.",
+    "expiryReminderMaintenanceBody": "Hello,\n\nthe card or qualification \"{name}\" of {employee} expires on {date}.\n\nPersonnel card: {link}\n\nThis is an automatic reminder from SK Management."
   },
   "hse": {
     "incidentSeverity": {
