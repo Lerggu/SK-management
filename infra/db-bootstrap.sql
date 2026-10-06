@@ -19,4 +19,9 @@ GRANT sk_app TO sk_owner WITH ADMIN OPTION;
 -- PostgreSQL 16: the administrator must be able to SET ROLE sk_owner to make it the owner.
 GRANT sk_owner TO CURRENT_USER;
 CREATE DATABASE sk_management OWNER sk_owner;
+
+-- On Azure the new database's `public` schema is not owned by the database
+-- owner, so migrations would fail with "permission denied for schema public".
+\connect sk_management
+ALTER SCHEMA public OWNER TO sk_owner;
 REVOKE sk_owner FROM CURRENT_USER;
