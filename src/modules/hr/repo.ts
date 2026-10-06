@@ -35,6 +35,19 @@ export class HrRepo {
     return this.tx.employee.findMany({ where: { ...this.c, ...where }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] });
   }
 
+  /** Active and invited members of the company with their user. */
+  companyMembers() {
+    return this.tx.companyMembership.findMany({
+      where: { ...this.c, status: { in: ["ACTIVE", "INVITED"] } },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  employeeLinkedTo(userId: string, exceptEmployeeId: string) {
+    return this.tx.employee.findFirst({ where: { ...this.c, userId, archivedAt: null, id: { not: exceptEmployeeId } } });
+  }
+
   findUser(id: string) {
     return this.tx.user.findUnique({ where: { id }, select: { id: true, email: true, name: true, locale: true } });
   }

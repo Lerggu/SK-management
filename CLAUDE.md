@@ -10,6 +10,7 @@ Read both fully before any architectural change. If this file and the Build Mast
 
 ## Current release: V8 — AI & Optimization (APPROVED by owner 2026-10-05; stop report delivered)
 V1–V7 are complete (`docs/V1_REPORT.md` … `docs/V7_REPORT.md`). V8 scope and owner decisions: `docs/V8_PLAN.md` (RLS first; AI Project Controller on the Claude API; 10 €/month/company cap; no personal data; `ai.use`); report: `docs/V8_REPORT.md`.
+HR extension (owner request 2026-10-06): personnel card, competence matrix, assessments, cards with e-mail reminders, orientations, permits, clothing and company items — `docs/adr/0025-hr-competence.md`, user guide `docs/HR_GUIDE.md`.
 The AI Logistics Controller (§27) and resource optimization are deferred: do not start them without explicit owner approval. Never put API keys in files or commits; `SK_ANTHROPIC_API_KEY`/`ANTHROPIC_API_KEY` come from the environment only.
 
 ## Owner requirements (binding)

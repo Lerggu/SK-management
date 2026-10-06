@@ -32,6 +32,11 @@ function toEmployeeView(ctx: RequestContext, e: EmployeeRow, rates?: RateRow[]) 
     endDate: e.endDate,
     notes: e.notes,
     shareableInGroup: e.shareableInGroup,
+    // HR card organisation fields (not sensitive; ADR 0025)
+    supervisorId: e.supervisorId,
+    team: e.team,
+    location: e.location,
+    jobProfileId: e.jobProfileId,
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
     archivedAt: e.archivedAt,
@@ -84,7 +89,11 @@ export const employeeService = {
 
   async update(ctx: RequestContext, employeeId: string, input: EmployeeInput) {
     requirePermission(ctx, "employee.manage");
-    const data = parseInput(employeeSchema, input);
+    const parsed = parseInput(employeeSchema, input);
+    // The edit form does not carry the linked user (set on the HR card): keep it unless given.
+    const keepUser = !(input && Object.prototype.hasOwnProperty.call(input, "userId"));
+    const data: Partial<typeof parsed> = { ...parsed };
+    if (keepUser) delete data.userId;
     return conflictOnNumber(
       runInTransaction(async (tx) => {
         const repo = new EmployeeRepo(tx, ctx.company.id);

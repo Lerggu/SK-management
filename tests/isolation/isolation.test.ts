@@ -1112,10 +1112,16 @@ const cases: Record<string, Case> = {
     expect(await hrCardService.myEmployeeId(w.bCtx)).toBe(w.bhr.employee);
   },
   "hrCard.get": () => expectNotFound(hrCardService.get(w.bCtx, w.hr.worker)),
+  "hrCard.linkableUsers": async () => {
+    const users = await hrCardService.linkableUsers(w.bCtx);
+    expect(users.map((u) => u.id)).not.toContain(w.ids.memberUserId);
+    expect(users.map((u) => u.id)).not.toContain(w.a.owner.user.id);
+  },
   "hrCard.updateEmployment": async () => {
     await expectNotFound(hrCardService.updateEmployment(w.bCtx, w.hr.worker, { team: "B" }));
     await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { supervisorId: w.ids.employee }));
     await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { jobProfileId: w.hr.profile }));
+    await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { userId: w.ids.memberUserId }));
   },
   "hrCard.updatePersonal": () => expectNotFound(hrCardService.updatePersonal(w.bCtx, w.hr.worker, { phone: "1" })),
   "hrCard.updateDriving": () => expectNotFound(hrCardService.updateDriving(w.bCtx, w.hr.worker, { driverLicenceClasses: ["B"] })),

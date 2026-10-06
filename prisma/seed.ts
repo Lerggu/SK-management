@@ -39,6 +39,10 @@ import { hseActionService, hseObservationService, incidentService } from "@/modu
 import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
 import { addDays, isoDateString, weekStart } from "@/modules/timesheets/rules";
 import { todayInDisplayZone } from "@/platform/i18n/config";
+import { competenceAreaService, hrSettingsService, jobProfileService, qualificationTypeService } from "@/modules/hr/settings.service";
+import { assessmentService, authorizationService, clothingService, companyItemService, hrCardService, languageService, orientationService, qualificationService, trainingService } from "@/modules/hr/card.service";
+import { addCalendarMonths } from "@/modules/hr/rules";
+
 
 const meta: RequestMeta = { requestId: "seed", ip: null, userAgent: "seed" };
 const ORG_SLUG = "sk-group-demo";
@@ -53,6 +57,7 @@ const SK_USERS = [
   { email: "lifting@skinfra.example.com", name: "Ville Vinssi", role: "LIFTING_SUPERVISOR" },
   { email: "hse@skinfra.example.com", name: "Riikka Harjoitus", role: "HSE" },
   { email: "employee@skinfra.example.com", name: "Timo Tyyppi", role: "EMPLOYEE" },
+  { email: "hr@skinfra.example.com", name: "Helena Henkilöstö", role: "HR_ADMIN" },
   { email: "subcontractor@example.com", name: "Aliurakka Demo Oy", role: "SUBCONTRACTOR" },
   { email: "client@example.com", name: "Asiakas Demo", role: "CLIENT" },
 ] as const;
@@ -190,7 +195,7 @@ async function main() {
     { employeeNumber: "E-1005", firstName: "Juha", lastName: "Testi", trade: "Logistiikka", jobTitle: "Site logistics", cost: "35.00", billing: "55.00" },
     { employeeNumber: "E-1006", firstName: "Minna", lastName: "Kuvitteellinen", trade: "Telinerakentaja", jobTitle: "Scaffolder", cost: "37.00", billing: "58.00" },
   ];
-  const createdEmployees = [];
+  const createdEmployees: Awaited<ReturnType<typeof employeeService.create>>[] = [];
   for (const e of employees) {
     const emp = await employeeService.create(skCeo, {
       employeeNumber: e.employeeNumber,
@@ -629,8 +634,75 @@ async function main() {
   await aiProjectControllerService.review(pmCtx, ndc.id);
   setAiProviderForTests(undefined);
 
+
+  // ── HR: personnel cards, competence and cards (fictional, ADR 0025) ──
+  const hrCtx = await ctxFor("hr@skinfra.example.com", "sk-infra-demo");
+  const day = (months: number, days = 0) => {
+    const d = new Date(`${addCalendarMonths(todayInDisplayZone(), months)}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+  await hrSettingsService.update(hrCtx, { reminderEmail: "henkilosto@skinfra.example.com" });
+  await competenceAreaService.addSuggested(hrCtx);
+  await qualificationTypeService.addSuggested(hrCtx);
+  const areas = await competenceAreaService.list(hrCtx);
+  const qTypes = await qualificationTypeService.list(hrCtx);
+  const area = (name: string) => areas.find((a) => a.name === name)!.id;
+  const qType = (name: string) => qTypes.find((x) => x.name === name)!.id;
+  const byNumber = (n: string) => createdEmployees.find((e) => e.employeeNumber === n)!.id;
+  const [timo, sanna, pekka] = [byNumber("E-1007"), byNumber("E-1008"), byNumber("E-1009")];
+  await hrCardService.updateEmployment(hrCtx, sanna, { supervisorId: pekka, team: "Kaapelitiimi", location: "Vantaa" });
+  for (const n of ["E-1001", "E-1002", "E-1003", "E-1004", "E-1007"]) await hrCardService.updateEmployment(hrCtx, byNumber(n), { supervisorId: sanna, team: "Kaapelitiimi", location: "Vantaa" });
+  const profile = await jobProfileService.create(hrCtx, { name: "Sähköasentaja (työmaa)", description: "Kaapeli- ja asennustyöt työmaalla" });
+  await jobProfileService.addRequirement(hrCtx, profile.id, { kind: "QUALIFICATION", qualificationTypeId: qType("Työturvallisuuskortti") });
+  await jobProfileService.addRequirement(hrCtx, profile.id, { kind: "QUALIFICATION", qualificationTypeId: qType("Sähkötyöturvallisuus (SFS 6002)") });
+  await jobProfileService.addRequirement(hrCtx, profile.id, { kind: "COMPETENCE", areaId: area("Työmaan turvallisuus"), minLevel: "3" });
+  await jobProfileService.addRequirement(hrCtx, profile.id, { kind: "ORIENTATION", orientationScope: "SITE", orientationTopic: "Työmaaperehdytys" });
+  for (const id of [timo, byNumber("E-1001")]) await hrCardService.updateEmployment(hrCtx, id, { jobProfileId: profile.id });
+
+  // Supervisor (Sanna) assesses Timo; one draft stays unpublished.
+  await assessmentService.create(supervisorCtx, timo, { areaId: area("Työmaan turvallisuus"), level: "3", observations: "Noudattaa työmaan turvallisuusohjeita oma-aloitteisesti.", strengths: "Huolellinen ja ennakoiva", assessedOn: day(-2), nextAssessmentOn: day(10), publish: "on" });
+  await assessmentService.create(supervisorCtx, timo, {
+    areaId: area("Piirustusten ja suunnitelmien lukeminen"),
+    level: "2",
+    observations: "Lukee kaapelireittipiirustuksia ohjattuna.",
+    developmentAreas: "Sähköpiirustusten symbolit",
+    agreedActions: "Piirustustenluvun koulutus",
+    actionOwnerEmployeeId: sanna,
+    actionDueOn: day(2),
+    assessedOn: day(-2),
+    nextAssessmentOn: day(1, 5),
+    publish: "on",
+  });
+  await assessmentService.create(supervisorCtx, timo, { areaId: area("Kaivannot ja luiskat"), level: "1", observations: "Luonnos: arvioidaan seuraavalla työmaakäynnillä.", assessedOn: day(0) });
+  await assessmentService.createSelf(employeeCtx, timo, { areaId: area("Piirustusten ja suunnitelmien lukeminen"), level: "3", observations: "Osaan perusreitit itsenäisesti.", assessedOn: day(0), publish: "on" });
+  await assessmentService.create(supervisorCtx, byNumber("E-1001"), { areaId: area("Työmaan turvallisuus"), level: "4", assessedOn: day(-1), publish: "on" });
+  await assessmentService.create(supervisorCtx, byNumber("E-1002"), { areaId: area("Koneohjaus"), level: "2", assessedOn: day(-1), publish: "on" });
+
+  // Cards: one expiring within a month (reminder), one expired, one valid.
+  await qualificationService.add(hrCtx, timo, { typeId: qType("Työturvallisuuskortti"), issuer: "Työturvallisuuskeskus TTK", cardNumber: "TTK-DEMO-1007", issuedOn: day(-59), expiresOn: day(0, 20), remindBeforeExpiry: "on" });
+  await qualificationService.add(hrCtx, timo, { typeId: qType("Tulityökortti"), issuedOn: day(-62), expiresOn: day(-2), remindBeforeExpiry: "on" });
+  await qualificationService.add(hrCtx, timo, { typeId: qType("Ensiapu EA1"), issuedOn: day(-6), expiresOn: day(30) });
+  await qualificationService.add(employeeCtx, timo, { typeId: qType("Ajokortti"), name: "Ajokortti B", noExpiry: "on" });
+  await qualificationService.add(hrCtx, byNumber("E-1001"), { typeId: qType("Työturvallisuuskortti"), issuedOn: day(-12), expiresOn: day(48), remindBeforeExpiry: "on" });
+  await qualificationService.add(hrCtx, byNumber("E-1001"), { typeId: qType("Sähkötyöturvallisuus (SFS 6002)"), issuedOn: day(-24), expiresOn: day(36), remindBeforeExpiry: "on" });
+  await trainingService.add(supervisorCtx, timo, { name: "Piirustustenluvun koulutus", provider: "Demo Koulutus Oy", status: "PLANNED", plannedOn: day(1) });
+  await trainingService.add(hrCtx, timo, { name: "Kaapelinvetäjän peruskurssi", provider: "Demo Koulutus Oy", completedOn: day(-14) });
+  await orientationService.add(supervisorCtx, timo, { scope: "SITE", topic: "Työmaaperehdytys", target: "Nordic Data Center Demo", instructorName: "Sanna Testi", status: "DONE", completedOn: day(-1) });
+  await orientationService.add(supervisorCtx, timo, { scope: "COMPANY", topic: "Yrityksen yleisperehdytys", instructorName: "Helena Henkilöstö", status: "IN_PROGRESS" });
+  await authorizationService.add(supervisorCtx, timo, { target: "Henkilönostin (saksilava)", grantedOn: day(-3), expiresOn: day(9) });
+  await languageService.save(employeeCtx, timo, { language: "fi", speaking: "NATIVE", understanding: "NATIVE", reading: "NATIVE", writing: "NATIVE", source: "SELF" });
+  await languageService.save(supervisorCtx, timo, { language: "en", speaking: "BASIC", understanding: "FLUENT", reading: "BASIC", writing: "BEGINNER", source: "SUPERVISOR" });
+  await languageService.save(supervisorCtx, byNumber("E-1002"), { language: "et", speaking: "NATIVE", understanding: "NATIVE", reading: "NATIVE", writing: "NATIVE", source: "SUPERVISOR", notes: "Suomi perustasoa" });
+  await languageService.save(supervisorCtx, byNumber("E-1002"), { language: "fi", speaking: "BASIC", understanding: "BASIC", reading: "BEGINNER", writing: "BEGINNER", source: "SUPERVISOR" });
+  await hrCardService.updatePersonal(employeeCtx, timo, { phone: "+358 40 000 1007", emergencyContactName: "Tiina Tyyppi", emergencyContactPhone: "+358 40 000 9999", preferredLanguage: "fi", jacketSize: "L", trousersSize: "C52", shoeSize: "44" });
+  await clothingService.issue(hrCtx, timo, { product: "Huomiotakki, luokka 3", size: "L", quantity: "1", issuedOn: day(-3) });
+  await clothingService.issue(hrCtx, timo, { product: "Turvajalkineet S3", size: "44", quantity: "1", issuedOn: day(-3) });
+  await companyItemService.add(hrCtx, timo, { name: "Työpuhelin", itemType: "PHONE", brand: "Demo", model: "X1", serialNumber: "DEMO-IMEI-1007", issuedOn: day(-3), conditionAtIssue: "Uusi" });
+  await companyItemService.add(hrCtx, timo, { name: "Valjaat", itemType: "HARNESS", brand: "Demo", serialNumber: "VAL-0007", issuedOn: day(-3), conditionAtIssue: "Hyvä", nextInspectionOn: day(0, 14) });
+
   console.log("✔ Seed complete (fictional data).");
-  console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, pd@skinfra.example.com, hse@skinfra.example.com, client@example.com (client approver), subcontractor@example.com, ceo@purent.example.com …");
+  console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, pd@skinfra.example.com, hse@skinfra.example.com, hr@skinfra.example.com (HR admin), client@example.com (client approver), subcontractor@example.com, ceo@purent.example.com …");
 }
 
 main()

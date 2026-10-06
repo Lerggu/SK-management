@@ -45,6 +45,20 @@ import { clientApprovalService } from "@/modules/commercial/client-approval.serv
 import { hseActionService, hseObservationService, hseOverviewService, hsePhotoService, incidentService } from "@/modules/hse/hse.service";
 import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
 import { portalService } from "@/modules/portal/service";
+import { competenceAreaService, hrSettingsService, jobProfileService, qualificationTypeService } from "@/modules/hr/settings.service";
+import {
+  assessmentService,
+  authorizationService,
+  clothingService,
+  companyItemService,
+  hrCardService,
+  languageService,
+  orientationService,
+  qualificationService,
+  trainingService,
+} from "@/modules/hr/card.service";
+import { employeeFileService } from "@/modules/hr/files.service";
+import { hrOverviewService } from "@/modules/hr/overview.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Role = "CLIENT" | "CLIENT_APPROVER" | "SUBCONTRACTOR";
@@ -112,7 +126,48 @@ const ALLOWED_WRITES: Record<string, Role[]> = {
   "company.rememberCompany": ["CLIENT", "CLIENT_APPROVER", "SUBCONTRACTOR"],
 };
 
+// HR fixtures (ADR 0025): created after the main fixture.
+const hr = { area: "", qualification: "", training: "", orientation: "", authorization: "", language: "", clothing: "", item: "", file: "", draft: "", published: "", type: "", profile: "", requirement: "" };
+
+
+const hrPdf = () => ({ fileName: "x.pdf", bytes: new TextEncoder().encode("%PDF-1.4 x") });
+
 const CALLS: Record<string, Call> = {
+  // HR (ADR 0025): external parties never get HR access.
+  "hr.settings.get": r("hrSettings", (c) => hrSettingsService.get(c)),
+  "hr.settings.update": w("hrSettings", (c) => hrSettingsService.update(c, { reminderEmail: "x@example.test" })),
+  "hr.settings.runReminders": w("hrSettings", (c) => hrSettingsService.runReminders(c)),
+  "hr.area.list": r("competenceArea", (c) => competenceAreaService.list(c)),
+  "hr.area.create": w("competenceArea", (c) => competenceAreaService.create(c, { category: "X", name: uniq("x") })),
+  "hr.area.archive": w("competenceArea", (c) => competenceAreaService.archive(c, hr.area)),
+  "hr.type.list": r("qualificationType", (c) => qualificationTypeService.list(c)),
+  "hr.type.create": w("qualificationType", (c) => qualificationTypeService.create(c, { name: uniq("x") })),
+  "hr.profile.list": r("jobProfile", (c) => jobProfileService.list(c)),
+  "hr.profile.addRequirement": w("jobProfile", (c) => jobProfileService.addRequirement(c, hr.profile, { kind: "QUALIFICATION", qualificationTypeId: hr.type })),
+  "hr.card.get": r("hrCard", (c) => hrCardService.get(c, f.employee)),
+  "hr.card.myEmployeeId": r("hrCard", (c) => hrCardService.myEmployeeId(c)),
+  "hr.card.linkableUsers": r("hrCard", (c) => hrCardService.linkableUsers(c)),
+  "hr.card.updatePersonal": w("hrCard", (c) => hrCardService.updatePersonal(c, f.employee, { phone: "1" })),
+  "hr.card.updateEmployment": w("hrCard", (c) => hrCardService.updateEmployment(c, f.employee, { team: "x" })),
+  "hr.assessment.create": w("competenceAssessment", (c) => assessmentService.create(c, f.employee, { areaId: hr.area, assessedOn: "2026-10-01" })),
+  "hr.assessment.publish": w("competenceAssessment", (c) => assessmentService.publish(c, hr.draft)),
+  "hr.assessment.comment": w("competenceAssessment", (c) => assessmentService.comment(c, hr.published, { comment: "x" })),
+  "hr.training.add": w("training", (c) => trainingService.add(c, f.employee, { name: "x", completedOn: "2026-01-01" })),
+  "hr.training.verify": w("training", (c) => trainingService.verify(c, hr.training)),
+  "hr.qualification.add": w("qualification", (c) => qualificationService.add(c, f.employee, { name: "x", noExpiry: "on" })),
+  "hr.qualification.renew": w("qualification", (c) => qualificationService.renew(c, hr.qualification, { name: "x", noExpiry: "on" })),
+  "hr.orientation.acknowledge": w("orientation", (c) => orientationService.acknowledge(c, hr.orientation)),
+  "hr.authorization.add": w("equipmentAuthorization", (c) => authorizationService.add(c, f.employee, { target: "x", grantedOn: "2026-01-01" })),
+  "hr.language.save": w("employeeLanguage", (c) => languageService.save(c, f.employee, { language: "en", source: "SELF" })),
+  "hr.clothing.cancel": w("clothing", (c) => clothingService.cancel(c, hr.clothing)),
+  "hr.item.acknowledge": w("companyItem", (c) => companyItemService.acknowledge(c, hr.item)),
+  "hr.file.list": r("employeeFile", (c) => employeeFileService.list(c, f.employee)),
+  "hr.file.download": r("employeeFile", (c) => employeeFileService.download(c, hr.file)),
+  "hr.file.upload": w("employeeFile", (c) => employeeFileService.upload(c, f.employee, { kind: "OTHER" }, hrPdf())),
+  "hr.overview.matrix": r("hrOverview", (c) => hrOverviewService.matrix(c)),
+  "hr.overview.qualifications": r("hrOverview", (c) => hrOverviewService.qualifications(c)),
+  "hr.overview.overview": r("hrOverview", (c) => hrOverviewService.overview(c)),
+  "hr.overview.search": r("hrOverview", (c) => hrOverviewService.search(c, { q: "SECRET" })),
   "company.getSettings": r("companyAdmin", (c) => companyAdminService.getSettings(c)),
   "company.listMembers": r("companyAdmin", (c) => companyAdminService.listMembers(c)),
   "company.listRoles": r("companyAdmin", (c) => companyAdminService.listRoles(c)),
@@ -249,6 +304,9 @@ const FORBIDDEN_KEYS = new Set([
   "bodyPart",
   "phone",
   "rootCause",
+  "emergencyContactName",
+  "emergencyContactPhone",
+  "employeeComment",
 ]);
 
 /** Paths of forbidden, non-null fields in a JSON-able value. */
@@ -403,6 +461,25 @@ async function attempt(p: Promise<unknown>): Promise<Outcome> {
     throw e;
   }
 }
+
+// Registered after the main fixture so `f` exists.
+beforeAll(async () => {
+  const o = f.t.ownerCtx;
+  hr.area = (await competenceAreaService.create(o, { category: "SECRET", name: "SECRET area" })).id;
+  hr.type = (await qualificationTypeService.create(o, { name: "SECRET card" })).id;
+  hr.profile = (await jobProfileService.create(o, { name: "SECRET job" })).id;
+  hr.requirement = (await jobProfileService.addRequirement(o, hr.profile, { kind: "QUALIFICATION", qualificationTypeId: hr.type })).id;
+  hr.draft = (await assessmentService.create(o, f.employee, { areaId: hr.area, assessedOn: "2026-09-01" })).id;
+  hr.published = (await assessmentService.create(o, f.employee, { areaId: hr.area, level: "2", agreedActions: "SECRET", assessedOn: "2026-09-02", publish: "on" })).id;
+  hr.qualification = (await qualificationService.add(o, f.employee, { name: "SECRET card", noExpiry: "on" })).id;
+  hr.training = (await trainingService.add(o, f.employee, { name: "SECRET training", completedOn: "2026-01-01" })).id;
+  hr.orientation = (await orientationService.add(o, f.employee, { scope: "SITE", topic: "SECRET", instructorName: "SECRET" })).id;
+  hr.authorization = (await authorizationService.add(o, f.employee, { target: "SECRET", grantedOn: "2026-01-01" })).id;
+  hr.language = (await languageService.save(o, f.employee, { language: "fi", source: "SUPERVISOR" })).id;
+  hr.clothing = (await clothingService.issue(o, f.employee, { product: "SECRET", issuedOn: "2026-01-01" })).id;
+  hr.item = (await companyItemService.add(o, f.employee, { name: "SECRET", itemType: "OTHER", issuedOn: "2026-01-01" })).id;
+  hr.file = (await employeeFileService.upload(o, f.employee, { kind: "OTHER" }, { fileName: "s.pdf", bytes: new TextEncoder().encode("%PDF-1.4 SECRET") })).id;
+});
 
 describe("external boundary: every service is exercised", () => {
   it.each(Object.keys(SERVICE_REGISTRY).filter((s) => s !== "companyDirectory"))("%s has at least one external boundary call", (service) => {

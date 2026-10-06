@@ -1,6 +1,6 @@
 import type { RequestContext } from "@/platform/authz";
 
-export type NavKey = "dashboard" | "portal" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "hse" | "sales" | "billing" | "workforce" | "equipment" | "documents" | "settings";
+export type NavKey = "dashboard" | "portal" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "hse" | "sales" | "billing" | "workforce" | "myCard" | "equipment" | "documents" | "settings";
 
 export interface NavItem {
   key: NavKey;
@@ -19,8 +19,11 @@ export function externalPathAllowed(ctx: RequestContext, pathname: string | null
   return rest.length > 0 && (EXTERNAL_PATHS as readonly string[]).includes(rest[0]);
 }
 
-/** Navigation filtered by capability. */
-export function navItems(ctx: RequestContext): NavItem[] {
+/**
+ * Navigation filtered by capability. `myEmployeeId` (HR, ADR 0025) adds the
+ * own personnel card for users whose account is linked to an employee.
+ */
+export function navItems(ctx: RequestContext, opts: { myEmployeeId?: string | null } = {}): NavItem[] {
   const base = `/c/${ctx.company.slug}`;
   if (ctx.external) return [{ key: "portal", href: `${base}/portal` }];
   const has = (p: Parameters<RequestContext["permissions"]["has"]>[0]) => ctx.permissions.has(p);
@@ -36,6 +39,7 @@ export function navItems(ctx: RequestContext): NavItem[] {
   if (has("crm.view")) items.push({ key: "sales", href: `${base}/sales` });
   if (has("invoice.manage") || [...ctx.projectGrants.values()].some((g) => g.has("invoice.manage"))) items.push({ key: "billing", href: `${base}/billing` });
   if (has("employee.view")) items.push({ key: "workforce", href: `${base}/workforce` });
+  if (opts.myEmployeeId) items.push({ key: "myCard", href: `${base}/workforce/${opts.myEmployeeId}` });
   if (has("equipment.view")) items.push({ key: "equipment", href: `${base}/equipment` });
   if (has("documents.view") || anyProjectGrant) items.push({ key: "documents", href: `${base}/documents` });
   if (has("company.manage") || has("company.members.manage") || has("company.roles.manage") || has("audit.view")) {

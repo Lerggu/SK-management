@@ -81,6 +81,8 @@ export type JobRequirementInput = z.input<typeof jobRequirementSchema>;
 // ── card ─────────────────────────────────────────────────────────────
 /** Employment fields of the card (employee.manage or hr.manage). */
 export const hrEmploymentSchema = z.object({
+  /** User account linked to the card ("Oma henkilöstökortti"). */
+  userId: optionalUuid(),
   supervisorId: optionalUuid(),
   team: optionalText(80),
   location: optionalText(80),

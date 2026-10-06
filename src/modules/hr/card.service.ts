@@ -1,5 +1,5 @@
 import { readClient, runInTransaction, type Tx } from "@/platform/db";
-import { NotFoundError, ValidationError } from "@/platform/errors";
+import { ForbiddenError, NotFoundError, ValidationError } from "@/platform/errors";
 import { writeAudit } from "@/platform/audit";
 import { parseInput } from "@/platform/http/validation";
 import { isSmtpConfigured } from "@/platform/config/env";
@@ -229,8 +229,11 @@ export const hrCardService = {
     return { employee: base, access, can, work, equipment };
   },
 
+  /** Updates the employment fields that are given (absent fields keep their value). */
   async updateEmployment(ctx: RequestContext, employeeId: string, input: HrEmploymentInput) {
-    const data = parseInput(hrEmploymentSchema, input);
+    const parsed = parseInput(hrEmploymentSchema, input);
+    const given = new Set(Object.keys(input ?? {}));
+    const data = Object.fromEntries(Object.entries(parsed).filter(([k]) => given.has(k))) as Partial<typeof parsed>;
     const { employee, access, viewer } = await loadEmployeeAccess(ctx, employeeId);
     allowIf(access.editEmployment);
     if (employee.archivedAt) throw new ValidationError({ _form: ["validation.archived"] });
@@ -242,6 +245,11 @@ export const hrCardService = {
         if (!sup || sup.archivedAt) throw new ValidationError({ supervisorId: ["validation.invalidOption"] });
         if (supervisorChain(sup.id, viewer.edges).includes(employee.id)) throw new ValidationError({ supervisorId: ["validation.supervisorCycle"] });
       }
+      if (data.userId) {
+        const members = await repo.companyMembers();
+        if (!members.some((m) => m.userId === data.userId)) throw new ValidationError({ userId: ["validation.invalidOption"] });
+        if (await repo.employeeLinkedTo(data.userId, employee.id)) throw new ValidationError({ userId: ["validation.userAlreadyLinked"] });
+      }
       if (data.jobProfileId) {
         const p = await repo.findProfile(data.jobProfileId);
         if (!p || p.archivedAt) throw new ValidationError({ jobProfileId: ["validation.invalidOption"] });
@@ -250,6 +258,14 @@ export const hrCardService = {
       await writeAudit(tx, ctx, { action: "employee.hr_employment_update", entityType: "employee", entityId: employee.id, before: employee, after, diff: true });
       return { id: after.id };
     });
+  },
+
+  /** Company members that can be linked to a card (employee.manage / hr.manage). */
+  async linkableUsers(ctx: RequestContext) {
+    if (ctx.external || !(ctx.permissions.has("employee.manage") || ctx.permissions.has("hr.manage"))) throw new ForbiddenError("Missing permission employee.manage");
+    const repo = new HrRepo(readClient(), ctx.company.id);
+    const [members, employees] = await Promise.all([repo.companyMembers(), repo.listEmployees({ archivedAt: null, userId: { not: null } })]);
+    return members.map((m) => ({ id: m.user.id, name: m.user.name ?? m.user.email, email: m.user.email, linkedEmployeeId: employees.find((e) => e.userId === m.user.id)?.id ?? null }));
   },
 
   async updatePersonal(ctx: RequestContext, employeeId: string, input: HrPersonalInput) {
