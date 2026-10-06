@@ -172,6 +172,16 @@ resource dbUrlSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
+// Server administrator connection: the container creates the application
+// roles and database at start (scripts/db-bootstrap.ts), so no manual SQL.
+resource dbAdminUrlSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: kv
+  name: 'database-admin-url'
+  properties: {
+    value: 'postgresql://${pgAdminLogin}:${uriComponent(pgAdminPassword)}@${pg.properties.fullyQualifiedDomainName}:5432/postgres?sslmode=require'
+  }
+}
+
 resource kvAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: kv
   name: guid(kv.id, keyVaultAdminObjectId, roles.kvSecretsOfficer)
@@ -194,6 +204,7 @@ var kvRef = 'VaultName=${kv.name};SecretName='
 var baseSettings = [
   { name: 'WEBSITES_PORT', value: '8080' }
   { name: 'DATABASE_URL', value: '@Microsoft.KeyVault(${kvRef}database-url)' }
+  { name: 'DATABASE_ADMIN_URL', value: '@Microsoft.KeyVault(${kvRef}database-admin-url)' }
   { name: 'AUTH_SECRET', value: '@Microsoft.KeyVault(${kvRef}auth-secret)' }
   { name: 'AUTH_URL', value: 'https://${webAppName}.azurewebsites.net' }
   { name: 'AUTH_TRUST_HOST', value: 'true' }
