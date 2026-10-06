@@ -7,6 +7,26 @@ Tämä ohje vie SK Managementin tuotantoon yrityksen Azure-tilaukselle. Arkkiteh
 
 > **Salaisuudet.** Salasanat ja avaimet tallennetaan vain Key Vaultiin tai salasananhallintaan. Niitä ei lähetetä sähköpostilla, Teamsissa tai chatissa, eikä niitä tallenneta GitHubiin.
 
+## Pikapolku: yksi komento (suositus)
+
+Tee ensin kohta 1: tilaus ja budjetti. Aja sitten Cloud Shellissä (Bash) **yrityksen omalla ylläpitäjätunnuksella**:
+```bash
+gh auth login        # GitHub.com → HTTPS → Login with a web browser
+gh repo clone Lerggu/SK-management && cd SK-management
+bash infra/install.sh
+```
+Skripti kysyy asetukset (oletusarvot näkyvät hakasulkeissa) ja hoitaa kohdat 3–6 automaattisesti:
+- Microsoft-kirjautumisen rekisteröinnin;
+- Azure-resurssit;
+- salaisuudet Key Vaultiin;
+- tietokannan.
+
+Ensimmäiseksi skripti näyttää, mihin hakemistoon olet kirjautunut. **Jatka vain, jos hakemisto on oikea.** Skriptin voi ajaa turvallisesti uudelleen.
+
+Lopuksi skripti tulostaa kuusi GitHub-muuttujaa. Lisää ne ja käynnistä julkaisu kohdan 7 mukaan.
+
+Alla olevat kohdat 2–6 kuvaavat samat vaiheet käsin tehtyinä. Niitä tarvitaan vain vianetsinnässä.
+
 ## Mitä asennetaan
 
 | Resurssi | Tarkoitus | Koko (pilotti) | Hinta-arvio |
