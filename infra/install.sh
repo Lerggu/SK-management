@@ -34,7 +34,9 @@ OWNER_EMAIL=$(ask "Ensimmäisen pääkäyttäjän Microsoft-sähköposti" "$(az 
 OWNER_NAME=$(ask "Pääkäyttäjän nimi" "Markku Lehkonen")
 ORG_NAME=$(ask "Konsernin nimi" "SK Group")
 COMPANIES=$(ask "Yritykset (Nimi|tunnus|Y-tunnus;…)" "Sk-Infra Oy|sk-infra|2657617-1;Purent Oy|purent|3194746-7")
-MAIL_FROM=$(ask "Sähköpostin lähettäjä" "SK Management <$OWNER_EMAIL>")
+# A re-run keeps the sender set by infra/enable-email.sh.
+CURRENT_FROM=$(az webapp config appsettings list -g "$RG" -n "$APP" --query "[?name=='MAIL_FROM'].value | [0]" -o tsv 2>/dev/null || true)
+MAIL_FROM=$(ask "Sähköpostin lähettäjä" "${CURRENT_FROM:-SK Management <$OWNER_EMAIL>}")
 GITHUB_SUBJECT=$(ask "GitHub OIDC subject" "repo:Lerggu@284750201/SK-management@1393773590:environment:production")
 URL="https://$APP.azurewebsites.net"
 REDIRECT="$URL/api/auth/callback/microsoft-entra-id"
@@ -71,13 +73,19 @@ if [ -n "$KV" ]; then
 fi
 [ -n "$PG_ADMIN_PW" ] || PG_ADMIN_PW=$(openssl rand -base64 30 | tr -d '/+=')
 [ -n "$APP_DB_PW" ] || APP_DB_PW=$(openssl rand -base64 30 | tr -d '/+=')
+# Keep e-mail and AI switched on when their secrets already exist.
+ENABLE_SMTP=false; ENABLE_AI=false
+if [ -n "$KV" ]; then
+  az keyvault secret show --vault-name "$KV" --name smtp-url -o none 2>/dev/null && ENABLE_SMTP=true
+  az keyvault secret show --vault-name "$KV" --name anthropic-api-key -o none 2>/dev/null && ENABLE_AI=true
+fi
 
 # ── 4. Azure resources ───────────────────────────────────────────────
 say "Luodaan Azure-resurssit (5–15 min)"
 ADMIN_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create -g "$RG" -n main -f infra/main.bicep \
   -p webAppName="$APP" keyVaultAdminObjectId="$ADMIN_ID" entraClientId="$APP_ID" entraTenantId="$TENANT_ID" \
-     githubOidcSubject="$GITHUB_SUBJECT" mailFrom="$MAIL_FROM" \
+     githubOidcSubject="$GITHUB_SUBJECT" mailFrom="$MAIL_FROM" enableSmtp="$ENABLE_SMTP" enableAi="$ENABLE_AI" \
      bootstrapOwnerEmail="$OWNER_EMAIL" bootstrapOwnerName="$OWNER_NAME" bootstrapOrgName="$ORG_NAME" \
      bootstrapOrgSlug="sk-group" bootstrapCompanies="$COMPANIES" \
      pgAdminPassword="$PG_ADMIN_PW" appDbPassword="$APP_DB_PW" \
