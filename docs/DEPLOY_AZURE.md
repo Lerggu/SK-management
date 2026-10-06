@@ -7,6 +7,26 @@ Tämä ohje vie SK Managementin tuotantoon yrityksen Azure-tilaukselle. Arkkiteh
 
 > **Salaisuudet.** Salasanat ja avaimet tallennetaan vain Key Vaultiin tai salasananhallintaan. Niitä ei lähetetä sähköpostilla, Teamsissa tai chatissa, eikä niitä tallenneta GitHubiin.
 
+## Pikapolku: yksi komento (suositus)
+
+Tee ensin kohta 1: tilaus ja budjetti. Aja sitten Cloud Shellissä (Bash) **yrityksen omalla ylläpitäjätunnuksella**:
+```bash
+gh auth login        # GitHub.com → HTTPS → Login with a web browser
+gh repo clone Lerggu/SK-management && cd SK-management
+bash infra/install.sh
+```
+Skripti kysyy asetukset (oletusarvot näkyvät hakasulkeissa) ja hoitaa kohdat 3–6 automaattisesti:
+- Microsoft-kirjautumisen rekisteröinnin;
+- Azure-resurssit;
+- salaisuudet Key Vaultiin;
+- tietokannan.
+
+Ensimmäiseksi skripti näyttää, mihin hakemistoon olet kirjautunut. **Jatka vain, jos hakemisto on oikea.** Skriptin voi ajaa turvallisesti uudelleen.
+
+Lopuksi skripti tulostaa kuusi GitHub-muuttujaa. Lisää ne ja käynnistä julkaisu kohdan 7 mukaan.
+
+Alla olevat kohdat 2–6 kuvaavat samat vaiheet käsin tehtyinä. Niitä tarvitaan vain vianetsinnässä.
+
 ## Mitä asennetaan
 
 | Resurssi | Tarkoitus | Koko (pilotti) | Hinta-arvio |
@@ -117,11 +137,11 @@ Jatkossa julkaisu tapahtuu automaattisesti aina, kun muutos yhdistetään `main`
 3. Kun sisäänkirjautuminen toimii, `BOOTSTRAP_*`-asetukset voi poistaa App Servicen asetuksista. Alustus ei tee mitään toista kertaa, joten poisto on vapaaehtoinen.
 
 ## 9. Valinnaiset lisäykset
-- **Sähköposti** (ulkoisten käyttäjien kirjautumislinkit ja vakavien tapaturmien hälytykset). Vaihtoehtoja on kaksi:
-  - **Microsoft 365:** luo jaettu postilaatikko tai lisenssöity tili ja salli sille *Authenticated SMTP*. Osoite on muotoa `smtp://tunnus%40yritys.fi:<salasana>@smtp.office365.com:587` (STARTTLS).
-  - **Azure Communication Services Email**, jossa on SMTP-tunnistus.
-
-  Tallenna osoite Key Vaultiin nimellä `smtp-url` ja aja vaihe 4 uudelleen parametrilla `-p enableSmtp=true`.
+- **Sähköposti** (kutsut, ulkoisten käyttäjien kirjautumislinkit ja vakavien tapaturmien hälytykset).
+  - **Suositus – yksi komento:** aja Cloud Shellissä `bash infra/enable-email.sh`. Skripti luo Azure Communication Services -sähköpostipalvelun Azuren hallinnoimalla lähettäjäosoitteella (`DoNotReply@<tunniste>.azurecomm.net`), SMTP-tunnuksen (oma Entra-sovellus, roolina vain tähän palveluun), tallentaa osoitteen Key Vaultiin nimellä `smtp-url`, asettaa sovellukselle `SMTP_URL`- ja `MAIL_FROM`-asetukset ja lähettää halutessasi testiviestin. Hinta on murto-osa sentistä viestiä kohden. Azuren hallinnoidun osoitteen lähetysraja on pieni, mutta riittää pilottiin.
+  - **Oma osoite** (esim. `noreply@skinfra.fi`): portaali → Email Communication Service → Provision domains → Custom domain, lisää annetut DNS-tietueet (TXT, SPF, DKIM) verkkotunnuksen hallintaan, yhdistä domain viestintäpalveluun (Connect domains) ja vaihda `MAIL_FROM`.
+  - **Microsoft 365 -postilaatikko** ei käy: Microsoft on poistanut salasanalla tapahtuvan SMTP-lähetyksen (SMTP AUTH Basic) Exchange Onlinesta.
+  - `infra/install.sh` säilyttää uudelleen ajettaessa sähköposti- ja tekoälyasetukset, jos niiden salaisuudet ovat Key Vaultissa.
 - **Tekoälyohjaaja:** luo API-avain osoitteessa console.anthropic.com → API Keys ja aseta sille kuukausiraja. Tallenna avain Key Vaultiin nimellä `anthropic-api-key` ja aja vaihe 4 uudelleen parametrilla `-p enableAi=true`.
 - **Oma verkkotunnus**, esim. `sk.skinfra.fi`: App Service → Custom domains, ja maksuton hallittu varmenne. Päivitä silloin Entra-rekisteröinnin Redirect URI sekä `AUTH_URL`.
 
@@ -134,7 +154,9 @@ Jatkossa julkaisu tapahtuu automaattisesti aina, kun muutos yhdistetään `main`
 | Entra-salaisuuden uusinta | uusi client secret → `az keyvault secret set … entra-client-secret` → App Service → Restart |
 | Kulut | Cost Management -budjetti ja hälytykset |
 
-**Vianetsintä:** jos sovellus ei käynnisty, avaa App Service → Log stream. Yleisimmät syyt:
+**Vianetsintä:**
+- Jos julkaisun kirjautuminen epäonnistuu virheellä *AADSTS700213: No matching federated identity record*, katso julkaisulokin rivi *subject claim*. Lisää se julkaisutunnisteelle, esimerkiksi: `az identity federated-credential create -g <RG> --identity-name <skm-deploy-…> --name github-production-ids --issuer https://token.actions.githubusercontent.com --subject "<subject claim>" --audiences api://AzureADTokenExchange`. Aseta sama arvo myös parametriin `githubOidcSubject`.
+ jos sovellus ei käynnisty, avaa App Service → Log stream. Yleisimmät syyt:
 - Key Vaultista puuttuu salaisuus (`auth-secret` tai `entra-client-secret`);
 - vaihe 6 on ajamatta;
 - Redirect URI on kirjoitettu väärin.

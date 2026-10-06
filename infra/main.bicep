@@ -35,6 +35,9 @@ param keyVaultAdminObjectId string
 @description('GitHub repository allowed to deploy, as owner/name.')
 param githubRepository string = 'Lerggu/SK-management'
 
+@description('OIDC subject GitHub presents for the production environment. Newer repositories use immutable ids, e.g. repo:Owner@123/Repo@456:environment:production — copy it from the deploy log ("subject claim") if login fails.')
+param githubOidcSubject string = 'repo:${githubRepository}:environment:production'
+
 @description('Application (client) id of the Microsoft Entra app registration for user sign-in.')
 param entraClientId string
 
@@ -70,7 +73,9 @@ var imageName = 'sk-management'
 // Built-in role definition ids.
 var roles = {
   acrPull: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
-  acrPush: '8311e382-0749-4cb8-b61a-753f3ff1d7e6'
+  // Contributor, scoped to the registry only: lets the deploy identity push images.
+  // (The AcrPush role id is not available in every subscription.)
+  registryContributor: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
   blobDataContributor: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
   kvSecretsUser: '4633458b-17de-408a-b874-0445c86b69e6'
   kvSecretsOfficer: 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7'
@@ -167,6 +172,16 @@ resource dbUrlSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
+// Server administrator connection: the container creates the application
+// roles and database at start (scripts/db-bootstrap.ts), so no manual SQL.
+resource dbAdminUrlSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: kv
+  name: 'database-admin-url'
+  properties: {
+    value: 'postgresql://${pgAdminLogin}:${uriComponent(pgAdminPassword)}@${pg.properties.fullyQualifiedDomainName}:5432/postgres?sslmode=require'
+  }
+}
+
 resource kvAdmin 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: kv
   name: guid(kv.id, keyVaultAdminObjectId, roles.kvSecretsOfficer)
@@ -189,6 +204,7 @@ var kvRef = 'VaultName=${kv.name};SecretName='
 var baseSettings = [
   { name: 'WEBSITES_PORT', value: '8080' }
   { name: 'DATABASE_URL', value: '@Microsoft.KeyVault(${kvRef}database-url)' }
+  { name: 'DATABASE_ADMIN_URL', value: '@Microsoft.KeyVault(${kvRef}database-admin-url)' }
   { name: 'AUTH_SECRET', value: '@Microsoft.KeyVault(${kvRef}auth-secret)' }
   { name: 'AUTH_URL', value: 'https://${webAppName}.azurewebsites.net' }
   { name: 'AUTH_TRUST_HOST', value: 'true' }
@@ -271,16 +287,16 @@ resource deployerGithub 'Microsoft.ManagedIdentity/userAssignedIdentities/federa
   name: 'github-production'
   properties: {
     issuer: 'https://token.actions.githubusercontent.com'
-    subject: 'repo:${githubRepository}:environment:production'
+    subject: githubOidcSubject
     audiences: ['api://AzureADTokenExchange']
   }
 }
 
-resource deployerAcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource deployerRegistry 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: acr
-  name: guid(acr.id, deployer.id, roles.acrPush)
+  name: guid(acr.id, deployer.id, roles.registryContributor)
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.acrPush)
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.registryContributor)
     principalId: deployer.properties.principalId
     principalType: 'ServicePrincipal'
   }

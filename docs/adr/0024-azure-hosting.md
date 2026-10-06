@@ -23,7 +23,7 @@
   - TLS is required.
   - Public endpoint limited to Azure services.
   - `azure.extensions = BTREE_GIST`.
-- **Database roles** are created once by `infra/db-bootstrap.sql`, run as the server administrator:
+- **Database roles** are created at container start by `scripts/db-bootstrap.ts` when `DATABASE_ADMIN_URL` (a Key Vault reference) is set. The step is idempotent, and `infra/db-bootstrap.sql` remains for a manual setup:
   - `sk_owner`: the application login. It owns the database, runs migrations and the identity paths, and is not a superuser.
   - `sk_app`: the RLS role. `sk_owner` holds membership with the ADMIN option, so the V8 migration's `GRANT sk_app TO current_user` succeeds.
   - Verified locally on a fresh PostgreSQL 16 with a non-superuser `CREATEROLE`/`CREATEDB` administrator, as on Azure:
@@ -39,8 +39,8 @@
 - **Secrets: Key Vault** with RBAC. App settings use Key Vault references, and the App Service identity has *Key Vault Secrets User*. The infrastructure template writes only `database-url`; IT sets `auth-secret`, `entra-client-secret` and the optional `smtp-url` and `anthropic-api-key`. AI and SMTP settings are added only when their flag is on, so a missing secret never becomes a literal value.
 - **Images:** Azure Container Registry (Basic). The App Service pulls images with its managed identity (*AcrPull*).
 - **Deployment:** the GitHub Actions workflow `deploy.yml` runs after CI passes on `main`, or manually.
-  - It authenticates with OIDC as a user-assigned managed identity. The federated credential's subject is `repo:Lerggu/SK-management:environment:production`, so no Azure credentials are stored in GitHub.
-  - The identity holds only *AcrPush* on the registry, *Website Contributor* on the app and *Reader* on the resource group.
+  - It authenticates with OIDC as a user-assigned managed identity. The federated credential's subject is the `githubOidcSubject` parameter (the repository uses immutable-id subjects such as `repo:Lerggu@<id>/SK-management@<id>:environment:production`), so no Azure credentials are stored in GitHub.
+  - The identity holds only *Contributor* scoped to the registry (the AcrPush role id was missing in the owner's subscription), *Website Contributor* on the app and *Reader* on the resource group.
   - The workflow does nothing until the repository variables exist.
 - **First tenant data.** `scripts/bootstrap.ts`, driven by `BOOTSTRAP_*` settings, creates:
   - the group organization;
@@ -48,7 +48,7 @@
   - the companies, through the existing `createCompany` service, so the owner becomes CEO with audit events.
 
   It is idempotent and never seeds demo data.
-- **Infrastructure as code:** `infra/main.bicep`. It compiles and lints cleanly with Bicep 0.47.
+- **Infrastructure as code:** `infra/main.bicep`, installed with one command by `infra/install.sh`. E-mail (Azure Communication Services) is added by `infra/enable-email.sh`. It compiles and lints cleanly with Bicep 0.47.
 - **Runtime dependencies:** `prisma`, `tsx` and `dotenv` moved to runtime dependencies, because the container runs migrations and the bootstrap.
 
 ## Consequences
@@ -61,4 +61,4 @@
   - a staging slot (needs the Standard tier).
 
   The PostgreSQL firewall currently admits only Azure services.
-- **Not deployed from this environment.** Nothing has been deployed to Azure from the development environment. The first deployment is performed by IT following the guide.
+- **Deployment.** Installed by the owner with `infra/install.sh` in SK-Infra's own Azure tenant; nothing is deployed from the development environment.
