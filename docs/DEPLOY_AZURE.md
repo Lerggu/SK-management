@@ -142,6 +142,7 @@ Jatkossa julkaisu tapahtuu automaattisesti aina, kun muutos yhdistetään `main`
   - **Oma osoite** (esim. `noreply@skinfra.fi`): portaali → Email Communication Service → Provision domains → Custom domain, lisää annetut DNS-tietueet (TXT, SPF, DKIM) verkkotunnuksen hallintaan, yhdistä domain viestintäpalveluun (Connect domains) ja vaihda `MAIL_FROM`.
   - **Microsoft 365 -postilaatikko** ei käy: Microsoft on poistanut salasanalla tapahtuvan SMTP-lähetyksen (SMTP AUTH Basic) Exchange Onlinesta.
   - `infra/install.sh` säilyttää uudelleen ajettaessa sähköposti- ja tekoälyasetukset, jos niiden salaisuudet ovat Key Vaultissa.
+  - Henkilöstökorttien vanhenemismuistutukset (ADR 0025) lähtevät tällä samalla sähköpostilla tunnin välein. Ilman sähköpostia muistutuksia ei merkitä lähetetyiksi. Ajastuksen voi kytkeä pois asetuksella `HR_REMINDERS=off`.
 - **Tekoälyohjaaja:** luo API-avain osoitteessa console.anthropic.com → API Keys ja aseta sille kuukausiraja. Tallenna avain Key Vaultiin nimellä `anthropic-api-key` ja aja vaihe 4 uudelleen parametrilla `-p enableAi=true`.
 - **Oma verkkotunnus**, esim. `sk.skinfra.fi`: App Service → Custom domains, ja maksuton hallittu varmenne. Päivitä silloin Entra-rekisteröinnin Redirect URI sekä `AUTH_URL`.
 

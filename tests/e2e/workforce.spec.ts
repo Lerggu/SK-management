@@ -18,7 +18,8 @@ test("employee CRUD with rates", async ({ page }, testInfo) => {
 
   // Update
   await page.getByRole("link", { name: "Muokkaa" }).click();
-  await page.getByLabel("Puhelin").fill("+358 40 123 4567");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Muokkaa henkilöä");
+  await page.getByLabel("Puhelin", { exact: true }).fill("+358 40 123 4567");
   await page.getByRole("button", { name: "Tallenna" }).click();
   await expect(page.getByText("+358 40 123 4567")).toBeVisible();
 

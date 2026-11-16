@@ -29,6 +29,20 @@ import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPe
 import { scheduleSummaryService } from "./takt/summary.service";
 import { portalService } from "./portal/service";
 import { aiProjectControllerService } from "./ai/service";
+import { competenceAreaService, hrSettingsService, jobProfileService, qualificationTypeService } from "./hr/settings.service";
+import {
+  assessmentService,
+  authorizationService,
+  clothingService,
+  companyItemService,
+  hrCardService,
+  languageService,
+  orientationService,
+  qualificationService,
+  trainingService,
+} from "./hr/card.service";
+import { employeeFileService } from "./hr/files.service";
+import { hrOverviewService } from "./hr/overview.service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -97,6 +111,22 @@ export const SERVICE_REGISTRY = {
   portal: portalService,
   // V8
   aiProjectController: aiProjectControllerService,
+  // HR: personnel card and competence (ADR 0025)
+  hrSettings: hrSettingsService,
+  competenceArea: competenceAreaService,
+  qualificationType: qualificationTypeService,
+  jobProfile: jobProfileService,
+  hrCard: hrCardService,
+  competenceAssessment: assessmentService,
+  training: trainingService,
+  qualification: qualificationService,
+  orientation: orientationService,
+  equipmentAuthorization: authorizationService,
+  employeeLanguage: languageService,
+  clothing: clothingService,
+  companyItem: companyItemService,
+  employeeFile: employeeFileService,
+  hrOverview: hrOverviewService,
 } as const;
 
 // ── V8: tenant scope for row-level security ──────────────────────────

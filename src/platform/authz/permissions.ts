@@ -1,5 +1,5 @@
 /**
- * Capability permission catalogue (V1–V7). Code checks these keys — never role
+ * Capability permission catalogue (V1–V8, HR). Code checks these keys — never role
  * names. Roles are company-scoped records instantiated from ROLE_TEMPLATES.
  *
  * Changing this file changes authorization. Any change must ship with a
@@ -20,6 +20,10 @@ export const PERMISSIONS = {
   "employee.manage": { category: "workforce", sensitive: false, description: "Create, edit and archive employees" },
   "employee.rates.view": { category: "workforce", sensitive: true, description: "View employee cost and billing rates" },
   "employee.rates.manage": { category: "workforce", sensitive: true, description: "Change employee cost and billing rates" },
+  // HR card and competence (ADR 0025). The supervisor chain and the employee
+  // themselves get access through the employee records, not a permission.
+  "hr.view": { category: "workforce", sensitive: true, description: "View work-related HR data: competence matrix, published assessments, trainings, cards, orientations, permits and languages" },
+  "hr.manage": { category: "workforce", sensitive: true, description: "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items" },
 
   "equipment.view": { category: "equipment", sensitive: false, description: "View equipment" },
   "equipment.manage": { category: "equipment", sensitive: false, description: "Create, edit and archive equipment and types" },
@@ -116,6 +120,8 @@ export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "employee.manage",
   "employee.rates.view",
   "employee.rates.manage",
+  "hr.view",
+  "hr.manage",
   "equipment.view",
   "equipment.manage",
   "equipment.rates.view",
@@ -137,7 +143,8 @@ export type RoleTemplateKey =
   | "SUBCONTRACTOR"
   | "CLIENT"
   | "LIFTING_SUPERVISOR"
-  | "CLIENT_APPROVER";
+  | "CLIENT_APPROVER"
+  | "HR_ADMIN";
 
 export interface RoleTemplate {
   key: RoleTemplateKey;
@@ -179,6 +186,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "employee.manage",
       "employee.rates.view",
       "employee.rates.manage",
+      "hr.view",
       "equipment.view",
       "equipment.manage",
       "equipment.rates.view",
@@ -236,6 +244,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "employee.view",
       "employee.manage",
       "employee.rates.view",
+      "hr.view",
       "equipment.view",
       "equipment.rates.view",
       "documents.view",
@@ -278,6 +287,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     permissions: P(
       "project.view",
       "employee.view",
+      "hr.view",
       "equipment.view",
       "equipment.manage",
       "documents.view",
@@ -325,7 +335,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "HSE-asiantuntija", en: "HSE" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "material.view", "hse.view", "hse.create", "hse.manage", "hse.investigate", "hse.serious.notify", "hse.personal.view", "permit.approve"),
+    permissions: P("project.view", "employee.view", "hr.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "material.view", "hse.view", "hse.create", "hse.manage", "hse.investigate", "hse.serious.notify", "hse.personal.view", "permit.approve"),
   },
   {
     key: "EMPLOYEE",
@@ -363,6 +373,15 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     projectAccess: "ASSIGNED",
     external: true,
     permissions: P("project.view", "documents.view", "portal.client", "variation.client_approve"),
+  },
+  {
+    // HR owner decision: an HR administrator manages all personnel-card data
+    // without access to projects, finance or rates.
+    key: "HR_ADMIN",
+    name: { fi: "Henkilöstöhallinto", en: "HR administrator" },
+    projectAccess: "ASSIGNED",
+    external: false,
+    permissions: P("employee.view", "employee.manage", "hr.view", "hr.manage", "equipment.view"),
   },
 ];
 
