@@ -1680,12 +1680,13 @@ model LogisticsRequest {
   updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById     String?                @map("updated_by") @db.Uuid
 
-  company       Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  site          Site               @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
-  activity      TaktActivity?      @relation(fields: [companyId, siteId, activityId], references: [companyId, siteId, id], onDelete: Restrict)
-  equipmentType EquipmentType?     @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
-  taskType      LogisticsTaskType? @relation(fields: [companyId, taskTypeId], references: [companyId, id], onDelete: Restrict)
+  company       Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site          Site                 @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  activity      TaktActivity?        @relation(fields: [companyId, siteId, activityId], references: [companyId, siteId, id], onDelete: Restrict)
+  equipmentType EquipmentType?       @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  taskType      LogisticsTaskType?   @relation(fields: [companyId, taskTypeId], references: [companyId, id], onDelete: Restrict)
   bookings      ResourceBooking[]
+  deviations    LogisticsDeviation[]
   deliveries    Delivery[]
   liftPlans     LiftPlan[]
 
@@ -3563,4 +3564,69 @@ model LogisticsTaskRole {
   @@unique([companyId, id])
   @@index([companyId, taskTypeId])
   @@map("logistics_task_roles")
+}
+
+// ───────────────────── Production control: deviations (ADR 0026, phase 3)
+
+enum DeviationType {
+  LATE_DELIVERY
+  RESOURCE_MISSING
+  EQUIPMENT_FAULT
+  WEATHER
+  SAFETY
+  OTHER
+}
+
+enum DeviationStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+/// A deviation of a logistics task, reported from the phone. Open and
+/// acknowledged deviations make the task blink red in the calendar.
+model LogisticsDeviation {
+  id               String          @id @default(uuid(7)) @db.Uuid
+  companyId        String          @map("company_id") @db.Uuid
+  projectId        String          @map("project_id") @db.Uuid
+  requestId        String          @map("request_id") @db.Uuid
+  type             DeviationType
+  comment          String?
+  status           DeviationStatus @default(OPEN)
+  reportedById     String          @map("reported_by") @db.Uuid
+  acknowledgedAt   DateTime?       @map("acknowledged_at") @db.Timestamptz(6)
+  acknowledgedById String?         @map("acknowledged_by") @db.Uuid
+  resolvedAt       DateTime?       @map("resolved_at") @db.Timestamptz(6)
+  resolvedById     String?         @map("resolved_by") @db.Uuid
+  resolution       String?
+  notifiedAt       DateTime?       @map("notified_at") @db.Timestamptz(6)
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  request LogisticsRequest          @relation(fields: [companyId, requestId], references: [companyId, id], onDelete: Restrict)
+  photos  LogisticsDeviationPhoto[]
+
+  @@unique([companyId, id])
+  @@index([companyId, requestId, status])
+  @@index([companyId, status, createdAt])
+  @@map("logistics_deviations")
+}
+
+model LogisticsDeviationPhoto {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  deviationId String   @map("deviation_id") @db.Uuid
+  fileName    String   @map("file_name")
+  contentType String   @map("content_type")
+  sizeBytes   BigInt   @map("size_bytes")
+  sha256      String   @db.Char(64)
+  storageKey  String   @map("storage_key")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?  @map("created_by") @db.Uuid
+
+  deviation LogisticsDeviation @relation(fields: [companyId, deviationId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, deviationId])
+  @@map("logistics_deviation_photos")
 }

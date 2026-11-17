@@ -61,6 +61,7 @@ import { employeeFileService } from "@/modules/hr/files.service";
 import { hrOverviewService } from "@/modules/hr/overview.service";
 import { staffingService, taskTypeService } from "@/modules/production/service";
 import { productionCalendarService } from "@/modules/production/calendar.service";
+import { deviationService } from "@/modules/production/deviation.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Role = "CLIENT" | "CLIENT_APPROVER" | "SUBCONTRACTOR";
@@ -138,6 +139,11 @@ const CALLS: Record<string, Call> = {
   // Production control (ADR 0026): task types and staffing are internal.
   "production.taskTypes.list": r("taskType", (c) => taskTypeService.list(c)),
   "production.calendar.view": r("productionCalendar", (c) => productionCalendarService.view(c)),
+  "production.deviations.list": r("logisticsDeviation", (c) => deviationService.list(c)),
+  "production.deviations.report": w("logisticsDeviation", async (c) => {
+    const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });
+    return deviationService.report(c, req.id, { type: "OTHER", comment: "x" });
+  }),
   "production.taskTypes.create": w("taskType", (c) => taskTypeService.create(c, { name: uniq("x") })),
   "production.staffing.get": r("staffing", async (c) => {
     const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });

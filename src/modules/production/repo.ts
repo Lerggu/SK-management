@@ -159,6 +159,65 @@ export class ProductionRepo {
     });
   }
 
+  // ── deviations ─────────────────────────────────────────────────────
+  createDeviation(data: Data<Prisma.LogisticsDeviationUncheckedCreateInput>) {
+    return this.tx.logisticsDeviation.create({ data: { ...data, ...this.c } });
+  }
+
+  findDeviation(id: string) {
+    return this.tx.logisticsDeviation.findFirst({ where: { id, ...this.c }, include: { photos: { orderBy: { createdAt: "asc" } }, request: { select: { id: true, title: true, projectId: true, siteId: true } } } });
+  }
+
+  updateDeviation(id: string, data: Prisma.LogisticsDeviationUncheckedUpdateInput) {
+    return this.tx.logisticsDeviation.update({ where: { id, ...this.c }, data });
+  }
+
+  listDeviations(params: { projectIds?: string[]; requestId?: string; open?: boolean; take?: number }) {
+    return this.tx.logisticsDeviation.findMany({
+      where: {
+        ...this.c,
+        ...(params.projectIds ? { projectId: { in: params.projectIds } } : {}),
+        ...(params.requestId ? { requestId: params.requestId } : {}),
+        ...(params.open ? { status: { in: ["OPEN", "ACKNOWLEDGED"] as ("OPEN" | "ACKNOWLEDGED")[] } } : {}),
+      },
+      include: { photos: { select: { id: true } }, request: { select: { id: true, title: true, site: { select: { name: true, project: { select: { code: true } } } } } } },
+      orderBy: [{ createdAt: "desc" }],
+      take: params.take ?? 200,
+    });
+  }
+
+  openDeviationTaskIds(requestIds: string[]) {
+    return requestIds.length
+      ? this.tx.logisticsDeviation.findMany({ where: { ...this.c, requestId: { in: requestIds }, status: { in: ["OPEN", "ACKNOWLEDGED"] } }, select: { requestId: true } })
+      : Promise.resolve([]);
+  }
+
+  createDeviationPhoto(data: Data<Prisma.LogisticsDeviationPhotoUncheckedCreateInput>) {
+    return this.tx.logisticsDeviationPhoto.create({ data: { ...data, ...this.c } });
+  }
+
+  findDeviationPhoto(id: string) {
+    return this.tx.logisticsDeviationPhoto.findFirst({ where: { id, ...this.c }, include: { deviation: { select: { projectId: true } } } });
+  }
+
+  usersByIds(ids: string[]) {
+    return ids.length ? this.tx.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, email: true } }) : Promise.resolve([]);
+  }
+
+  /** Active internal members with their company and project roles (for notifications). */
+  membersWithRoles(projectId: string) {
+    const roleSelect = { templateKey: true, projectAccess: true, permissions: { select: { permissionKey: true } } } as const;
+    return this.tx.companyMembership.findMany({
+      where: { ...this.c, status: "ACTIVE", user: { status: "ACTIVE", archivedAt: null } },
+      select: {
+        userId: true,
+        user: { select: { email: true, name: true, locale: true } },
+        roles: { where: { role: { archivedAt: null } }, select: { role: { select: roleSelect } } },
+        projectMemberships: { where: { projectId, archivedAt: null, role: { archivedAt: null } }, select: { projectId: true, role: { select: roleSelect } } },
+      },
+    });
+  }
+
   /** Active bookings overlapping a period (any company's bookings of own resources). */
   overlapping(from: Date, to: Date) {
     return this.tx.resourceBooking.findMany({

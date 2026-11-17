@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import type { RequestContext } from "@/platform/authz";
 import { staffingService, taskTypeService } from "@/modules/production/service";
-import { formInput, runAction, type ActionState } from "@/app/_lib/action";
+import { deviationService } from "@/modules/production/deviation.service";
+import { formInput, readFile, runAction, type ActionState } from "@/app/_lib/action";
 import { requireCompanyContext } from "@/app/_lib/context";
 
 type Op = (ctx: RequestContext, id: string, formData: FormData) => Promise<unknown>;
@@ -19,6 +20,8 @@ const OPS = {
   roleRemove: (c, id) => taskTypeService.removeRole(c, id),
   setTaskType: (c, id, fd) => staffingService.setTaskType(c, id, input(fd)),
   assign: (c, id, fd) => staffingService.assign(c, id, input(fd)),
+  deviationAcknowledge: (c, id) => deviationService.acknowledge(c, id),
+  deviationResolve: (c, id, fd) => deviationService.resolve(c, id, input(fd)),
 } satisfies Record<string, Op>;
 
 export type ProductionOp = keyof typeof OPS;
@@ -39,4 +42,14 @@ export async function calendarAssignAction(slug: string, taskId: string, roleId:
   const r = await runAction(null, () => staffingService.assign(ctx, taskId, { roleId, resource }).then(() => undefined));
   revalidatePath(`/c/${slug}/logistics`, "layout");
   return r;
+}
+
+/** Phone deviation report: type, optional photo and comment (ADR 0026, phase 3). */
+export async function reportDeviationAction(slug: string, taskId: string, _: ActionState | null, formData: FormData): Promise<ActionState> {
+  const ctx = await requireCompanyContext(slug);
+  const r = await runAction(formData, async () => {
+    await deviationService.report(ctx, taskId, formInput(formData), await readFile(formData, "photo"));
+  });
+  revalidatePath(`/c/${slug}/logistics`, "layout");
+  return r.ok ? { ok: true, message: "production.deviations.sent" } : r;
 }

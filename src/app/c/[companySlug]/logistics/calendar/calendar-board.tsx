@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { GripVertical, HardHat, Truck, X } from "lucide-react";
 import { cn } from "@/ui/lib/utils";
-import { SWATCH } from "../_components/task-colors";
+import { PHASE_STYLE, SWATCH } from "../_components/task-colors";
 
 type Bar = { left: number; width: number; clippedStart: boolean; clippedEnd: boolean } | null;
 type Phase = "PLANNED" | "MISSING_RESOURCES" | "READY" | "IN_PROGRESS" | "COMPLETE" | "LATE";
@@ -36,14 +36,6 @@ export interface BoardResource {
 
 type AssignFn = (taskId: string, roleId: string, resource: string) => Promise<{ ok: boolean; message?: string; fieldErrors?: Record<string, string[]> }>;
 
-export const PHASE_STYLE: Record<Phase, string> = {
-  PLANNED: "bg-sky-100 text-sky-950 border-sky-400",
-  MISSING_RESOURCES: "bg-amber-100 text-amber-950 border-amber-500",
-  READY: "bg-emerald-100 text-emerald-950 border-emerald-600",
-  IN_PROGRESS: "bg-blue-600 text-white border-blue-800",
-  COMPLETE: "bg-zinc-200 text-zinc-700 border-zinc-400",
-  LATE: "bg-red-100 text-red-950 border-red-600",
-};
 
 type Tick = { left: number; label: string; major: boolean; date: string };
 

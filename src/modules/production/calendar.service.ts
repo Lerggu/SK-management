@@ -32,7 +32,8 @@ export const productionCalendarService = {
     const ticks = calendarTicks(range, (iso) => weekdays[(new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7]);
 
     const [tasks, types] = await Promise.all([repo.tasksInRange({ projectIds, siteId: data.siteId, from: range.from, to: range.to }), repo.listTypes(true)]);
-    const bookings = await repo.bookingsOfTasks(tasks.map((t) => t.id));
+    const [bookings, openDeviations] = await Promise.all([repo.bookingsOfTasks(tasks.map((t) => t.id)), repo.openDeviationTaskIds(tasks.map((t) => t.id))]);
+    const deviating = new Set(openDeviations.map((d) => d.requestId));
     const now = new Date();
     const canBookAny = tasks.some((t) => hasProjectPermission(ctx, t.projectId, "booking.manage"));
 
@@ -59,8 +60,8 @@ export const productionCalendarService = {
         missing,
         openRoles,
         canAssign: hasProjectPermission(ctx, t.projectId, "booking.manage") && t.status !== "COMPLETE",
-        // Phase 3 sets this from open deviations reported from the phone.
-        deviation: false,
+        // Open or acknowledged deviations reported from the phone (phase 3).
+        deviation: deviating.has(t.id),
         bar: barPosition(range, t.requestedStart, t.requestedEnd),
       };
     });

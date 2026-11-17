@@ -59,6 +59,7 @@ import { employeeFileService } from "@/modules/hr/files.service";
 import { hrOverviewService } from "@/modules/hr/overview.service";
 import { staffingService, taskTypeService } from "@/modules/production/service";
 import { productionCalendarService } from "@/modules/production/calendar.service";
+import { deviationService } from "@/modules/production/deviation.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -137,7 +138,7 @@ interface World {
     photo: string;
   };
   bhr: { employee: string; area: string; type: string; profile: string };
-  prod: { type: string; role: string; request: string; bType: string; bRole: string; bRequest: string };
+  prod: { type: string; role: string; request: string; bType: string; bRole: string; bRequest: string; deviation: string; photo: string };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
@@ -306,6 +307,8 @@ beforeAll(async () => {
   const prodType = await taskTypeService.create(actx, { name: "A task type" });
   const prodRole = await taskTypeService.addRole(actx, prodType.id, { kind: "PERSON", label: "A role" });
   const prodRequest = await logisticsRequestService.create(actx, { siteId: site.id, serviceType: "LIFT", title: "A secret lift", requestedStart: "2026-11-05T07:00", requestedEnd: "2026-11-05T08:00", taskTypeId: prodType.id, submit: "on" });
+  const prodDeviation = await deviationService.report(actx, prodRequest.id, { type: "SAFETY", comment: "A secret" }, { fileName: "a.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]) });
+  const prodPhoto = await db.logisticsDeviationPhoto.findFirstOrThrow({ where: { deviationId: prodDeviation.id } });
   const bProdType = await taskTypeService.create(b.ownerCtx, { name: "B task type" });
   const bProdRole = await taskTypeService.addRole(b.ownerCtx, bProdType.id, { kind: "PERSON", label: "B role" });
   const bProdRequest = await logisticsRequestService.create(b.ownerCtx, { siteId: bSite.id, serviceType: "LIFT", title: "B lift", requestedStart: "2026-11-05T07:00", requestedEnd: "2026-11-05T08:00", taskTypeId: bProdType.id, submit: "on" });
@@ -419,7 +422,7 @@ beforeAll(async () => {
       photo: hrPhoto.id,
     },
     bhr: { employee: bOwnEmployee.id, area: bHrArea.id, type: bHrType.id, profile: bHrProfile.id },
-    prod: { type: prodType.id, role: prodRole.id, request: prodRequest.id, bType: bProdType.id, bRole: bProdRole.id, bRequest: bProdRequest.id },
+    prod: { type: prodType.id, role: prodRole.id, request: prodRequest.id, bType: bProdType.id, bRole: bProdRole.id, bRequest: bProdRequest.id, deviation: prodDeviation.id, photo: prodPhoto.id },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
@@ -1239,6 +1242,14 @@ const cases: Record<string, Case> = {
     expect(await db.logisticsTaskType.count({ where: { companyId: w.a.companyId } })).toBe(before);
   },
   "staffing.get": () => expectNotFound(staffingService.get(w.bCtx, w.prod.request)),
+  "logisticsDeviation.report": () => expectNotFound(deviationService.report(w.bCtx, w.prod.request, { type: "OTHER" })),
+  "logisticsDeviation.list": async () => {
+    expect(JSON.stringify(await deviationService.list(w.bCtx))).not.toContain(w.prod.deviation);
+    await expectNotFound(deviationService.list(w.bCtx, { requestId: w.prod.request }));
+  },
+  "logisticsDeviation.acknowledge": () => expectNotFound(deviationService.acknowledge(w.bCtx, w.prod.deviation)),
+  "logisticsDeviation.resolve": () => expectNotFound(deviationService.resolve(w.bCtx, w.prod.deviation, {})),
+  "logisticsDeviation.photo": () => expectNotFound(deviationService.photo(w.bCtx, w.prod.photo)),
   "productionCalendar.view": async () => {
     const v = await productionCalendarService.view(w.bCtx, { zoom: "month", date: "2026-11-05" });
     expect(v.tasks.map((t) => t.id)).not.toContain(w.prod.request);
@@ -1333,5 +1344,6 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.clothingIssue.findUniqueOrThrow({ where: { id: w.hr.clothing } })).archivedAt).toBeNull();
     expect((await db.companyItem.findUniqueOrThrow({ where: { id: w.hr.item } })).acknowledgedAt).toBeNull();
     expect((await db.employee.findUniqueOrThrow({ where: { id: w.hr.worker } })).team).toBe("A team");
+    expect((await db.logisticsDeviation.findUniqueOrThrow({ where: { id: w.prod.deviation } })).status).toBe("OPEN");
   });
 });

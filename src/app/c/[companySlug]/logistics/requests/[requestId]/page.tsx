@@ -10,6 +10,8 @@ import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
 import { transitionRequestAction } from "../../actions";
 import { staffingService, taskTypeService } from "@/modules/production/service";
 import { StaffingSection } from "../../_components/staffing";
+import { deviationService } from "@/modules/production/deviation.service";
+import { DeviationList } from "../../_components/deviation-list";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("logistics"))("request") };
@@ -19,7 +21,7 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
   const { companySlug, requestId } = await params;
   const ctx = await requireCompanyContext(companySlug);
   const r = await loadOr404(logisticsRequestService.get(ctx, requestId));
-  const [t, format, staffing, taskTypes] = await Promise.all([getTranslations("logistics"), getFormatter(), staffingService.get(ctx, requestId), taskTypeService.list(ctx).catch(() => [])]);
+  const [t, td, format, staffing, taskTypes, deviations] = await Promise.all([getTranslations("logistics"), getTranslations("production.deviations"), getFormatter(), staffingService.get(ctx, requestId), taskTypeService.list(ctx).catch(() => []), deviationService.list(ctx, { requestId })]);
   const base = `/c/${companySlug}/logistics`;
   const user = (id: string | null) => r.users.find((u) => u.id === id)?.name ?? "–";
   return (
@@ -92,6 +94,16 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
           )}
         </Section>
         <StaffingSection slug={companySlug} s={staffing} taskTypes={taskTypes.map((x) => ({ id: x.id, name: x.name }))} />
+        <Section
+          title={td("history")}
+          actions={
+            <Link href={`${base}/deviations?task=${r.id}`} className="inline-flex min-h-11 items-center rounded-lg bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-700 md:min-h-9">
+              {td("report")}
+            </Link>
+          }
+        >
+          <DeviationList slug={companySlug} rows={deviations} showTask={false} />
+        </Section>
         {r.deliveries.length > 0 && (
           <Section title={t("linkedDeliveries")}>
             <ul className="divide-y text-sm">

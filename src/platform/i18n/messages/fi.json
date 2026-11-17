@@ -732,7 +732,11 @@
       "logistics_task_type_add_suggested": "Ehdotetut tehtävätyypit lisätty",
       "logistics_task_role_create": "Tehtävätyypin resurssitarve lisätty",
       "logistics_task_role_archive": "Tehtävätyypin resurssitarve poistettu",
-      "logistics_request_task_type": "Logistiikkatehtävän tyyppi vaihdettu"
+      "logistics_request_task_type": "Logistiikkatehtävän tyyppi vaihdettu",
+      "logistics_deviation_report": "Poikkeama ilmoitettu",
+      "logistics_deviation_acknowledge": "Poikkeama kuitattu",
+      "logistics_deviation_resolve": "Poikkeama ratkaistu",
+      "logistics_deviation_notify": "Poikkeamasta ilmoitettu"
     }
   },
   "errors": {
@@ -1968,7 +1972,9 @@
     "seriousIncidentBody": "Projektissa {project} on ilmoitettu tapaturma #{number} (vakavuus: {severity}).\n\nAvaa ilmoitus: {link}\n\nViesti ei sisällä henkilötietoja.",
     "expiryReminderSubject": "Muistutus: {name} vanhenee {date}",
     "expiryReminderOwnerBody": "Hei,\n\nkorttisi tai pätevyytesi \"{name}\" voimassaolo päättyy {date}. Huolehdi sen uusimisesta ajoissa ja toimita uusi todistus henkilöstökortillesi.\n\nHenkilöstökortti: {link}\n\nTämä on SK Managementin automaattinen muistutus.",
-    "expiryReminderMaintenanceBody": "Hei,\n\ntyöntekijän {employee} kortin tai pätevyyden \"{name}\" voimassaolo päättyy {date}.\n\nHenkilöstökortti: {link}\n\nTämä on SK Managementin automaattinen muistutus."
+    "expiryReminderMaintenanceBody": "Hei,\n\ntyöntekijän {employee} kortin tai pätevyyden \"{name}\" voimassaolo päättyy {date}.\n\nHenkilöstökortti: {link}\n\nTämä on SK Managementin automaattinen muistutus.",
+    "deviationSubject": "Poikkeama: {task} – {type}",
+    "deviationBody": "Hei,\n\nlogistiikkatehtävästä \"{task}\" on ilmoitettu poikkeama: {type}.\n\nTehtävä: {link}\n\nTämä on SK Managementin automaattinen ilmoitus."
   },
   "hse": {
     "incidentSeverity": {
@@ -2799,7 +2805,8 @@
       "logistics": "Logistiikka",
       "bookings": "Resurssivaraukset",
       "taskTypes": "Tehtävätyypit",
-      "calendar": "Kalenteri"
+      "calendar": "Kalenteri",
+      "deviations": "Poikkeamat"
     },
     "taskType": "Tehtävätyyppi",
     "taskTypes": {
@@ -2915,6 +2922,40 @@
         "COMPLETE": "Valmis",
         "LATE": "Myöhässä",
         "DEVIATION": "Poikkeama"
+      }
+    },
+    "deviations": {
+      "title": "Poikkeamat",
+      "report": "Ilmoita poikkeama",
+      "hint": "Ilmoita poikkeama muutamalla napautuksella: valitse tehtävä ja poikkeaman tyyppi, ota halutessasi kuva ja lisää lyhyt kommentti.",
+      "chooseTask": "1. Valitse tehtävä",
+      "todayTasks": "Tämän päivän tehtävät",
+      "noTasks": "Ei tehtäviä tänään.",
+      "chooseType": "2. Mikä on poikkeama?",
+      "photo": "Kuva (valinnainen)",
+      "comment": "Kommentti (valinnainen)",
+      "send": "Lähetä poikkeama",
+      "sent": "Poikkeama lähetetty. Logistiikan vastuuhenkilöt saivat ilmoituksen.",
+      "changeTask": "Vaihda tehtävä",
+      "open": "Avoimet poikkeamat",
+      "none": "Ei avoimia poikkeamia.",
+      "history": "Tehtävän poikkeamat",
+      "acknowledge": "Kuittaa",
+      "resolve": "Merkitse ratkaistuksi",
+      "resolution": "Ratkaisu",
+      "reportedBy": "Ilmoittaja",
+      "types": {
+        "LATE_DELIVERY": "Kuorma myöhässä",
+        "RESOURCE_MISSING": "Resurssi puuttuu",
+        "EQUIPMENT_FAULT": "Kalusto rikki",
+        "WEATHER": "Sää",
+        "SAFETY": "Turvallisuus",
+        "OTHER": "Muu"
+      },
+      "statuses": {
+        "OPEN": "Avoin",
+        "ACKNOWLEDGED": "Kuitattu",
+        "RESOLVED": "Ratkaistu"
       }
     }
   }

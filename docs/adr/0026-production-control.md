@@ -66,6 +66,22 @@
   - the resource panel is shown only to members with `booking.manage` in some visible project;
   - external members have no access.
 
+### Phase 3: deviations from the phone (`/logistics/deviations`, tab "Poikkeamat")
+- **New tables:** migration `20261117120000_production_deviations` adds `logistics_deviations` and `logistics_deviation_photos`.
+  - Both have composite foreign keys and RLS.
+  - Deviations are never deleted (trigger).
+  - CHECK constraints keep status and timestamps consistent.
+- **Reporting:** any internal member who sees the task's logistics (`logistics.view`) reports.
+  - The phone flow: choose one of today's tasks, or "Ilmoita poikkeama" on the task page; choose the type with a big button (load late, resource missing, equipment broken, weather, safety, other); optionally take a photo with the camera and add a short comment.
+  - Photos are images only, checked by content (the HR file check).
+- **Notification:** the project's logistics approvers are e-mailed right after the report is saved; a mail failure never loses the report.
+  - Recipients are resolved by capability (`logistics.approve`), never by role names.
+  - The sender is not notified.
+  - The notification is audited with its recipient and sent counts.
+- **Handling:** logistics approvers acknowledge and resolve a deviation, with an optional resolution text.
+- **In the calendar:** open and acknowledged deviations make the task blink red until resolved. With reduced motion it is a steady red.
+- **Visibility:** deviations show on the task page and as an open list on the deviations tab. External members have no access.
+
 ## Consequences
 - **Visible HR facts.** Candidates show only fit reasons ("Kortti puuttuu", "Osaaminen alle vaatimuksen"), never card details or assessment texts.
 - **Own resources only.** Group-shared resources (V4) are not yet candidates. They can still be booked through the bookings page.
