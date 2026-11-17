@@ -263,3 +263,17 @@ describe("work calendar", () => {
     expect((await workCalendarService.addFinnishHolidays(t.ownerCtx, { year: "2030" })).added).toBe(15);
   });
 });
+
+describe("takt tab: projects with structure status", () => {
+  it("lists visible projects with area, work package and plan counts; assigned members only see theirs", async () => {
+    const s = await setup();
+    const other = await projectService.create(s.t.ownerCtx, { code: "T2", name: "Empty project" });
+    const rows = await taktStructureService.projects(s.t.ownerCtx);
+    expect(rows.find((p) => p.id === s.project.id)).toMatchObject({ code: "T", areas: 3, workPackages: 2, plans: 1, canManage: true });
+    expect(rows.find((p) => p.id === other.id)).toMatchObject({ areas: 0, workPackages: 0, plans: 0 });
+    const pmRows = await taktStructureService.projects(s.pm);
+    expect(pmRows.map((p) => p.id)).toEqual([s.project.id]);
+    const client = await createMember(s.t, "CLIENT", [{ projectId: s.project.id }]);
+    expect(await taktStructureService.projects(client)).toEqual([]);
+  });
+});

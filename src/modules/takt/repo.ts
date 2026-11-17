@@ -137,6 +137,32 @@ export class TaktRepo {
   }
 
   // ── plans and versions ────────────────────────────────────────────
+  /** Projects with how far their takt structure is (getting-started view). */
+  projectsWithStructure(projectIds: string[] | undefined) {
+    return this.tx.project.findMany({
+      where: { ...this.c, archivedAt: null, ...(projectIds ? { id: { in: projectIds } } : {}) },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        _count: {
+          select: {
+            sites: { where: { archivedAt: null } },
+            workPackages: { where: { archivedAt: null } },
+          },
+        },
+        sites: {
+          where: { archivedAt: null },
+          select: {
+            _count: { select: { taktPlans: { where: { archivedAt: null } } } },
+            buildings: { where: { archivedAt: null }, select: { _count: { select: { taktAreas: { where: { archivedAt: null } } } } } },
+          },
+        },
+      },
+      orderBy: { code: "asc" },
+    });
+  }
+
   listPlans(projectIds: string[] | undefined) {
     return this.tx.taktPlan.findMany({
       where: { ...this.c, archivedAt: null, ...(projectIds ? { projectId: { in: projectIds } } : {}) },

@@ -1059,7 +1059,7 @@
   "takt": {
     "title": "Takt",
     "plans": "Takt plans",
-    "noPlans": "No takt plans. Create one on the project's Takt page.",
+    "noPlans": "No takt plans yet. Start by opening a project's takt structure above.",
     "lookahead": "Look-ahead",
     "structure": "Takt structure",
     "structureHint": "Site → building/area → takt area. Work packages are the wagons of the project's takt train.",
@@ -1299,7 +1299,17 @@
     "noLogistics": "No deliveries, requests or bookings.",
     "requirements": "Resource requirement (baseline)",
     "bookResource": "Book a resource",
-    "booked": "booked {count}"
+    "booked": "booked {count}",
+    "projectsTitle": "Projects and takt structure",
+    "step1": "In the project's takt structure, create a building or area, takt areas (e.g. floors) and work packages.",
+    "step2": "Create a takt plan for the site and generate the takt train or import a schedule.",
+    "step3": "Approve the plan and follow progress; logistics tasks can be linked to takt activities.",
+    "noProjects": "No projects whose takt you can view.",
+    "projectCounts": "{areas} takt areas · {workPackages} work packages · {plans} plans",
+    "nextStructure": "Next: takt areas and work packages",
+    "nextPlan": "Next: create a plan",
+    "openStructure": "Open takt structure",
+    "viewStructure": "View takt structure"
   },
   "logistics": {
     "title": "Logistics",

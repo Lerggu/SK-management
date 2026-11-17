@@ -3,7 +3,7 @@ import { NotFoundError, ValidationError } from "@/platform/errors";
 import { writeAudit } from "@/platform/audit";
 import { parseInput } from "@/platform/http/validation";
 import type { RequestContext } from "@/platform/authz";
-import { requireTakt, taktPermissions } from "./access";
+import { requireTakt, taktPermissions, visibleTaktProjects } from "./access";
 import { TaktRepo } from "./repo";
 import { areaSchema, areaUpdateSchema, buildingSchema, workPackageSchema, type AreaInput, type AreaUpdateInput, type BuildingInput, type WorkPackageInput } from "./schemas";
 
@@ -14,6 +14,24 @@ function uniqueOr(e: unknown, field: string): never {
 
 /** Takt structure: Site → Building/Area → Takt Area, and project work packages. */
 export const taktStructureService = {
+  /**
+   * Projects whose takt the member sees, with what exists of each structure
+   * step (areas, work packages, plans), so the takt tab can guide set-up.
+   */
+  async projects(ctx: RequestContext) {
+    const rows = await new TaktRepo(readClient(), ctx.company.id).projectsWithStructure(visibleTaktProjects(ctx));
+    return rows.map((p) => ({
+      id: p.id,
+      code: p.code,
+      name: p.name,
+      sites: p._count.sites,
+      areas: p.sites.reduce((n, x) => n + x.buildings.reduce((m, b) => m + b._count.taktAreas, 0), 0),
+      workPackages: p._count.workPackages,
+      plans: p.sites.reduce((n, x) => n + x._count.taktPlans, 0),
+      canManage: taktPermissions(ctx, p.id).manage,
+    }));
+  },
+
   async overview(ctx: RequestContext, projectId: string) {
     const repo = new TaktRepo(readClient(), ctx.company.id);
     const project = await repo.findProject(projectId);

@@ -674,6 +674,10 @@ const cases: Record<string, Case> = {
     await workCalendarService.addFinnishHolidays(w.bCtx, { year: 2031 });
     expect((await workCalendarService.get(w.a.ownerCtx)).holidays).toHaveLength(before);
   },
+  "taktStructure.projects": async () => {
+    const rows = await taktStructureService.projects(w.bCtx);
+    expect(rows.map((p) => p.id)).not.toContain(w.ids.project);
+  },
   "taktStructure.overview": () => expectNotFound(taktStructureService.overview(w.bCtx, w.ids.project)),
   "taktStructure.createBuilding": () => expectNotFound(taktStructureService.createBuilding(w.bCtx, { siteId: w.ids.site, name: "Intruder" })),
   "taktStructure.archiveBuilding": () => expectNotFound(taktStructureService.archiveBuilding(w.bCtx, w.ids.building)),
