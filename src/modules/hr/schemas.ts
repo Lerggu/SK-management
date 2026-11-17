@@ -84,7 +84,8 @@ export const hrEmploymentSchema = z.object({
   /** User account linked to the card ("Oma henkilöstökortti"). */
   userId: optionalUuid(),
   supervisorId: optionalUuid(),
-  team: optionalText(80),
+  /** Team (ADR 0029); the cached team name follows the team. */
+  teamId: optionalUuid(),
   location: optionalText(80),
   jobProfileId: optionalUuid(),
 });

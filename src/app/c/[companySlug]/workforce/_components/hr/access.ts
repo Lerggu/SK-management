@@ -10,6 +10,7 @@ export async function hrTabsFor(ctx: RequestContext) {
   const hrLists = companyWide || !!own;
   return {
     people: hasPermission(ctx, "employee.view"),
+    teams: !ctx.external && (hasPermission(ctx, "employee.view") || hasPermission(ctx, "hr.view")),
     rotation: !ctx.external && (hasPermission(ctx, "rotation.view") || hasPermission(ctx, "rotation.manage")),
     matrix: hrLists,
     qualifications: hrLists,

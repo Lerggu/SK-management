@@ -773,7 +773,12 @@
       "rotation_pattern": "Rotaatiorytmi lisätty",
       "employee_pid_set": "Henkilötunnus tallennettu",
       "employee_pid_clear": "Henkilötunnus poistettu",
-      "employee_pid_view": "Henkilötunnus näytetty"
+      "employee_pid_view": "Henkilötunnus näytetty",
+      "team_create": "Tiimi luotu",
+      "team_update": "Tiimiä muutettu",
+      "team_archive": "Tiimi arkistoitu",
+      "team_members_add": "Tiimiin lisätty jäseniä",
+      "team_members_remove": "Jäsen poistettu tiimistä"
     }
   },
   "errors": {
@@ -2398,7 +2403,8 @@
       "qualifications": "Kortit ja pätevyydet",
       "overview": "Yhteenveto",
       "settings": "Asetukset",
-      "rotation": "Rotaatio"
+      "rotation": "Rotaatio",
+      "teams": "Tiimit"
     },
     "cardTabs": {
       "basics": "Perustiedot",
@@ -2423,7 +2429,8 @@
       "status": "Henkilöstön tila",
       "statusHint": "Poistunut-tila ja päättymispäivä muutetaan perustietojen muokkauksesta.",
       "user": "Järjestelmäkäyttäjä (oma kortti)",
-      "noUser": "Ei liitetty"
+      "noUser": "Ei liitetty",
+      "noTeam": "Ei tiimiä"
     },
     "personal": {
       "title": "Yhteystiedot ja omat tiedot",
@@ -3143,6 +3150,44 @@
     "overwrite": "Korvaa olemassa olevat töissä/vapaalla-merkinnät",
     "applyPattern": "Lisää rytmi",
     "patternDone": "Rytmi lisätty.",
-    "patternKept": "Rytmi lisätty. Osa päivistä jätettiin ennalleen (poissaolot tai jo merkityt päivät)."
+    "patternKept": "Rytmi lisätty. Osa päivistä jätettiin ennalleen (poissaolot tai jo merkityt päivät).",
+    "teams": "Tiimit",
+    "teamFilter": "Tiimi",
+    "allTeams": "Kaikki tiimit",
+    "dragTeam": "Raahaa koko tiimi kalenteriin",
+    "teamMembersN": "{count, plural, one {# hlö} other {# hlöä}}",
+    "teamDialog": "Merkintä tehdään kaikille tiimin jäsenille ({count})."
+  },
+  "teams": {
+    "title": "Tiimit",
+    "intro": "Kokoa henkilöistä tiimejä ja nimeä tiimille vetäjä. Henkilö kuuluu yhteen tiimiin kerrallaan.",
+    "noAccess": "Sinulla ei ole oikeutta tiimeihin.",
+    "create": "Luo tiimi",
+    "name": "Tiimin nimi",
+    "leader": "Vetäjä",
+    "noLeader": "Ei vetäjää",
+    "leaderShort": "Vetäjä",
+    "color": "Väri",
+    "description": "Kuvaus",
+    "colors": {
+      "slate": "Harmaa",
+      "sky": "Sininen",
+      "amber": "Keltainen",
+      "emerald": "Vihreä",
+      "violet": "Violetti",
+      "rose": "Punainen",
+      "orange": "Oranssi",
+      "teal": "Turkoosi"
+    },
+    "none": "Ei vielä tiimejä.",
+    "membersN": "{count, plural, one {# jäsen} other {# jäsentä}}",
+    "noMembers": "Ei jäseniä.",
+    "people": "Henkilöt",
+    "addMembers": "Lisää jäseniä",
+    "moveHint": "Jos henkilö kuuluu jo toiseen tiimiin, hänet siirretään tähän tiimiin.",
+    "remove": "Poista {name} tiimistä",
+    "archive": "Arkistoi tiimi",
+    "confirmArchive": "Arkistoidaanko tiimi {name}? Jäsenet jäävät ilman tiimiä.",
+    "dragTeam": "Raahaa koko tiimi"
   }
 }

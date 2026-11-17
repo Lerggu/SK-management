@@ -4,6 +4,7 @@ import { Pencil, UserRound } from "lucide-react";
 import { hasPermission } from "@/platform/authz";
 import { employeeService } from "@/modules/workforce/service";
 import { personalIdService } from "@/modules/workforce/personal-id.service";
+import { teamService } from "@/modules/workforce/team.service";
 import { hrCardService } from "@/modules/hr/card.service";
 import { employeeFileService, hrFileMaxBytes } from "@/modules/hr/files.service";
 import { jobProfileService, qualificationTypeService } from "@/modules/hr/settings.service";
@@ -39,7 +40,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
   const card = await loadOr404(hrCardService.get(ctx, employeeId));
   const canViewEmployees = hasPermission(ctx, "employee.view");
   const canPid = !ctx.external && hasPermission(ctx, "employee.pid.manage");
-  const [t, th, tc, format, employee, files, profiles, types, people, users, pid] = await Promise.all([
+  const [t, th, tc, format, employee, files, profiles, types, people, users, pid, teamList] = await Promise.all([
     getTranslations("workforce"),
     getTranslations("hr"),
     getTranslations("common"),
@@ -51,6 +52,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
     canViewEmployees ? employeeService.list(ctx) : Promise.resolve([]),
     card.can.editEmployment ? hrCardService.linkableUsers(ctx) : Promise.resolve([]),
     canPid ? personalIdService.status(ctx, employeeId) : Promise.resolve(null),
+    card.can.editEmployment ? teamService.list(ctx).catch(() => ({ teams: [] })) : Promise.resolve({ teams: [] }),
   ]);
   const act: Act = (op: HrOp, id: string) => hrAction.bind(null, companySlug, op, id);
   const available: Record<Tab, boolean> = {
@@ -125,7 +127,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
 
       {tab === "basics" && (
         <div className="space-y-4">
-          <BasicsTab card={card} act={act} supervisors={peopleOptions} profiles={profiles.map((p) => ({ id: p.id, name: p.name }))} existingTeams={[...new Set(people.map((p) => p.team).filter((x): x is string => !!x))]} existingLocations={[...new Set(people.map((p) => p.location).filter((x): x is string => !!x))]} names={names} users={users} />
+          <BasicsTab card={card} act={act} supervisors={peopleOptions} profiles={profiles.map((p) => ({ id: p.id, name: p.name }))} teams={teamList.teams.map((x) => ({ id: x.id, name: x.name }))} existingLocations={[...new Set(people.map((p) => p.location).filter((x): x is string => !!x))]} names={names} users={users} />
           {employee && (
             <Section title={tc("details")}>
               <DetailList

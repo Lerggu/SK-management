@@ -65,6 +65,7 @@ import { deviationService } from "@/modules/production/deviation.service";
 import { logisticsAiService } from "@/modules/production/ai.service";
 import { rotationService } from "@/modules/workforce/rotation.service";
 import { personalIdService } from "@/modules/workforce/personal-id.service";
+import { teamService } from "@/modules/workforce/team.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Role = "CLIENT" | "CLIENT_APPROVER" | "SUBCONTRACTOR";
@@ -164,6 +165,8 @@ const CALLS: Record<string, Call> = {
   "rotation.setRange": w("rotation", (c) => rotationService.setRange(c, { employeeId: f.employee, from: "2026-12-01", until: "2026-12-01", status: "OFF" })),
   "personalId.reveal": r("personalId", (c) => personalIdService.reveal(c, f.employee)),
   "personalId.set": w("personalId", (c) => personalIdService.set(c, f.employee, { personalId: "131052-308T" })),
+  "team.list": r("team", (c) => teamService.list(c)),
+  "team.create": w("team", (c) => teamService.create(c, { name: uniq("t") })),
   // HR (ADR 0025): external parties never get HR access.
   "hr.settings.get": r("hrSettings", (c) => hrSettingsService.get(c)),
   "hr.settings.update": w("hrSettings", (c) => hrSettingsService.update(c, { reminderEmail: "x@example.test" })),
@@ -179,7 +182,7 @@ const CALLS: Record<string, Call> = {
   "hr.card.myEmployeeId": r("hrCard", (c) => hrCardService.myEmployeeId(c)),
   "hr.card.linkableUsers": r("hrCard", (c) => hrCardService.linkableUsers(c)),
   "hr.card.updatePersonal": w("hrCard", (c) => hrCardService.updatePersonal(c, f.employee, { phone: "1" })),
-  "hr.card.updateEmployment": w("hrCard", (c) => hrCardService.updateEmployment(c, f.employee, { team: "x" })),
+  "hr.card.updateEmployment": w("hrCard", (c) => hrCardService.updateEmployment(c, f.employee, { location: "x" })),
   "hr.assessment.create": w("competenceAssessment", (c) => assessmentService.create(c, f.employee, { areaId: hr.area, assessedOn: "2026-10-01" })),
   "hr.assessment.publish": w("competenceAssessment", (c) => assessmentService.publish(c, hr.draft)),
   "hr.assessment.comment": w("competenceAssessment", (c) => assessmentService.comment(c, hr.published, { comment: "x" })),

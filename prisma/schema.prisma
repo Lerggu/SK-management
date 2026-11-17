@@ -210,6 +210,7 @@ model Company {
   expiryReminders    ExpiryReminder[]
   logisticsTaskTypes LogisticsTaskType[]
   rotationEntries    RotationEntry[]
+  teams              Team[]
 
   @@index([organizationId])
   @@map("companies")
@@ -571,7 +572,10 @@ model Employee {
   shareableInGroup      Boolean        @default(false) @map("shareable_in_group")
   // HR card (ADR 0025)
   supervisorId          String?        @map("supervisor_id") @db.Uuid
+  /// Name of the employee's team, kept in sync with teams.name by the team service (filters use it).
   team                  String?
+  /// Team (ADR 0029); one team per person.
+  teamId                String?        @map("team_id") @db.Uuid
   location              String?
   jobProfileId          String?        @map("job_profile_id") @db.Uuid
   /// Visible only to HR admins, the supervisor chain and the employee.
@@ -596,6 +600,8 @@ model Employee {
   updatedById           String?        @map("updated_by") @db.Uuid
   archivedAt            DateTime?      @map("archived_at") @db.Timestamptz(6)
 
+  teamRef         Team?             @relation("TeamMembers", fields: [companyId, teamId], references: [companyId, id], onDelete: Restrict)
+  ledTeams        Team[]            @relation("TeamLeader")
   company         Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
   rates           EmployeeRate[]
   timeEntries     TimeEntry[]
@@ -3684,4 +3690,27 @@ model RotationEntry {
   @@index([companyId, day])
   @@index([companyId, siteId, day])
   @@map("rotation_entries")
+}
+
+/// Team of employees (docs/adr/0029-teams.md): a crew or group with a leader.
+model Team {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  companyId   String    @map("company_id") @db.Uuid
+  name        String
+  description String?
+  color       String    @default("sky")
+  leaderId    String?   @map("leader_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?   @map("updated_by") @db.Uuid
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  company Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  leader  Employee?  @relation("TeamLeader", fields: [companyId, leaderId], references: [companyId, id], onDelete: Restrict)
+  members Employee[] @relation("TeamMembers")
+
+  @@unique([companyId, id])
+  @@index([companyId, archivedAt])
+  @@map("teams")
 }

@@ -90,6 +90,7 @@ export default async function RotationPage({ params, searchParams }: { params: P
         sites={data.sites}
         unassigned={data.unassigned}
         statusRows={data.statusRows}
+        teams={data.teams}
         canManage={data.canManage}
         setRange={rotationSetAction.bind(null, companySlug)}
         clearRange={rotationClearAction.bind(null, companySlug)}

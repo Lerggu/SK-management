@@ -62,6 +62,7 @@ import { productionCalendarService } from "@/modules/production/calendar.service
 import { logisticsAiService } from "@/modules/production/ai.service";
 import { rotationService } from "@/modules/workforce/rotation.service";
 import { personalIdService } from "@/modules/workforce/personal-id.service";
+import { teamService } from "@/modules/workforce/team.service";
 import { deviationService } from "@/modules/production/deviation.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
@@ -144,6 +145,7 @@ interface World {
   prod: { type: string; role: string; request: string; bType: string; bRole: string; bRequest: string; deviation: string; photo: string; aiRun: string };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
+  teams: { a: string; b: string };
   bProject: string;
   bDocument: string;
   bEquipmentType: string;
@@ -288,7 +290,9 @@ beforeAll(async () => {
   // ── HR data in company A (ADR 0025) ──
   const hrWorkerCtx = await createMember(a, "EMPLOYEE");
   const hrWorker = await employeeService.create(actx, { employeeNumber: "A-HR1", firstName: "A", lastName: "Hr", email: "a.hr@example.test", userId: hrWorkerCtx.user.id });
-  await hrCardService.updateEmployment(actx, hrWorker.id, { supervisorId: employee.id, team: "A team" });
+  const aTeam = await teamService.create(actx, { name: "A team", leaderId: employee.id });
+  await hrCardService.updateEmployment(actx, hrWorker.id, { supervisorId: employee.id, teamId: aTeam.id });
+  const bTeam = await teamService.create(b.ownerCtx, { name: "B team" });
   await hrSettingsService.update(actx, { reminderEmail: "a.hr.maintenance@example.test" });
   const hrArea = await competenceAreaService.create(actx, { category: "A", name: "A area", isKey: true });
   const hrType = await qualificationTypeService.create(actx, { name: "A card" });
@@ -429,6 +433,7 @@ beforeAll(async () => {
     prod: { type: prodType.id, role: prodRole.id, request: prodRequest.id, bType: bProdType.id, bRole: bProdRole.id, bRequest: bProdRequest.id, deviation: prodDeviation.id, photo: prodPhoto.id, aiRun: prodAiRun.id },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
+    teams: { a: aTeam.id, b: bTeam.id },
     bProject: bProject.id,
     bDocument: bDocument.id,
     bEquipmentType: bType.id,
@@ -1143,7 +1148,8 @@ const cases: Record<string, Case> = {
     expect(users.map((u) => u.id)).not.toContain(w.a.owner.user.id);
   },
   "hrCard.updateEmployment": async () => {
-    await expectNotFound(hrCardService.updateEmployment(w.bCtx, w.hr.worker, { team: "B" }));
+    await expectNotFound(hrCardService.updateEmployment(w.bCtx, w.hr.worker, { location: "B" }));
+    await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { teamId: w.teams.a }));
     await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { supervisorId: w.ids.employee }));
     await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { jobProfileId: w.hr.profile }));
     await expectRejected(hrCardService.updateEmployment(w.bCtx, w.bhr.employee, { userId: w.ids.memberUserId }));
@@ -1305,6 +1311,23 @@ const cases: Record<string, Case> = {
     expect((await db.employee.findUniqueOrThrow({ where: { id: w.ids.employee } })).personalIdEnc).toBeNull();
   },
   "personalId.clear": () => expectNotFound(personalIdService.clear(w.bCtx, w.ids.employee)),
+  "team.list": async () => {
+    const r = await teamService.list(w.bCtx);
+    expect(r.teams.map((t) => t.id)).not.toContain(w.teams.a);
+  },
+  "team.create": async () => {
+    await expectRejected(teamService.create(w.bCtx, { name: "Intruder", leaderId: w.ids.employee }));
+  },
+  "team.update": async () => {
+    await expectNotFound(teamService.update(w.bCtx, w.teams.a, { name: "X" }));
+    await expectRejected(teamService.update(w.bCtx, w.teams.b, { name: "B team", leaderId: w.ids.employee }));
+  },
+  "team.archive": () => expectNotFound(teamService.archive(w.bCtx, w.teams.a)),
+  "team.addMembers": async () => {
+    await expectNotFound(teamService.addMembers(w.bCtx, w.teams.a, { employeeIds: [w.bhr.employee] }));
+    await expectRejected(teamService.addMembers(w.bCtx, w.teams.b, { employeeIds: [w.ids.employee] }));
+  },
+  "team.removeMember": () => expectNotFound(teamService.removeMember(w.bCtx, w.teams.a, w.ids.employee)),
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();

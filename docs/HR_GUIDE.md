@@ -72,6 +72,13 @@ Komento ottaa käyttöön Azure Communication Services -sähköpostin ja asettaa
   - kortilla se näkyy peitettynä, ja koko tunnuksen saa esiin Näytä-painikkeella;
   - jokainen näyttäminen kirjataan muutoslokiin.
 
+## Tiimit
+- **Missä:** Henkilöstö → Tiimit ([ADR 0029](adr/0029-teams.md)).
+- **Tiimin luonti:** anna tiimille nimi, vetäjä, väri ja kuvaus, ja lisää sitten jäsenet.
+- **Jäsenyys:** henkilö kuuluu yhteen tiimiin kerrallaan, joten lisääminen toiseen tiimiin siirtää hänet. Vetäjä on aina tiimin jäsen.
+- **Henkilökortilla** tiimi valitaan listasta.
+- **Rotaatiokalenterissa** koko tiimin voi raahata kalenteriin kerralla, ja henkilölistan voi rajata tiimin mukaan.
+
 ## Rotaatio
 **Henkilöstö → Rotaatio** on henkilöstön rotaatiosuunnitelma kalenterina ([ADR 0027](adr/0027-workforce-rotation.md)).
 - **Tilat:** töissä (työmaa), vapaalla, lomalla, sairaana, koulutuksessa ja muu syy.
