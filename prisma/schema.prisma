@@ -627,6 +627,7 @@ model Employee {
   @@unique([companyId, id])
   @@unique([companyId, personalIdHash])
   @@unique([companyId, employeeNumber])
+  @@index([companyId, teamId])
   @@index([companyId, archivedAt])
   @@map("employees")
 }
