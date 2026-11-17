@@ -117,6 +117,16 @@ export function isPermissionKey(value: string): value is PermissionKey {
  */
 export const EXTERNAL_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set(["portal.client", "portal.subcontractor", "variation.client_approve"]);
 
+/** Marketing automation (ADR 0032). */
+export const MARKETING_PERMISSIONS: ReadonlySet<PermissionKey> = new Set(["marketing.view", "marketing.manage", "marketing.approve"]);
+
+/**
+ * Owner decision 2026-11-18: marketing is only for the CEO and project
+ * manager roles. These permissions can be granted to roles from those
+ * templates only, never as a personal extra permission.
+ */
+export const MARKETING_ROLE_TEMPLATES: ReadonlySet<string> = new Set(["CEO", "PROJECT_MANAGER"]);
+
 /** Permissions that only make sense company-wide (never granted via a project role). */
 export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "company.manage",
@@ -232,9 +242,6 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "material.manage",
       "crm.view",
       "crm.manage",
-      "marketing.view",
-      "marketing.manage",
-      "marketing.approve",
       "commercial.view",
       "commercial.manage",
       "commercial.approve",
@@ -256,6 +263,9 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     projectAccess: "ASSIGNED",
     external: false,
     permissions: P(
+      "marketing.view",
+      "marketing.manage",
+      "marketing.approve",
       "project.view",
       "project.manage",
       "project.members.manage",

@@ -1,6 +1,6 @@
 # Markkinointi – käyttöohje
 
-Markkinointi löytyy valikosta **Markkinointi**. Käyttöoikeudet: toimitusjohtaja ja projektijohtaja (muille voi antaa lisäoikeuden *Markkinointi*-oikeuksista käyttäjähallinnassa).
+Markkinointi löytyy valikosta **Markkinointi**. Pääsy on vain **toimitusjohtajalla ja projektipäälliköllä** (omistajan päätös). Oikeuksia ei voi antaa muille rooleille eikä henkilökohtaisina lisäoikeuksina.
 
 ## Käyttöönotto (kerran)
 1. **Markkinointi → Asetukset**

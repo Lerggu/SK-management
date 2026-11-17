@@ -12,6 +12,7 @@ import { FakeAiProvider, setAiProviderForTests } from "@/platform/ai";
 import { MemoryMailer, setMailerForTests } from "@/platform/mail";
 import { setTedFetchForTests, type TedNotice } from "@/platform/integrations/ted";
 import { marketingService } from "@/modules/marketing/service";
+import { companyAdminService } from "@/modules/companies/service";
 import { draftLetters, runDiscovery, runMarketingCycle, sendApproved, unsubscribeByToken, unsubscribeInfo } from "@/modules/marketing/agents";
 import { createMember, createTenant, type Tenant } from "../helpers/fixtures";
 
@@ -208,6 +209,21 @@ describe("marketing agents", () => {
     expect(second.discovery).toBeUndefined();
   });
 
+  it("tells the salespeople by e-mail when new letters wait for approval", async () => {
+    const t5 = await createTenant("Notice");
+    await marketingService.updateSettings(t5.ownerCtx, { enabled: "on", countries: ["FI"], minScore: "50", dailySendLimit: "20", intervalHours: "24", aiMonthlyBudgetEur: "40", replyToUserIds: [t5.owner.user.id] });
+    setAiProviderForTests(new FakeAiProvider());
+    setTedFetchForTests(async () => []);
+    const mailer = new MemoryMailer();
+    setMailerForTests(mailer);
+    const cycle = (await runMarketingCycle()).find((r) => r.companyId === t5.companyId)!;
+    expect(cycle).toMatchObject({ drafted: 4, sent: 0 });
+    const notice = mailer.sent.filter((m) => m.to === t5.owner.user.email);
+    expect(notice).toHaveLength(1);
+    expect(notice[0].subject).toContain("4 uutta markkinointikirjettä");
+    expect(notice[0].text).toContain(`/c/${t5.slug}/marketing/approvals`);
+  });
+
   it("stops at the monthly AI budget", async () => {
     const t4 = await createTenant("Budget");
     await marketingService.updateSettings(t4.ownerCtx, { enabled: "", countries: ["FI"], minScore: "60", dailySendLimit: "20", intervalHours: "24", aiMonthlyBudgetEur: "1", replyToUserIds: [] });
@@ -245,10 +261,20 @@ describe("marketing agents", () => {
       marketingService.updateSettings(t.ownerCtx, { enabled: "", countries: ["FI"], minScore: "60", dailySendLimit: "20", intervalHours: "24", aiMonthlyBudgetEur: "40", replyToUserIds: [outsider.owner.user.id] }),
     ).rejects.toBeInstanceOf(ValidationError);
 
+    // Owner decision 2026-11-18: only the CEO and project manager roles.
     const pm = await createMember(t, "PROJECT_MANAGER");
-    await expect(marketingService.listLeads(pm)).rejects.toBeInstanceOf(ForbiddenError);
-    const pd = await createMember(t, "PROJECT_DIRECTOR");
-    expect((await marketingService.listLeads(pd)).length).toBeGreaterThan(0);
+    expect((await marketingService.listLeads(pm)).length).toBeGreaterThan(0);
+    for (const role of ["PROJECT_DIRECTOR", "SITE_MANAGER", "HR_ADMIN"] as const) {
+      await expect(marketingService.listLeads(await createMember(t, role))).rejects.toBeInstanceOf(ForbiddenError);
+    }
+    // ... and the permissions cannot be handed out any other way.
+    await expect(companyAdminService.updateRolePermissions(t.ownerCtx, await t.roleId("PROJECT_DIRECTOR"), { permissionKeys: ["project.view", "marketing.view"] })).rejects.toBeInstanceOf(ValidationError);
+    const sm = await createMember(t, "SITE_MANAGER");
+    const smMembership = await db.companyMembership.findFirstOrThrow({ where: { companyId: t.companyId, userId: sm.user.id } });
+    await expect(companyAdminService.setMemberPermissions(t.ownerCtx, smMembership.id, { permissionKeys: ["marketing.view"] })).rejects.toBeInstanceOf(ValidationError);
+    const pmRole = await t.roleId("PROJECT_MANAGER");
+    const pmKeys = (await db.rolePermission.findMany({ where: { roleId: pmRole } })).map((r) => r.permissionKey);
+    await companyAdminService.updateRolePermissions(t.ownerCtx, pmRole, { permissionKeys: pmKeys });
     const sub = await createMember(t, "SUBCONTRACTOR");
     await expect(marketingService.overview(sub)).rejects.toBeInstanceOf(ForbiddenError);
   });

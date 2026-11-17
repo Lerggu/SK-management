@@ -287,6 +287,7 @@ BEGIN
 END $$;
 
 -- ── Permissions (src/platform/authz/permissions.ts) ──────────────────
+-- Owner decision 2026-11-18: marketing only for the CEO and project manager roles.
 INSERT INTO permissions (key, category, description, is_sensitive) VALUES
   ('marketing.view', 'commercial', 'View the marketing register, letters and call list', false),
   ('marketing.manage', 'commercial', 'Manage marketing settings, run the agents and edit the register and contacts', false),
@@ -297,6 +298,6 @@ SELECT r.company_id, r.id, g.permission_key, now()
 FROM roles r
 JOIN (VALUES
   ('CEO', 'marketing.view'), ('CEO', 'marketing.manage'), ('CEO', 'marketing.approve'),
-  ('PROJECT_DIRECTOR', 'marketing.view'), ('PROJECT_DIRECTOR', 'marketing.manage'), ('PROJECT_DIRECTOR', 'marketing.approve')
+  ('PROJECT_MANAGER', 'marketing.view'), ('PROJECT_MANAGER', 'marketing.manage'), ('PROJECT_MANAGER', 'marketing.approve')
 ) AS g(template_key, permission_key) ON g.template_key = r.template_key
 ON CONFLICT DO NOTHING;

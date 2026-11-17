@@ -964,7 +964,8 @@
       "ALREADY_ASSIGNED": "Resurssi on jo varattu tähän tehtävään."
     },
     "personalId": "Virheellinen henkilötunnus. Tarkista muoto ja tarkistemerkki.",
-    "personalIdTaken": "Tämä henkilötunnus on jo toisella henkilöllä."
+    "personalIdTaken": "Tämä henkilötunnus on jo toisella henkilöllä.",
+    "marketingRestricted": "Markkinointioikeudet voi antaa vain toimitusjohtajan ja projektipäällikön rooleille."
   },
   "time": {
     "title": "Tunnit",

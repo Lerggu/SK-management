@@ -1,5 +1,5 @@
 import { getFormatter, getTranslations } from "next-intl/server";
-import { ALL_PERMISSIONS, COMPANY_ONLY_PERMISSIONS, EXTERNAL_ONLY_PERMISSIONS, hasPermission, PERMISSIONS, SENSITIVE_PERMISSIONS } from "@/platform/authz";
+import { ALL_PERMISSIONS, COMPANY_ONLY_PERMISSIONS, EXTERNAL_ONLY_PERMISSIONS, hasPermission, MARKETING_PERMISSIONS, PERMISSIONS, SENSITIVE_PERMISSIONS } from "@/platform/authz";
 import { companyAdminService } from "@/modules/companies/service";
 import { Badge } from "@/ui/components/badge";
 import { codeKey } from "@/ui/format";
@@ -26,7 +26,7 @@ export default async function MembersPage({ params }: { params: Promise<{ compan
   const canGrant = hasPermission(ctx, "company.roles.manage");
   const categories = [...new Set(ALL_PERMISSIONS.map((p) => PERMISSIONS[p].category))];
   /** Extra permissions a member may receive: never portal ones; for external members never sensitive or company-wide ones. */
-  const grantable = (external: boolean) => ALL_PERMISSIONS.filter((p) => !EXTERNAL_ONLY_PERMISSIONS.has(p) && (!external || (!SENSITIVE_PERMISSIONS.has(p) && !COMPANY_ONLY_PERMISSIONS.has(p))));
+  const grantable = (external: boolean) => ALL_PERMISSIONS.filter((p) => !EXTERNAL_ONLY_PERMISSIONS.has(p) && !MARKETING_PERMISSIONS.has(p) && (!external || (!SENSITIVE_PERMISSIONS.has(p) && !COMPANY_ONLY_PERMISSIONS.has(p))));
   return (
     <>
       <PageHeader title={t("title")} description={ctx.company.name} />

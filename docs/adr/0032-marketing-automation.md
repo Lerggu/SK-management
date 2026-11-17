@@ -33,7 +33,7 @@ The owner wants an automatic marketing and sales system for SK Infra.
 - `marketing.manage`: settings, running the agents, editing the register and contacts;
 - `marketing.approve`: approving and sending letters, and the call list.
 
-CEO and Project Director templates get all three.
+**Access (owner decision 2026-11-18):** only the CEO and Project Manager templates get these permissions. They cannot be granted to other roles (including custom roles) or as personal extra permissions; the services enforce this when permissions are changed.
 
 ### Register
 - **Tables:** `marketing_leads` (one project), `marketing_lead_sources` (every finding with its URL), `marketing_contacts`, `marketing_messages` (letter, call script, call outcome), `marketing_suppressions` (opt-out list), `marketing_runs` (every agent run with its AI cost) and `marketing_settings`.

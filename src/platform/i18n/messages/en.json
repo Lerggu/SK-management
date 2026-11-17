@@ -964,7 +964,8 @@
       "ALREADY_ASSIGNED": "This resource is already assigned to the task."
     },
     "personalId": "Invalid personal identity code. Check the format and the check character.",
-    "personalIdTaken": "This personal identity code already belongs to another person."
+    "personalIdTaken": "This personal identity code already belongs to another person.",
+    "marketingRestricted": "Marketing permissions can only be given to the CEO and project manager roles."
   },
   "time": {
     "title": "Hours",

@@ -474,6 +474,42 @@ export async function unsubscribeByToken(token: string): Promise<{ ok: boolean; 
   return { ok: true, companyName: company.name };
 }
 
+// ── approval notice ─────────────────────────────────────────────────
+
+/**
+ * Tells the reply recipients (the salespeople) that new letters wait for
+ * approval, with a link to the approval list. Only when letters are not
+ * sent automatically; a failure never stops the cycle.
+ */
+export async function notifyPendingApprovals(scope: MarketingScope, drafted: number, opts: AgentOptions = {}) {
+  if (drafted <= 0) return { sent: 0 };
+  return withTenantScope(scope, async () => {
+    const mailer = opts.mailer !== undefined ? opts.mailer : getMailer();
+    const repo = new MarketingRepo(readClient(), scope.companyId);
+    const [settings, company] = await Promise.all([settingsOf(repo), repo.getCompany()]);
+    if (!mailer || settings.autoSend || !company) return { sent: 0 };
+    const people = (await repo.activeMembers(settings.replyToUserIds)).map((m) => m.user).filter((u) => normaliseEmail(u.email));
+    const drafts = await repo.listMessages(["DRAFT"], 10);
+    const total = (await repo.listMessages(["DRAFT"], 500)).length;
+    const url = `${appBaseUrl()}/c/${company.slug}/marketing/approvals`;
+    const lines = drafts.map((d) => `– ${d.lead.title} (${d.lead.fitScore}/100) → ${d.contact.name ?? d.contact.email}`);
+    let sent = 0;
+    for (const p of people) {
+      try {
+        await mailer.send({
+          to: p.email,
+          subject: `SK Management: ${drafted} uutta markkinointikirjettä odottaa hyväksyntää`,
+          text: [`Hei ${p.name ?? ""},`.trim(), "", `Markkinointiagentti laati ${drafted} uutta kirjettä (hyväksyntää odottaa yhteensä ${total}).`, "", ...lines, "", `Tarkista ja hyväksy: ${url}`].join("\n"),
+        });
+        sent++;
+      } catch (e) {
+        console.error("marketing approval notice failed", err(e));
+      }
+    }
+    return { sent };
+  });
+}
+
 // ── scheduler ───────────────────────────────────────────────────────
 
 /** One cycle for every company whose discovery is due: discover, draft, send. */
@@ -487,6 +523,7 @@ export async function runMarketingCycle(opts: AgentOptions = {}) {
       const due = discoveryDue(s, now);
       const discovery = due ? await runDiscovery(scope, opts) : undefined;
       const drafts = due ? await draftLetters(scope, opts) : undefined;
+      if (drafts?.drafted) await notifyPendingApprovals(scope, drafts.drafted, opts);
       const sent = await sendApproved(scope, opts);
       results.push({ companyId: s.companyId, discovery, drafted: drafts?.drafted, sent: sent.sent });
     } catch (e) {

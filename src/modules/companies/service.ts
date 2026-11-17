@@ -10,6 +10,8 @@ import {
   SENSITIVE_PERMISSIONS,
   hasPermission,
   isPermissionKey,
+  MARKETING_PERMISSIONS,
+  MARKETING_ROLE_TEMPLATES,
   projectPermissions,
   requirePermission,
   type Locale,
@@ -147,6 +149,8 @@ export const companyDirectoryService = {
 };
 
 /** Company administration (settings, members, roles, audit log). */
+const marketingRole = (templateKey: string | null) => templateKey !== null && MARKETING_ROLE_TEMPLATES.has(templateKey);
+
 export const companyAdminService = {
   async getSettings(ctx: RequestContext) {
     const company = await new CompanyScopedRepo(readClient(), ctx.company.id).getCompany();
@@ -202,6 +206,8 @@ export const companyAdminService = {
       const external = membership.roles.some((r) => r.role.templateKey !== null && EXTERNAL_TEMPLATE_KEYS.has(r.role.templateKey));
       if (external && keys.some((k) => SENSITIVE_PERMISSIONS.has(k) || COMPANY_ONLY_PERMISSIONS.has(k))) throw new ValidationError({ permissionKeys: ["validation.externalSensitive"] });
       if (keys.some((k) => EXTERNAL_ONLY_PERMISSIONS.has(k))) throw new ValidationError({ permissionKeys: ["validation.externalOnly"] });
+      // Owner decision 2026-11-18: marketing only through the CEO and project manager roles.
+      if (keys.some((k) => MARKETING_PERMISSIONS.has(k))) throw new ValidationError({ permissionKeys: ["validation.marketingRestricted"] });
       const before = (await tx.membershipPermission.findMany({ where: { companyId: ctx.company.id, membershipId: membership.id }, select: { permissionKey: true } })).map((x) => x.permissionKey).sort();
       await repo.replaceMemberPermissions(membership.id, keys, ctx.user.id);
       await assertAdminsRemain(repo);
@@ -347,6 +353,7 @@ export const companyAdminService = {
       projectAccess: r.projectAccess,
       isSystem: r.isSystem,
       external: r.templateKey !== null && EXTERNAL_TEMPLATE_KEYS.has(r.templateKey),
+      marketingAllowed: marketingRole(r.templateKey),
       permissions: r.permissions.map((p) => p.permissionKey).filter(isPermissionKey),
     }));
   },
@@ -373,6 +380,10 @@ export const companyAdminService = {
       // V7: portal and client-approval permissions belong to external roles only.
       if (!externalRole && keys.some((k) => EXTERNAL_ONLY_PERMISSIONS.has(k))) {
         throw new ValidationError({ permissionKeys: ["validation.externalOnly"] });
+      }
+      // Owner decision 2026-11-18: marketing only for the CEO and project manager roles.
+      if (!marketingRole(role.templateKey) && keys.some((k) => MARKETING_PERMISSIONS.has(k))) {
+        throw new ValidationError({ permissionKeys: ["validation.marketingRestricted"] });
       }
       const before = role.permissions.map((p) => p.permissionKey).sort();
       await repo.replaceRolePermissions(role.id, keys, ctx.user.id);
