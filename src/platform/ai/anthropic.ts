@@ -73,7 +73,7 @@ export class AnthropicProvider implements AiProvider {
       },
     ] as BetaToolUnion[];
 
-    const messages: BetaMessageParam[] = [{ role: "user", content: request.prompt }];
+    const messages: BetaMessageParam[] = [...(request.history ?? []).map((h) => ({ role: h.role, content: h.text }) as BetaMessageParam), { role: "user", content: request.prompt }];
     const toolCalls: AiToolCall[] = [];
     const totals = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
     let servedModel: string = this.model;

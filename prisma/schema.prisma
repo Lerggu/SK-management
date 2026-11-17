@@ -173,44 +173,45 @@ model Company {
   updatedById        String?   @map("updated_by") @db.Uuid
   archivedAt         DateTime? @map("archived_at") @db.Timestamptz(6)
 
-  organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  memberships        CompanyMembership[]
-  roles              Role[]
-  projects           Project[]
-  sites              Site[]
-  employees          Employee[]
-  employeeRates      EmployeeRate[]
-  equipmentTypes     EquipmentType[]
-  equipment          Equipment[]
-  equipmentRates     EquipmentRate[]
-  documents          Document[]
-  timeEntries        TimeEntry[]
-  dailyReports       DailyReport[]
-  budgets            Budget[]
-  costEntries        CostEntry[]
-  workCalendars      WorkCalendar[]
-  bookings           ResourceBooking[]    @relation("BookingCompany")
-  ownedBookings      ResourceBooking[]    @relation("BookingOwner")
-  logisticsRequests  LogisticsRequest[]
-  logisticsLocations LogisticsLocation[]
-  deliveries         Delivery[]
-  liftingAccessories LiftingAccessory[]
-  liftPlans          LiftPlan[]
-  materialBatches    MaterialBatch[]
-  cableDrums         CableDrum[]
-  customers          Customer[]
-  candidates         InvoiceCandidate[]   @relation("CandidateCompany")
-  billedCandidates   InvoiceCandidate[]   @relation("CandidateBillTo")
-  invoiceExports     InvoiceExportBatch[]
-  aiRuns             AiRun[]
-  hrSettings         HrSettings?
-  competenceAreas    CompetenceArea[]
-  qualificationTypes QualificationType[]
-  jobProfiles        JobProfile[]
-  expiryReminders    ExpiryReminder[]
-  logisticsTaskTypes LogisticsTaskType[]
-  rotationEntries    RotationEntry[]
-  teams              Team[]
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  memberships            CompanyMembership[]
+  roles                  Role[]
+  projects               Project[]
+  sites                  Site[]
+  employees              Employee[]
+  employeeRates          EmployeeRate[]
+  equipmentTypes         EquipmentType[]
+  equipment              Equipment[]
+  equipmentRates         EquipmentRate[]
+  documents              Document[]
+  timeEntries            TimeEntry[]
+  dailyReports           DailyReport[]
+  budgets                Budget[]
+  costEntries            CostEntry[]
+  workCalendars          WorkCalendar[]
+  bookings               ResourceBooking[]       @relation("BookingCompany")
+  ownedBookings          ResourceBooking[]       @relation("BookingOwner")
+  logisticsRequests      LogisticsRequest[]
+  logisticsLocations     LogisticsLocation[]
+  deliveries             Delivery[]
+  liftingAccessories     LiftingAccessory[]
+  liftPlans              LiftPlan[]
+  materialBatches        MaterialBatch[]
+  cableDrums             CableDrum[]
+  customers              Customer[]
+  candidates             InvoiceCandidate[]      @relation("CandidateCompany")
+  billedCandidates       InvoiceCandidate[]      @relation("CandidateBillTo")
+  invoiceExports         InvoiceExportBatch[]
+  aiRuns                 AiRun[]
+  hrSettings             HrSettings?
+  competenceAreas        CompetenceArea[]
+  qualificationTypes     QualificationType[]
+  jobProfiles            JobProfile[]
+  expiryReminders        ExpiryReminder[]
+  logisticsTaskTypes     LogisticsTaskType[]
+  rotationEntries        RotationEntry[]
+  teams                  Team[]
+  assistantConversations AssistantConversation[]
 
   @@index([organizationId])
   @@map("companies")
@@ -2945,6 +2946,8 @@ enum AiRunKind {
   STAFFING
   /// Production control phase 4: §27 logistics risk analysis of a project.
   LOGISTICS_RISK
+  /// Voice/text assistant turn (ADR 0031).
+  ASSISTANT
 }
 
 enum AiRunStatus {
@@ -2972,7 +2975,8 @@ enum AiRecommendationStatus {
 model AiRun {
   id                 String      @id @default(uuid(7)) @db.Uuid
   companyId          String      @map("company_id") @db.Uuid
-  projectId          String      @map("project_id") @db.Uuid
+  /// Null for assistant runs that are not about one project (ADR 0031).
+  projectId          String?     @map("project_id") @db.Uuid
   requestedById      String      @map("requested_by") @db.Uuid
   kind               AiRunKind
   question           String?
@@ -2995,7 +2999,7 @@ model AiRun {
   createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
   company          Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  project          Project            @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  project          Project?           @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
   logisticsRequest LogisticsRequest?  @relation(fields: [companyId, logisticsRequestId], references: [companyId, id], onDelete: Restrict)
   recommendations  AiRecommendation[]
 
@@ -3739,4 +3743,55 @@ model MembershipPermission {
   @@id([membershipId, permissionKey])
   @@index([companyId])
   @@map("membership_permissions")
+}
+
+/// Voice/text assistant (docs/adr/0031-assistant.md): one conversation per
+/// user session; messages are kept short and are the user's own.
+model AssistantConversation {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  /// [{ role: "user" | "assistant", text, at }]
+  messages  Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  actions AssistantAction[]
+
+  @@unique([companyId, id])
+  @@index([companyId, userId, updatedAt])
+  @@map("assistant_conversations")
+}
+
+enum AssistantActionStatus {
+  PROPOSED
+  CONFIRMED
+  REJECTED
+  FAILED
+}
+
+/// An action the assistant proposes; nothing is saved before a person confirms it.
+model AssistantAction {
+  id             String                @id @default(uuid(7)) @db.Uuid
+  companyId      String                @map("company_id") @db.Uuid
+  conversationId String                @map("conversation_id") @db.Uuid
+  userId         String                @map("user_id") @db.Uuid
+  position       Int
+  type           String
+  summary        String
+  params         Json
+  /// Money moves: a separate, explicit confirmation of the amount.
+  money          Boolean               @default(false)
+  status         AssistantActionStatus @default(PROPOSED)
+  result         Json?
+  error          String?
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  decidedAt      DateTime?             @map("decided_at") @db.Timestamptz(6)
+
+  conversation AssistantConversation @relation(fields: [companyId, conversationId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, conversationId, position])
+  @@map("assistant_actions")
 }

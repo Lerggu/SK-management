@@ -35,7 +35,8 @@
     "signOut": "Kirjaudu ulos",
     "loading": "Ladataan…",
     "submitting": "Tallennetaan…",
-    "total": "Yhteensä {count}"
+    "total": "Yhteensä {count}",
+    "assistant": "Avustaja"
   },
   "locale": {
     "fi": "Suomi",
@@ -788,7 +789,8 @@
       "team_members_add": "Tiimiin lisätty jäseniä",
       "team_members_remove": "Jäsen poistettu tiimistä",
       "membership_permissions_update": "Käyttäjän lisäoikeuksia muutettu",
-      "user_register": "Käyttäjä rekisteröityi"
+      "user_register": "Käyttäjä rekisteröityi",
+      "assistant_confirm": "Avustajan ehdotus vahvistettu"
     }
   },
   "errors": {
@@ -2377,7 +2379,8 @@
       "REVIEW": "Projektikatsaus",
       "QUESTION": "Kysymys",
       "STAFFING": "Resurssiehdotus",
-      "LOGISTICS_RISK": "Logistiikkariskit"
+      "LOGISTICS_RISK": "Logistiikkariskit",
+      "ASSISTANT": "Avustaja"
     },
     "runStatuses": {
       "SUCCEEDED": "Valmis",
@@ -3214,5 +3217,43 @@
     "privacyText": "Tallennamme nimesi, sähköpostisi, puhelinnumerosi, yrityksesi ja tehtävänimikkeesi käyttäjätiliisi. Tietoja käytetään vain järjestelmän käyttöön: kirjautumiseen, yhteydenpitoon ja siihen, että työmaalla tiedetään, kuka teki mitäkin. Kirjautumiset ja muutokset tallentuvat muutoslokiin. Rekisterinpitäjä on sinut kutsunut yritys, jolta voit pyytää tietojesi tarkastamista tai korjaamista.",
     "acceptPrivacy": "Olen lukenut tietojeni käsittelyä koskevat tiedot ja hyväksyn ne.",
     "submit": "Tallenna ja jatka"
+  },
+  "assistant": {
+    "title": "Avustaja",
+    "intro": "Kerro puhumalla tai kirjoittamalla, mitä haluat tehdä. Avustaja ehdottaa, sinä vahvistat – mitään ei tallenneta ennen vahvistusta.",
+    "noAccess": "Avustaja vaatii tekoälyn käyttöoikeuden.",
+    "unavailable": "Tekoäly ei ole käytössä tässä ympäristössä.",
+    "examples": "Esimerkiksi: ”Aloitetaan uusi projekti Mikkeli, asiakas Mikkelin kaupunki, alkaa 15.1.” tai ”Lisää henkilö Matti Meikäläinen, ajoneuvonosturin kuljettaja, ja laita hänet Lappeenrannan työmaalle 15.12.–31.12.”",
+    "placeholder": "Kirjoita tai paina mikrofonia",
+    "listening": "Kuuntelen… paina uudelleen lopettaaksesi",
+    "speak": "Puhu",
+    "stop": "Lopeta äänitys",
+    "send": "Lähetä",
+    "micDenied": "Mikrofonia ei saatu käyttöön. Salli mikrofoni selaimen asetuksista.",
+    "notHeard": "Puhetta ei tunnistettu. Yritä uudelleen.",
+    "confirm": "Vahvista",
+    "reject": "Peru",
+    "confirmAll": "Vahvista kaikki",
+    "newConversation": "Uusi keskustelu",
+    "typeAmount": "Rahaa: kirjoita summa {amount} € vahvistaaksesi",
+    "amountLabel": "Summa euroina",
+    "done": "Tallennettu: {label}",
+    "statuses": {
+      "PROPOSED": "Ehdotus",
+      "CONFIRMED": "Tallennettu",
+      "REJECTED": "Peruttu",
+      "FAILED": "Epäonnistui"
+    },
+    "failed": "Avustaja ei saanut vastausta muodostettua. Yritä uudelleen.",
+    "superseded": "Korvattu uudella ehdotuksella",
+    "notPending": "Ehdotus on jo käsitelty.",
+    "amountMismatch": "Summa ei täsmää ehdotukseen.",
+    "confirmEarlierFirst": "Vahvista ensin aiempi ehdotus, johon tämä viittaa.",
+    "someFailed": "Osa ehdotuksista ei tallentunut – katso syy kortilta.",
+    "badReference": "Ehdotus viittasi tuntemattomaan kohtaan.",
+    "unknownId": "Ehdotus viittasi tietoon, jota ei löytynyt.",
+    "speechUnavailable": "Puheentunnistus ei ole käytössä. Kirjoita viesti.",
+    "speechFailed": "Puheentunnistus epäonnistui. Yritä uudelleen tai kirjoita.",
+    "audioFormat": "Äänitys oli liian pitkä tai väärässä muodossa (enintään 60 s)."
   }
 }

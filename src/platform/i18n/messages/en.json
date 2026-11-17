@@ -35,7 +35,8 @@
     "signOut": "Sign out",
     "loading": "Loading…",
     "submitting": "Saving…",
-    "total": "{count} total"
+    "total": "{count} total",
+    "assistant": "Assistant"
   },
   "locale": {
     "fi": "Suomi",
@@ -788,7 +789,8 @@
       "team_members_add": "Team members added",
       "team_members_remove": "Team member removed",
       "membership_permissions_update": "Member's extra permissions changed",
-      "user_register": "User registered"
+      "user_register": "User registered",
+      "assistant_confirm": "Assistant proposal confirmed"
     }
   },
   "errors": {
@@ -2377,7 +2379,8 @@
       "REVIEW": "Project review",
       "QUESTION": "Question",
       "STAFFING": "Staffing suggestion",
-      "LOGISTICS_RISK": "Logistics risks"
+      "LOGISTICS_RISK": "Logistics risks",
+      "ASSISTANT": "Assistant"
     },
     "runStatuses": {
       "SUCCEEDED": "Done",
@@ -3214,5 +3217,43 @@
     "privacyText": "We store your name, e-mail, phone number, company and job title in your user account. The data is used only to run the system: signing in, contacting you and knowing who did what on the site. Sign-ins and changes are recorded in the audit log. The controller is the company that invited you; you can ask them to check or correct your data.",
     "acceptPrivacy": "I have read how my data is used and accept it.",
     "submit": "Save and continue"
+  },
+  "assistant": {
+    "title": "Assistant",
+    "intro": "Say or type what you want to do. The assistant proposes, you confirm – nothing is saved before you confirm.",
+    "noAccess": "The assistant needs the AI permission.",
+    "unavailable": "AI is not available in this environment.",
+    "examples": "For example: “Start a new project Mikkeli, customer City of Mikkeli, starting 15 January” or “Add Matti Meikäläinen, mobile crane operator, to the Lappeenranta site 15–31 December”.",
+    "placeholder": "Type or press the microphone",
+    "listening": "Listening… press again to stop",
+    "speak": "Speak",
+    "stop": "Stop recording",
+    "send": "Send",
+    "micDenied": "Could not use the microphone. Allow it in the browser settings.",
+    "notHeard": "No speech was recognised. Please try again.",
+    "confirm": "Confirm",
+    "reject": "Cancel",
+    "confirmAll": "Confirm all",
+    "newConversation": "New conversation",
+    "typeAmount": "Money: type the amount {amount} € to confirm",
+    "amountLabel": "Amount in euros",
+    "done": "Saved: {label}",
+    "statuses": {
+      "PROPOSED": "Proposed",
+      "CONFIRMED": "Saved",
+      "REJECTED": "Cancelled",
+      "FAILED": "Failed"
+    },
+    "failed": "The assistant could not answer. Please try again.",
+    "superseded": "Replaced by a newer proposal",
+    "notPending": "This proposal has already been handled.",
+    "amountMismatch": "The amount does not match the proposal.",
+    "confirmEarlierFirst": "Confirm the earlier proposal this one refers to first.",
+    "someFailed": "Some proposals were not saved – see the card for the reason.",
+    "badReference": "The proposal referred to an unknown item.",
+    "unknownId": "The proposal referred to something that was not found.",
+    "speechUnavailable": "Speech recognition is not available. Please type.",
+    "speechFailed": "Speech recognition failed. Try again or type.",
+    "audioFormat": "The recording was too long or in the wrong format (max 60 s)."
   }
 }

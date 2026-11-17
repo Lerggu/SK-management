@@ -80,11 +80,13 @@ fi
 [ -n "$PG_ADMIN_PW" ] || PG_ADMIN_PW=$(openssl rand -base64 30 | tr -d '/+=')
 [ -n "$APP_DB_PW" ] || APP_DB_PW=$(openssl rand -base64 30 | tr -d '/+=')
 # Keep e-mail and AI switched on when their secrets already exist.
-ENABLE_SMTP=false; ENABLE_AI=false; ENABLE_FIELD_KEY=false
+ENABLE_SMTP=false; ENABLE_AI=false; ENABLE_FIELD_KEY=false; SPEECH_REGION=""
 if [ -n "$KV" ]; then
   az keyvault secret show --vault-name "$KV" --name smtp-url -o none 2>/dev/null && ENABLE_SMTP=true
   az keyvault secret show --vault-name "$KV" --name anthropic-api-key -o none 2>/dev/null && ENABLE_AI=true
   az keyvault secret show --vault-name "$KV" --name field-key -o none 2>/dev/null && ENABLE_FIELD_KEY=true
+  # Assistant microphone (ADR 0031): kept when a speech key and region were set up.
+  az keyvault secret show --vault-name "$KV" --name speech-key -o none 2>/dev/null && SPEECH_REGION=$(az webapp config appsettings list -g "$RG" -n "$APP" --query "[?name=='SK_SPEECH_REGION'].value | [0]" -o tsv 2>/dev/null || true)
 fi
 
 # ── 4. Azure resources ───────────────────────────────────────────────
@@ -92,7 +94,7 @@ say "Luodaan Azure-resurssit (5–15 min)"
 ADMIN_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create -g "$RG" -n main -f infra/main.bicep \
   -p webAppName="$APP" keyVaultAdminObjectId="$ADMIN_ID" entraClientId="$APP_ID" entraTenantId="$TENANT_ID" \
-     githubOidcSubject="$GITHUB_SUBJECT" mailFrom="$MAIL_FROM" enableSmtp="$ENABLE_SMTP" enableAi="$ENABLE_AI" enableFieldKey="$ENABLE_FIELD_KEY" publicHostName="$PUBLIC_HOST" \
+     githubOidcSubject="$GITHUB_SUBJECT" mailFrom="$MAIL_FROM" enableSmtp="$ENABLE_SMTP" enableAi="$ENABLE_AI" enableFieldKey="$ENABLE_FIELD_KEY" speechRegion="$SPEECH_REGION" publicHostName="$PUBLIC_HOST" \
      bootstrapOwnerEmail="$OWNER_EMAIL" bootstrapOwnerName="$OWNER_NAME" bootstrapOrgName="$ORG_NAME" \
      bootstrapOrgSlug="sk-group" bootstrapCompanies="$COMPANIES" \
      pgAdminPassword="$PG_ADMIN_PW" appDbPassword="$APP_DB_PW" \

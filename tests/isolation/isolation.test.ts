@@ -63,6 +63,7 @@ import { logisticsAiService } from "@/modules/production/ai.service";
 import { rotationService } from "@/modules/workforce/rotation.service";
 import { personalIdService } from "@/modules/workforce/personal-id.service";
 import { teamService } from "@/modules/workforce/team.service";
+import { assistantService } from "@/modules/assistant/service";
 import { deviationService } from "@/modules/production/deviation.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
@@ -146,6 +147,7 @@ interface World {
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   teams: { a: string; b: string };
+  assistant: { conversation: string; action: string };
   bProject: string;
   bDocument: string;
   bEquipmentType: string;
@@ -293,6 +295,8 @@ beforeAll(async () => {
   const aTeam = await teamService.create(actx, { name: "A team", leaderId: employee.id });
   await hrCardService.updateEmployment(actx, hrWorker.id, { supervisorId: employee.id, teamId: aTeam.id });
   const bTeam = await teamService.create(b.ownerCtx, { name: "B team" });
+  const aConv = await assistantService.converse(actx, { message: "uusi projekti Assistentti" }); // deterministic provider
+  const aAction = aConv.actions[0];
   await hrSettingsService.update(actx, { reminderEmail: "a.hr.maintenance@example.test" });
   const hrArea = await competenceAreaService.create(actx, { category: "A", name: "A area", isKey: true });
   const hrType = await qualificationTypeService.create(actx, { name: "A card" });
@@ -434,6 +438,7 @@ beforeAll(async () => {
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     teams: { a: aTeam.id, b: bTeam.id },
+    assistant: { conversation: aConv.conversationId!, action: aAction.id },
     bProject: bProject.id,
     bDocument: bDocument.id,
     bEquipmentType: bType.id,
@@ -1338,6 +1343,19 @@ const cases: Record<string, Case> = {
     const after = await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } });
     expect([after.name, after.organization, after.registeredAt]).toEqual([before.name, before.organization, before.registeredAt]);
   },
+  "assistant.current": async () => {
+    const r = await assistantService.current(w.bCtx);
+    expect(r.conversationId).not.toBe(w.assistant.conversation);
+    await expectNotFound(assistantService.current(w.bCtx, { conversationId: w.assistant.conversation }));
+  },
+  "assistant.converse": () => expectNotFound(assistantService.converse(w.bCtx, { conversationId: w.assistant.conversation, message: "uusi projekti Intruder" })),
+  "assistant.confirm": () => expectNotFound(assistantService.confirm(w.bCtx, w.assistant.action)),
+  "assistant.reject": () => expectNotFound(assistantService.reject(w.bCtx, w.assistant.action)),
+  "assistant.confirmAll": () => expectNotFound(assistantService.confirmAll(w.bCtx, w.assistant.conversation)),
+  "assistant.transcribe": async () => {
+    // Company-neutral: needs a speech service; B gets no data of A either way.
+    await expectRejected(assistantService.transcribe(w.bCtx, { bytes: new Uint8Array(10) }));
+  },
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -1409,7 +1427,8 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.variationClientApproval.findUniqueOrThrow({ where: { id: w.v7.approval } })).decision).toBe("PENDING");
     expect((await db.document.findUniqueOrThrow({ where: { id: w.ids.document } })).sharedWithClient).toBe(false);
     expect((await db.aiRecommendation.findUniqueOrThrow({ where: { id: w.v8.recommendation } })).status).toBe("PROPOSED");
-    expect(await db.aiRun.count({ where: { companyId: w.a.companyId } })).toBe(2); // project review + staffing suggestion
+    expect(await db.aiRun.count({ where: { companyId: w.a.companyId } })).toBe(3); // project review, staffing suggestion, assistant turn
+    expect((await db.assistantAction.findUniqueOrThrow({ where: { id: w.assistant.action } })).status).toBe("PROPOSED");
     expect((await db.competenceAssessment.findUniqueOrThrow({ where: { id: w.hr.draft } })).status).toBe("DRAFT");
     expect((await db.competenceAssessment.findUniqueOrThrow({ where: { id: w.hr.published } })).employeeComment).toBeNull();
     expect((await db.employeeQualification.findUniqueOrThrow({ where: { id: w.hr.qualification } })).replacedAt).toBeNull();
