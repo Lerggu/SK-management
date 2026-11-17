@@ -8,6 +8,8 @@ export default async function Home() {
   if (!(await getSessionUserId())) redirect("/sign-in");
   const uctx = await requireUserContext();
   const [companies, profile] = await Promise.all([companyDirectoryService.listMyCompanies(uctx), profileService.getProfile(uctx)]);
+  // First sign-in of an invited person: the registration form first (ADR 0030).
+  if (!profile.registeredAt) redirect("/welcome");
   const last = companies.find((c) => c.id === profile.lastCompanyId);
   if (last) redirect(`/c/${last.slug}/dashboard`);
   if (companies.length === 1) redirect(`/c/${companies[0].slug}/dashboard`);

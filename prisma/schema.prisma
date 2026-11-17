@@ -210,26 +210,33 @@ model Company {
   expiryReminders    ExpiryReminder[]
   logisticsTaskTypes LogisticsTaskType[]
   rotationEntries    RotationEntry[]
+  teams              Team[]
 
   @@index([organizationId])
   @@map("companies")
 }
 
 model User {
-  id            String     @id @default(uuid(7)) @db.Uuid
-  email         String     @unique
-  name          String?
-  emailVerified DateTime?  @map("email_verified") @db.Timestamptz(6)
-  image         String?
-  locale        String?
-  status        UserStatus @default(ACTIVE)
-  lastCompanyId String?    @map("last_company_id") @db.Uuid
-  lastSignInAt  DateTime?  @map("last_sign_in_at") @db.Timestamptz(6)
-  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdById   String?    @map("created_by") @db.Uuid
-  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
-  updatedById   String?    @map("updated_by") @db.Uuid
-  archivedAt    DateTime?  @map("archived_at") @db.Timestamptz(6)
+  id                String     @id @default(uuid(7)) @db.Uuid
+  email             String     @unique
+  name              String?
+  emailVerified     DateTime?  @map("email_verified") @db.Timestamptz(6)
+  image             String?
+  locale            String?
+  status            UserStatus @default(ACTIVE)
+  lastCompanyId     String?    @map("last_company_id") @db.Uuid
+  lastSignInAt      DateTime?  @map("last_sign_in_at") @db.Timestamptz(6)
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById       String?    @map("created_by") @db.Uuid
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById       String?    @map("updated_by") @db.Uuid
+  archivedAt        DateTime?  @map("archived_at") @db.Timestamptz(6)
+  /// Registration form on first sign-in (ADR 0030); the user's own profile data.
+  phone             String?
+  organization      String?
+  jobTitle          String?    @map("job_title")
+  registeredAt      DateTime?  @map("registered_at") @db.Timestamptz(6)
+  privacyAcceptedAt DateTime?  @map("privacy_accepted_at") @db.Timestamptz(6)
 
   identities              UserIdentity[]
   accounts                Account[]
@@ -335,11 +342,12 @@ model CompanyMembership {
   updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById String?          @map("updated_by") @db.Uuid
 
-  company            Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  user               User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  company            Company                @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
   roles              MembershipRole[]
   projectMemberships ProjectMembership[]
   hseActions         HseAction[]
+  extraPermissions   MembershipPermission[]
 
   @@unique([companyId, id])
   @@unique([companyId, userId])
@@ -381,7 +389,8 @@ model Permission {
   description String
   isSensitive Boolean @default(false) @map("is_sensitive")
 
-  rolePermissions RolePermission[]
+  rolePermissions       RolePermission[]
+  membershipPermissions MembershipPermission[]
 
   @@map("permissions")
 }
@@ -571,7 +580,10 @@ model Employee {
   shareableInGroup      Boolean        @default(false) @map("shareable_in_group")
   // HR card (ADR 0025)
   supervisorId          String?        @map("supervisor_id") @db.Uuid
+  /// Name of the employee's team, kept in sync with teams.name by the team service (filters use it).
   team                  String?
+  /// Team (ADR 0029); one team per person.
+  teamId                String?        @map("team_id") @db.Uuid
   location              String?
   jobProfileId          String?        @map("job_profile_id") @db.Uuid
   /// Visible only to HR admins, the supervisor chain and the employee.
@@ -596,6 +608,8 @@ model Employee {
   updatedById           String?        @map("updated_by") @db.Uuid
   archivedAt            DateTime?      @map("archived_at") @db.Timestamptz(6)
 
+  teamRef         Team?             @relation("TeamMembers", fields: [companyId, teamId], references: [companyId, id], onDelete: Restrict)
+  ledTeams        Team[]            @relation("TeamLeader")
   company         Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
   rates           EmployeeRate[]
   timeEntries     TimeEntry[]
@@ -621,6 +635,7 @@ model Employee {
   @@unique([companyId, id])
   @@unique([companyId, personalIdHash])
   @@unique([companyId, employeeNumber])
+  @@index([companyId, teamId])
   @@index([companyId, archivedAt])
   @@map("employees")
 }
@@ -3684,4 +3699,44 @@ model RotationEntry {
   @@index([companyId, day])
   @@index([companyId, siteId, day])
   @@map("rotation_entries")
+}
+
+/// Team of employees (docs/adr/0029-teams.md): a crew or group with a leader.
+model Team {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  companyId   String    @map("company_id") @db.Uuid
+  name        String
+  description String?
+  color       String    @default("sky")
+  leaderId    String?   @map("leader_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?   @map("updated_by") @db.Uuid
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  company Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  leader  Employee?  @relation("TeamLeader", fields: [companyId, leaderId], references: [companyId, id], onDelete: Restrict)
+  members Employee[] @relation("TeamMembers")
+
+  @@unique([companyId, id])
+  @@index([companyId, archivedAt])
+  @@map("teams")
+}
+
+/// Extra capabilities granted to one member on top of their roles (ADR 0030).
+/// External members never receive sensitive or company-wide capabilities.
+model MembershipPermission {
+  companyId     String   @map("company_id") @db.Uuid
+  membershipId  String   @map("membership_id") @db.Uuid
+  permissionKey String   @map("permission_key")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?  @map("created_by") @db.Uuid
+
+  membership CompanyMembership @relation(fields: [companyId, membershipId], references: [companyId, id], onDelete: Cascade)
+  permission Permission        @relation(fields: [permissionKey], references: [key], onDelete: Restrict)
+
+  @@id([membershipId, permissionKey])
+  @@index([companyId])
+  @@map("membership_permissions")
 }

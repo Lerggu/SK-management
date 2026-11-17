@@ -28,10 +28,17 @@ export class CompanyScopedRepo {
         status: true,
         invitedAt: true,
         acceptedAt: true,
-        user: { select: { id: true, email: true, name: true, lastSignInAt: true } },
-        roles: { select: { role: { select: { id: true, key: true, name: true } } } },
+        user: { select: { id: true, email: true, name: true, lastSignInAt: true, phone: true, organization: true, jobTitle: true, registeredAt: true } },
+        roles: { select: { role: { select: { id: true, key: true, name: true, templateKey: true } } } },
+        extraPermissions: { select: { permissionKey: true }, orderBy: { permissionKey: "asc" } },
       },
     });
+  }
+
+  replaceMemberPermissions(membershipId: string, keys: string[], userId: string) {
+    return this.tx.membershipPermission
+      .deleteMany({ where: { companyId: this.companyId, membershipId } })
+      .then(() => (keys.length ? this.tx.membershipPermission.createMany({ data: keys.map((permissionKey) => ({ companyId: this.companyId, membershipId, permissionKey, createdById: userId })) }) : null));
   }
 
   findMembership(membershipId: string) {
@@ -88,7 +95,7 @@ export class CompanyScopedRepo {
       where: {
         companyId: this.companyId,
         status: "ACTIVE",
-        roles: { some: { role: { archivedAt: null, permissions: { some: { permissionKey: permission } } } } },
+        OR: [{ roles: { some: { role: { archivedAt: null, permissions: { some: { permissionKey: permission } } } } } }, { extraPermissions: { some: { permissionKey: permission } } }],
       },
     });
   }

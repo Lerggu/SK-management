@@ -5,6 +5,7 @@ import { parseInput } from "@/platform/http/validation";
 import {
   EXTERNAL_ONLY_PERMISSIONS,
   EXTERNAL_TEMPLATE_KEYS,
+  COMPANY_ONLY_PERMISSIONS,
   ROLE_TEMPLATES,
   SENSITIVE_PERMISSIONS,
   hasPermission,
@@ -167,7 +168,43 @@ export const companyAdminService = {
 
   async listMembers(ctx: RequestContext) {
     requirePermission(ctx, "company.members.manage");
-    return new CompanyScopedRepo(readClient(), ctx.company.id).listMembers();
+    const rows = await new CompanyScopedRepo(readClient(), ctx.company.id).listMembers();
+    return rows.map((m) => ({
+      ...m,
+      external: m.roles.some((r) => r.role.templateKey !== null && EXTERNAL_TEMPLATE_KEYS.has(r.role.templateKey)),
+      extraPermissions: m.extraPermissions.map((x) => x.permissionKey),
+    }));
+  },
+
+  /**
+   * Personal extra capabilities on top of the member's roles (ADR 0030).
+   * External members can get only non-sensitive, project-level ones;
+   * portal permissions stay with external roles.
+   */
+  async setMemberPermissions(ctx: RequestContext, membershipId: string, input: { permissionKeys: string[] }) {
+    requirePermission(ctx, "company.roles.manage");
+    const data = parseInput(updateRolePermissionsSchema, input);
+    if (data.permissionKeys.some((k) => !isPermissionKey(k))) throw new ValidationError({ permissionKeys: ["validation.invalidOption"] });
+    const keys = [...new Set(data.permissionKeys)].sort() as PermissionKey[];
+    return runInTransaction(async (tx) => {
+      const repo = new CompanyScopedRepo(tx, ctx.company.id);
+      const membership = await repo.findMembership(membershipId);
+      if (!membership) throw new NotFoundError();
+      const external = membership.roles.some((r) => r.role.templateKey !== null && EXTERNAL_TEMPLATE_KEYS.has(r.role.templateKey));
+      if (external && keys.some((k) => SENSITIVE_PERMISSIONS.has(k) || COMPANY_ONLY_PERMISSIONS.has(k))) throw new ValidationError({ permissionKeys: ["validation.externalSensitive"] });
+      if (keys.some((k) => EXTERNAL_ONLY_PERMISSIONS.has(k))) throw new ValidationError({ permissionKeys: ["validation.externalOnly"] });
+      const before = (await tx.membershipPermission.findMany({ where: { companyId: ctx.company.id, membershipId: membership.id }, select: { permissionKey: true } })).map((x) => x.permissionKey).sort();
+      await repo.replaceMemberPermissions(membership.id, keys, ctx.user.id);
+      await assertAdminsRemain(repo);
+      await writeAudit(tx, ctx, {
+        action: "membership.permissions_update",
+        entityType: "company_membership",
+        entityId: membership.id,
+        before: { email: membership.user.email, permissions: before },
+        after: { email: membership.user.email, permissions: keys },
+      });
+      return { permissions: keys };
+    });
   },
 
   /**

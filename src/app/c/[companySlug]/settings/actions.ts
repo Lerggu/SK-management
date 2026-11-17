@@ -52,3 +52,11 @@ export async function updateRolePermissionsAction(slug: string, roleId: string, 
   revalidatePath(`/c/${slug}/settings/roles`);
   return r;
 }
+
+/** Personal extra permissions of one member (ADR 0030). */
+export async function setMemberPermissionsAction(slug: string, membershipId: string, _: ActionState | null, formData: FormData): Promise<ActionState> {
+  const ctx = await requireCompanyContext(slug);
+  const r = await runAction(formData, () => companyAdminService.setMemberPermissions(ctx, membershipId, { permissionKeys: formData.getAll("permissionKeys").map(String) }).then(() => undefined));
+  revalidatePath(`/c/${slug}/settings/members`);
+  return r;
+}

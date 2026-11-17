@@ -26,7 +26,7 @@ export const SENSITIVE_FIELDS: Readonly<Record<string, readonly string[]>> = {
   competence_assessment: ["observations", "strengths", "developmentAreas", "agreedActions", "employeeComment"],
   employee_rate: ["amount"],
   equipment_rate: ["amount"],
-  user: [],
+  user: ["phone"],
   // V7: injured-person data is personal (health) data.
   incident_person: ["personName", "employeeId", "employerName", "injuryDescription", "bodyPart", "absenceDays"],
 };

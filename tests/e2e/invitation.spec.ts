@@ -40,6 +40,40 @@ test.describe("invitation e-mail", () => {
     await guest.close();
 
     await page.goto("/dev/mailbox");
-    await expect(page.locator(`[data-testid="dev-mail"][data-to="${email}"]`).filter({ hasText: "sign-in/email?token=" })).toHaveCount(1);
+    const linkMail = page.locator(`[data-testid="dev-mail"][data-to="${email}"]`).filter({ hasText: "sign-in/email?token=" });
+    await expect(linkMail).toHaveCount(1);
+    const signInLink = /https?:\/\/\S+\/sign-in\/email\?token=[A-Za-z0-9_-]+/.exec((await linkMail.textContent()) ?? "")![0];
+
+    // First sign-in: the registration form comes first (ADR 0030).
+    const guest2 = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const g2 = await guest2.newPage();
+    await g2.goto(new URL(signInLink).pathname + new URL(signInLink).search);
+    await g2.getByTestId("confirm-sign-in").click();
+    const reg = g2.getByTestId("registration-form");
+    await expect(reg).toBeVisible();
+    await expect(reg.getByRole("textbox", { name: "Nimi", exact: true })).toHaveValue("Urho Urakoitsija");
+    await reg.getByLabel("Puhelin").fill("+358 40 555 0101");
+    await reg.getByRole("button", { name: "Tallenna ja jatka" }).click();
+    await expect(reg.getByText("Pakollinen tieto").first()).toBeVisible(); // organisation and privacy acceptance
+    await reg.getByLabel("Yritys, jota edustat").fill("Urakointi Testi Oy");
+    await reg.getByRole("checkbox").check();
+    await reg.getByRole("button", { name: "Tallenna ja jatka" }).click();
+    await expect(g2).toHaveURL(/\/c\/sk-infra-demo\/portal/);
+    await guest2.close();
+
+    // The members list shows the registered external user; the CEO grants an extra permission.
+    await page.goto("/c/sk-infra-demo/settings/members");
+    const member = page.locator("li").filter({ hasText: email }).first();
+    await expect(member.getByTestId("member-registration")).toContainText("Urakointi Testi Oy");
+    await expect(member.getByText("Ulkoinen rooli")).toBeVisible();
+    await member.locator("summary").first().click();
+    const extra = member.getByTestId("extra-permissions");
+    await extra.locator("summary").click();
+    await expect(extra.getByLabel(/hinnat/i)).toHaveCount(0); // sensitive ones are not offered to external users
+    await extra.getByRole("checkbox").first().check();
+    await extra.getByRole("button", { name: "Tallenna lisäoikeudet" }).click();
+    await expect(extra.getByText("Tallennettu")).toBeVisible();
+    await page.reload();
+    await expect(page.locator("li").filter({ hasText: email }).first().getByText("+1 lisäoikeus")).toBeVisible();
   });
 });

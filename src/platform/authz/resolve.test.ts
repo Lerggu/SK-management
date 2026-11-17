@@ -92,3 +92,26 @@ describe("V7 external boundaries", () => {
     expect(r.permissions.has("hse.create")).toBe(true);
   });
 });
+
+describe("personal extra permissions (ADR 0030)", () => {
+  const internal = { templateKey: "SUPERVISOR", projectAccess: "ASSIGNED" as const, permissions: ["project.view"] };
+  const external = { templateKey: "SUBCONTRACTOR", projectAccess: "ASSIGNED" as const, permissions: ["project.view", "portal.subcontractor"] };
+
+  it("adds extras to an internal member, but never portal permissions", () => {
+    const r = resolvePermissions([internal], [], ["takt.manage", "employee.rates.view", "portal.client"]);
+    expect([...r.permissions].sort()).toEqual(["employee.rates.view", "project.view", "takt.manage"]);
+    expect(r.external).toBe(false);
+  });
+
+  it("gives an external member only non-sensitive, project-level extras", () => {
+    const r = resolvePermissions([external], [], ["takt.view", "employee.rates.view", "employee.view", "company.manage", "hse.view"]);
+    expect([...r.permissions].sort()).toEqual(["hse.view", "portal.subcontractor", "project.view", "takt.view"]);
+    expect(r.projectAccess).toBe("ASSIGNED");
+  });
+
+  it("extras never make anyone external or widen project access", () => {
+    const r = resolvePermissions([internal], [], ["project.manage"]);
+    expect(r.external).toBe(false);
+    expect(r.projectAccess).toBe("ASSIGNED");
+  });
+});

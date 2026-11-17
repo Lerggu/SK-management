@@ -12,6 +12,7 @@ export interface RotationPerson {
   id: string;
   name: string;
   trade: string | null;
+  teamId: string | null;
   days: Record<string, Entry>;
   workDays: number;
 }
@@ -39,7 +40,13 @@ export const STATUS_STYLE: Record<Status, string> = {
 const EDITABLE: Exclude<Status, "ABSENT">[] = ["WORK", "OFF", "VACATION", "SICK", "TRAINING", "OTHER"];
 
 type Row = { key: string; label: string; status: Status; siteId: string | null; days: Record<string, string[]> };
-type Dialog = { person: RotationPerson; status: Exclude<Status, "ABSENT">; siteId: string | null; from: string; until: string; note: string };
+export interface RotationTeam {
+  id: string;
+  name: string;
+  color: string;
+  memberIds: string[];
+}
+type Dialog = { person: RotationPerson; members?: RotationPerson[]; status: Exclude<Status, "ABSENT">; siteId: string | null; from: string; until: string; note: string };
 
 /**
  * Rotation calendar. Sites view: rows are sites and statuses, people are
@@ -53,6 +60,7 @@ export function RotationBoard({
   sites,
   unassigned,
   statusRows,
+  teams,
   canManage,
   setRange,
   clearRange,
@@ -62,6 +70,7 @@ export function RotationBoard({
   sites: { id: string; name: string; days: Record<string, string[]> }[];
   unassigned: Record<string, string[]>;
   statusRows: { status: Status; days: Record<string, string[]> }[];
+  teams: RotationTeam[];
   canManage: boolean;
   setRange: SetFn;
   clearRange: ClearFn;
@@ -73,6 +82,8 @@ export function RotationBoard({
   const [selected, setSelected] = useState<RotationPerson | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [query, setQuery] = useState("");
+  const [teamFilter, setTeamFilter] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState<RotationTeam | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
@@ -91,6 +102,16 @@ export function RotationBoard({
     setSelected(null);
   };
 
+  /** A whole team: the dialog saves the same period for every member. */
+  const openTeam = (team: RotationTeam, day: string, status: Status, siteId: string | null) => {
+    if (!canManage || status === "ABSENT") return;
+    const members = team.memberIds.map((id) => byId.get(id)).filter((p): p is RotationPerson => !!p);
+    if (members.length === 0) return;
+    setDialog({ person: { id: `team:${team.id}`, name: team.name, trade: null, teamId: team.id, days: {}, workDays: 0 }, members, status, siteId, from: day, until: day, note: "" });
+    setSelectedTeam(null);
+    setSelected(null);
+  };
+
   const result = (r: Result, okText: string) => {
     const err = r.fieldErrors ? Object.values(r.fieldErrors).flat()[0] : undefined;
     setMessage(r.ok ? { ok: true, text: okText } : { ok: false, text: tAll(err ?? r.message ?? "errors.generic") });
@@ -102,7 +123,11 @@ export function RotationBoard({
     if (!dialog) return;
     const d = dialog;
     startTransition(async () => {
-      const r = await setRange({ employeeId: d.person.id, from: d.from, until: d.until, status: d.status, siteId: d.status === "WORK" ? d.siteId : null, note: d.note || null });
+      let r: Result = { ok: true };
+      for (const p of d.members ?? [d.person]) {
+        r = await setRange({ employeeId: p.id, from: d.from, until: d.until, status: d.status, siteId: d.status === "WORK" ? d.siteId : null, note: d.note || null });
+        if (!r.ok) break;
+      }
       result(r, t("saved", { name: d.person.name }));
     });
   };
@@ -110,11 +135,23 @@ export function RotationBoard({
   const clear = () => {
     if (!dialog) return;
     const d = dialog;
-    startTransition(async () => result(await clearRange({ employeeId: d.person.id, from: d.from, until: d.until }), t("cleared", { name: d.person.name })));
+    startTransition(async () => {
+      let r: Result = { ok: true };
+      for (const p of d.members ?? [d.person]) {
+        r = await clearRange({ employeeId: p.id, from: d.from, until: d.until });
+        if (!r.ok) break;
+      }
+      result(r, t("cleared", { name: d.person.name }));
+    });
   };
 
-  const dropOn = (row: Row, day: string, personId: string | null) => {
-    const person = personId ? byId.get(personId) : selected;
+  const dropOn = (row: Row, day: string, ref: string | null) => {
+    if (ref?.startsWith("team:") || (!ref && selectedTeam)) {
+      const team = ref ? teams.find((x) => `team:${x.id}` === ref) : selectedTeam;
+      if (team) openTeam(team, day, row.status, row.siteId);
+      return;
+    }
+    const person = ref ? byId.get(ref) : selected;
     if (person) open(person, day, row.status, row.siteId);
   };
 
@@ -131,7 +168,7 @@ export function RotationBoard({
     </div>
   );
   const grid = { gridTemplateColumns: `11rem repeat(${days.length}, minmax(4.75rem, 1fr))` };
-  const filtered = people.filter((p) => !query || `${p.name} ${p.trade ?? ""}`.toLowerCase().includes(query.toLowerCase()));
+  const filtered = people.filter((p) => (!query || `${p.name} ${p.trade ?? ""}`.toLowerCase().includes(query.toLowerCase())) && (!teamFilter || p.teamId === teamFilter));
 
   return (
     <div className={cn("grid gap-4", canManage && "lg:grid-cols-[minmax(0,1fr)_15rem]")}>
@@ -157,10 +194,15 @@ export function RotationBoard({
             {message.text}
           </p>
         )}
-        {selected && (
+        {(selected || selectedTeam) && (
           <p className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm" role="status" data-testid="selected-person">
-            {t("tapCell", { name: selected.name })}
-            <button type="button" onClick={() => setSelected(null)} className="ml-auto inline-flex size-8 items-center justify-center rounded-md hover:bg-muted" aria-label={t("clearSelection")}>
+            {t("tapCell", { name: (selected ?? selectedTeam)!.name })}
+            <button
+              type="button"
+              onClick={() => {
+                setSelected(null);
+                setSelectedTeam(null);
+              }} className="ml-auto inline-flex size-8 items-center justify-center rounded-md hover:bg-muted" aria-label={t("clearSelection")}>
               <X className="size-4" aria-hidden />
             </button>
           </p>
@@ -184,7 +226,7 @@ export function RotationBoard({
                         key={d.date}
                         data-cell={`${row.label}|${d.date}`}
                         className={cn("min-h-12 border-b border-l p-0.5", (d.weekend || d.holiday) && "bg-muted/40", canManage && "cursor-pointer hover:bg-primary/5")}
-                        onClick={() => selected && dropOn(row, d.date, null)}
+                        onClick={() => (selected || selectedTeam) && dropOn(row, d.date, null)}
                         onDragOver={(e) => canManage && e.preventDefault()}
                         onDrop={(e) => {
                           e.preventDefault();
@@ -261,6 +303,43 @@ export function RotationBoard({
           <h2 className="text-sm font-semibold">{t("people")}</h2>
           <p className="text-xs text-muted-foreground">{t("panelHint")}</p>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} aria-label={t("search")} className="h-11 w-full rounded-lg border bg-background px-3 text-base md:h-9 md:text-sm" />
+          {teams.length > 0 && (
+            <>
+              <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} aria-label={t("teamFilter")} className="h-11 w-full rounded-lg border bg-background px-3 text-base md:h-9 md:text-sm">
+                <option value="">{t("allTeams")}</option>
+                {teams.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name}
+                  </option>
+                ))}
+              </select>
+              <ul className="space-y-1" aria-label={t("teams")}>
+                {teams
+                  .filter((x) => !teamFilter || x.id === teamFilter)
+                  .map((x) => (
+                    <li key={x.id}>
+                      <button
+                        type="button"
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData("text/person", `team:${x.id}`)}
+                        onClick={() => {
+                          setSelected(null);
+                          setSelectedTeam(selectedTeam?.id === x.id ? null : x);
+                        }}
+                        aria-pressed={selectedTeam?.id === x.id}
+                        title={t("dragTeam")}
+                        className={cn("flex min-h-11 w-full items-center gap-2 rounded-lg border border-dashed bg-card px-2 text-left text-sm font-medium hover:bg-muted md:min-h-9", selectedTeam?.id === x.id && "border-primary ring-2 ring-primary")}
+                        data-panel-team={x.name}
+                      >
+                        <GripVertical className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                        <span className="min-w-0 flex-1 truncate">{x.name}</span>
+                        <span className="text-xs text-muted-foreground">{t("teamMembersN", { count: x.memberIds.length })}</span>
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </>
+          )}
           <ul className="max-h-[60vh] space-y-1 overflow-y-auto">
             {filtered.map((p) => (
               <li key={p.id}>
@@ -268,7 +347,10 @@ export function RotationBoard({
                   type="button"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData("text/person", p.id)}
-                  onClick={() => setSelected(selected?.id === p.id ? null : p)}
+                  onClick={() => {
+                    setSelectedTeam(null);
+                    setSelected(selected?.id === p.id ? null : p);
+                  }}
                   aria-pressed={selected?.id === p.id}
                   className={cn("flex min-h-11 w-full items-center gap-2 rounded-lg border bg-card px-2 text-left text-sm hover:bg-muted md:min-h-9", selected?.id === p.id && "border-primary ring-2 ring-primary")}
                   data-panel-person={p.name}
@@ -287,6 +369,7 @@ export function RotationBoard({
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t("dialogTitle", { name: dialog.person.name })}>
           <div className="w-full max-w-md space-y-3 rounded-t-2xl bg-card p-4 shadow-xl sm:rounded-2xl" data-testid="rotation-dialog">
             <h2 className="text-base font-semibold">{t("dialogTitle", { name: dialog.person.name })}</h2>
+            {dialog.members && <p className="text-xs text-muted-foreground" data-testid="dialog-team">{t("teamDialog", { count: dialog.members.length })}</p>}
             <fieldset>
               <legend className="mb-1 text-sm font-medium">{t("status")}</legend>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

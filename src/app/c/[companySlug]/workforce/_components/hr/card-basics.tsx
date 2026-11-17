@@ -65,7 +65,7 @@ export async function BasicsTab({
   act,
   supervisors,
   profiles,
-  existingTeams,
+  teams,
   existingLocations,
   names,
   users,
@@ -76,7 +76,7 @@ export async function BasicsTab({
   act: Act;
   supervisors: { id: string; name: string }[];
   profiles: { id: string; name: string }[];
-  existingTeams: string[];
+  teams: { id: string; name: string }[];
   existingLocations: string[];
 }) {
   const [t, tw, format] = await Promise.all([getTranslations("hr"), getTranslations("workforce"), getFormatter()]);
@@ -112,9 +112,8 @@ export async function BasicsTab({
               />
               <SelectField name="supervisorId" label={t("employment.supervisor")} defaultValue={e.supervisor?.id ?? ""} placeholder={t("employment.noSupervisor")} options={supervisors.filter((s) => s.id !== e.id).map((s) => ({ value: s.id, label: s.name }))} />
               <SelectField name="jobProfileId" label={t("employment.jobProfile")} defaultValue={e.jobProfileId ?? ""} placeholder={t("employment.noProfile")} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
-              <TextField name="team" label={t("employment.team")} defaultValue={e.team} list="hr-teams" />
+              <SelectField name="teamId" label={t("employment.team")} defaultValue={e.teamId ?? ""} placeholder={t("employment.noTeam")} options={teams.map((x) => ({ value: x.id, label: x.name }))} />
               <TextField name="location" label={t("employment.location")} defaultValue={e.location} list="hr-locations" />
-              <datalist id="hr-teams">{existingTeams.map((x) => <option key={x} value={x} />)}</datalist>
               <datalist id="hr-locations">{existingLocations.map((x) => <option key={x} value={x} />)}</datalist>
               <p className="text-xs text-muted-foreground sm:col-span-2">{t("employment.statusHint")}</p>
               <div className="sm:col-span-2">

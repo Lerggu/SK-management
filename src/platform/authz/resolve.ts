@@ -68,9 +68,11 @@ function isExternal(role: RoleGrant): boolean {
  * - External-only permissions (portals, client approval) are kept only for
  *   members holding an external company role: an internal user never acts
  *   on the client's behalf, even if given an external project role.
+ * - Personal extra permissions are added like a role; external members
+ *   never receive sensitive or company-only ones.
  * - Unknown permission keys are ignored.
  */
-export function resolvePermissions(companyRoles: readonly RoleGrant[], projectRoles: readonly ProjectRoleGrant[] = []): ResolvedPermissions {
+export function resolvePermissions(companyRoles: readonly RoleGrant[], projectRoles: readonly ProjectRoleGrant[] = [], extraPermissions: readonly string[] = []): ResolvedPermissions {
   const external = companyRoles.some(isExternal);
   const permissions = new Set<PermissionKey>();
   let projectAccess: "ALL" | "ASSIGNED" = "ASSIGNED";
@@ -83,6 +85,14 @@ export function resolvePermissions(companyRoles: readonly RoleGrant[], projectRo
       if (!external && EXTERNAL_ONLY_PERMISSIONS.has(p)) continue;
       permissions.add(p);
     }
+  }
+  // Personal extra capabilities (ADR 0030) on top of the roles. External
+  // members never get sensitive or company-wide ones this way either.
+  for (const p of extraPermissions) {
+    if (!isPermissionKey(p)) continue;
+    if (external && (SENSITIVE_PERMISSIONS.has(p) || COMPANY_ONLY_PERMISSIONS.has(p))) continue;
+    if (!external && EXTERNAL_ONLY_PERMISSIONS.has(p)) continue;
+    permissions.add(p);
   }
   // External members never get ALL project access.
   if (external) projectAccess = "ASSIGNED";

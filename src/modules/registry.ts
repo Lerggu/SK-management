@@ -49,6 +49,7 @@ import { deviationService } from "./production/deviation.service";
 import { logisticsAiService } from "./production/ai.service";
 import { rotationService } from "./workforce/rotation.service";
 import { personalIdService } from "./workforce/personal-id.service";
+import { teamService } from "./workforce/team.service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -141,6 +142,7 @@ export const SERVICE_REGISTRY = {
   logisticsAi: logisticsAiService,
   rotation: rotationService,
   personalId: personalIdService,
+  team: teamService,
 } as const;
 
 // ── V8: tenant scope for row-level security ──────────────────────────

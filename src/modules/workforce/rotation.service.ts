@@ -41,7 +41,7 @@ export const rotationService = {
     const start = weekStart(data.date ?? todayInDisplayZone());
     const end = addDays(start, data.weeks * 7 - 1);
     const repo = new RotationRepo(readClient(), ctx.company.id);
-    const [employees, sites, trades, entries] = await Promise.all([repo.employees(data.trade), repo.sites(), repo.trades(), repo.entries(start, end)]);
+    const [employees, sites, trades, entries, teams] = await Promise.all([repo.employees(data.trade), repo.sites(), repo.trades(), repo.entries(start, end), repo.teams()]);
     const years = [...new Set([start.slice(0, 4), end.slice(0, 4)])].map(Number);
     const holidays = new Map(years.flatMap((y) => finnishPublicHolidays(y)).map((h) => [isoOf(h.date), ctx.locale === "en" ? h.name.en : h.name.fi]));
     const days = daysBetween(start, end).map((iso) => {
@@ -59,7 +59,7 @@ export const rotationService = {
     }
     const people = employees.map((e) => {
       const days = byEmployee.get(e.id) ?? {};
-      return { id: e.id, name: `${e.lastName} ${e.firstName}`, trade: e.trade, days, workDays: Object.values(days).filter((d) => d.status === "WORK").length };
+      return { id: e.id, name: `${e.lastName} ${e.firstName}`, trade: e.trade, teamId: e.teamId, days, workDays: Object.values(days).filter((d) => d.status === "WORK").length };
     });
     const siteRows = sites.map((s) => ({
       id: s.id,
@@ -81,6 +81,7 @@ export const rotationService = {
       unassigned,
       statusRows,
       trades: trades.map((t) => t.trade!).filter(Boolean),
+      teams: teams.map((t) => ({ ...t, memberIds: employees.filter((e) => e.teamId === t.id).map((e) => e.id) })).filter((t) => t.memberIds.length > 0),
       trade: data.trade,
       canManage,
     };

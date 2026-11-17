@@ -5,6 +5,7 @@ import { Building2, ChevronRight } from "lucide-react";
 import { companyDirectoryService } from "@/modules/companies/service";
 import { ActionForm, SelectField, SubmitButton, TextField } from "@/ui/components/form";
 import { requireUserContext } from "@/app/_lib/context";
+import { requireRegistered } from "@/app/_lib/registration";
 import { signOutAction } from "@/app/_lib/shell-actions";
 import { createCompanyAction } from "./actions";
 
@@ -14,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function CompanyPickerPage() {
   const uctx = await requireUserContext();
+  await requireRegistered(uctx, "/c");
   const t = await getTranslations("companies");
   const tc = await getTranslations("common");
   const [companies, orgs] = await Promise.all([companyDirectoryService.listMyCompanies(uctx), companyDirectoryService.listCreatableOrganizations(uctx)]);

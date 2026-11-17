@@ -161,6 +161,7 @@ async function notifyApprovers(ctx: RequestContext, deviationId: string, task: {
     const r = resolvePermissions(
       m.roles.map((x) => toGrant(x.role)),
       m.projectMemberships.map((pm) => ({ projectId: pm.projectId, role: toGrant(pm.role) })),
+      m.extraPermissions.map((x) => x.permissionKey),
     );
     if (r.external) return false;
     const access = r.projectAccess === "ALL" || r.projectGrants.has(task.projectId);

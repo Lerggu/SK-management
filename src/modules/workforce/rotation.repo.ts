@@ -15,9 +15,13 @@ export class RotationRepo {
   employees(trade?: string | null) {
     return this.tx.employee.findMany({
       where: { ...this.c, archivedAt: null, status: "ACTIVE", ...(trade ? { trade: { equals: trade, mode: "insensitive" } } : {}) },
-      select: { id: true, firstName: true, lastName: true, trade: true },
+      select: { id: true, firstName: true, lastName: true, trade: true, teamId: true },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     });
+  }
+
+  teams() {
+    return this.tx.team.findMany({ where: { ...this.c, archivedAt: null }, select: { id: true, name: true, color: true }, orderBy: { name: "asc" } });
   }
 
   trades() {

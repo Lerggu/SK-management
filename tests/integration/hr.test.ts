@@ -10,6 +10,7 @@ import { MemoryMailer, type MailMessage, type Mailer } from "@/platform/mail";
 import { setStorageForTests, MemoryObjectStorage } from "@/platform/storage";
 import type { RequestContext } from "@/platform/authz";
 import { employeeService } from "@/modules/workforce/service";
+import { teamService } from "@/modules/workforce/team.service";
 import { competenceAreaService, hrSettingsService, jobProfileService, qualificationTypeService } from "@/modules/hr/settings.service";
 import {
   assessmentService,
@@ -60,7 +61,8 @@ beforeAll(async () => {
   const supervisor = (await linkedEmployee(t, supervisorCtx, "S-1", "Sanna")).id;
   const worker = (await linkedEmployee(t, workerCtx, "W-1", "Ville", { email: "ville@example.test" })).id;
   const other = (await linkedEmployee(t, otherCtx, "W-2", "Olli")).id;
-  await hrCardService.updateEmployment(admin, worker, { supervisorId: supervisor, team: "Putkitiimi", location: "Vantaa" });
+  const pipeTeam = await teamService.create(admin, { name: "Putkitiimi" });
+  await hrCardService.updateEmployment(admin, worker, { supervisorId: supervisor, teamId: pipeTeam.id, location: "Vantaa" });
   const area = (await competenceAreaService.create(admin, { category: "Maanrakennus", name: "Kaivannot", isKey: true })).id;
   const area2 = (await competenceAreaService.create(admin, { category: "Mittaus", name: "Koneohjaus", isKey: true })).id;
   w = { t, admin, supervisorCtx, workerCtx, otherCtx, viewer, supervisor, worker, other, area, area2 };
@@ -112,7 +114,7 @@ describe("HR access", () => {
 
   it("rejects supervisor cycles", async () => {
     await expect(hrCardService.updateEmployment(w.admin, w.supervisor, { supervisorId: w.worker })).rejects.toMatchObject({ fieldErrors: { supervisorId: ["validation.supervisorCycle"] } });
-    await expect(hrCardService.updateEmployment(w.admin, w.worker, { supervisorId: w.worker, team: "Putkitiimi" })).rejects.toBeInstanceOf(ValidationError);
+    await expect(hrCardService.updateEmployment(w.admin, w.worker, { supervisorId: w.worker })).rejects.toBeInstanceOf(ValidationError);
   });
 });
 

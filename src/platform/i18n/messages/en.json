@@ -416,7 +416,8 @@
       "material": "Materials and cable drums",
       "commercial": "Sales and billing",
       "hse": "Health & safety (HSE)",
-      "portal": "Portals"
+      "portal": "Portals",
+      "ai": "AI"
     },
     "permissions": {
       "company_manage": "Edit company settings",
@@ -490,7 +491,14 @@
     "resendInvite": "Resend invitation",
     "inviteNotPending": "The user has already signed in; no invitation is needed.",
     "inviteNoMail": "E-mail is not available in this environment.",
-    "inviteMailFailed": "Sending the e-mail failed. Try again shortly."
+    "inviteMailFailed": "Sending the e-mail failed. Try again shortly.",
+    "extraPermissions": "Extra permissions",
+    "extraPermissionsN": "{count, plural, one {+# extra permission} other {+# extra permissions}}",
+    "extraPermissionsHint": "Extra permissions are given to this person on top of their roles. Changes are audited.",
+    "extraPermissionsExternalHint": "External user: only project-level, non-sensitive permissions can be given. Prices, costs and personnel data are never shown to external users.",
+    "saveExtraPermissions": "Save extra permissions",
+    "notRegistered": "Not registered",
+    "registeredAt": "Registered"
   },
   "audit": {
     "actions": {
@@ -773,7 +781,14 @@
       "rotation_pattern": "Rotation rhythm applied",
       "employee_pid_set": "Personal identity code set",
       "employee_pid_clear": "Personal identity code removed",
-      "employee_pid_view": "Personal identity code viewed"
+      "employee_pid_view": "Personal identity code viewed",
+      "team_create": "Team created",
+      "team_update": "Team updated",
+      "team_archive": "Team archived",
+      "team_members_add": "Team members added",
+      "team_members_remove": "Team member removed",
+      "membership_permissions_update": "Member's extra permissions changed",
+      "user_register": "User registered"
     }
   },
   "errors": {
@@ -2398,7 +2413,8 @@
       "qualifications": "Cards and qualifications",
       "overview": "Summary",
       "settings": "Settings",
-      "rotation": "Rotation"
+      "rotation": "Rotation",
+      "teams": "Teams"
     },
     "cardTabs": {
       "basics": "Basics",
@@ -2423,7 +2439,8 @@
       "status": "Employment status",
       "statusHint": "The left status and end date are changed by editing the basic details.",
       "user": "User account (own card)",
-      "noUser": "Not linked"
+      "noUser": "Not linked",
+      "noTeam": "No team"
     },
     "personal": {
       "title": "Contact and own details",
@@ -3143,6 +3160,59 @@
     "overwrite": "Replace existing at-work/off entries",
     "applyPattern": "Apply rhythm",
     "patternDone": "Rhythm applied.",
-    "patternKept": "Rhythm applied. Some days were kept (absences or days already planned)."
+    "patternKept": "Rhythm applied. Some days were kept (absences or days already planned).",
+    "teams": "Teams",
+    "teamFilter": "Team",
+    "allTeams": "All teams",
+    "dragTeam": "Drag the whole team into the calendar",
+    "teamMembersN": "{count, plural, one {# person} other {# people}}",
+    "teamDialog": "The entry is made for every team member ({count})."
+  },
+  "teams": {
+    "title": "Teams",
+    "intro": "Group people into teams and name a leader. A person belongs to one team at a time.",
+    "noAccess": "You have no access to teams.",
+    "create": "Create team",
+    "name": "Team name",
+    "leader": "Leader",
+    "noLeader": "No leader",
+    "leaderShort": "Lead",
+    "color": "Colour",
+    "description": "Description",
+    "colors": {
+      "slate": "Grey",
+      "sky": "Blue",
+      "amber": "Yellow",
+      "emerald": "Green",
+      "violet": "Violet",
+      "rose": "Red",
+      "orange": "Orange",
+      "teal": "Teal"
+    },
+    "none": "No teams yet.",
+    "membersN": "{count, plural, one {# member} other {# members}}",
+    "noMembers": "No members.",
+    "people": "People",
+    "addMembers": "Add members",
+    "moveHint": "A person already in another team is moved to this team.",
+    "remove": "Remove {name} from the team",
+    "archive": "Archive team",
+    "confirmArchive": "Archive team {name}? Its members will have no team.",
+    "dragTeam": "Drag the whole team"
+  },
+  "welcome": {
+    "title": "Welcome to SK Management",
+    "intro": "Complete your details before you start. You signed in as {email}.",
+    "name": "Name",
+    "phone": "Phone",
+    "phoneHint": "A number you can be reached on at the site (optional)",
+    "organization": "Company",
+    "organizationExternal": "Company you represent",
+    "jobTitle": "Job title",
+    "language": "Language",
+    "privacyTitle": "How your data is used",
+    "privacyText": "We store your name, e-mail, phone number, company and job title in your user account. The data is used only to run the system: signing in, contacting you and knowing who did what on the site. Sign-ins and changes are recorded in the audit log. The controller is the company that invited you; you can ask them to check or correct your data.",
+    "acceptPrivacy": "I have read how my data is used and accept it.",
+    "submit": "Save and continue"
   }
 }

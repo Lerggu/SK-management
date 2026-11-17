@@ -103,6 +103,7 @@ export const hrCardService = {
       endDate: e.endDate,
       archivedAt: e.archivedAt,
       team: e.team,
+      teamId: e.teamId,
       location: e.location,
       jobProfileId: e.jobProfileId,
       supervisor: supervisorRow ? { id: supervisorRow.id, name: `${supervisorRow.firstName} ${supervisorRow.lastName}` } : null,
@@ -254,7 +255,15 @@ export const hrCardService = {
         const p = await repo.findProfile(data.jobProfileId);
         if (!p || p.archivedAt) throw new ValidationError({ jobProfileId: ["validation.invalidOption"] });
       }
-      const after = await repo.updateEmployee(employee.id, { ...data, updatedById: ctx.user.id });
+      let teamName: { team?: string | null } = {};
+      if (given.has("teamId")) {
+        if (data.teamId) {
+          const team = await tx.team.findFirst({ where: { id: data.teamId, companyId: ctx.company.id, archivedAt: null }, select: { name: true } });
+          if (!team) throw new ValidationError({ teamId: ["validation.invalidOption"] });
+          teamName = { team: team.name };
+        } else teamName = { team: null };
+      }
+      const after = await repo.updateEmployee(employee.id, { ...data, ...teamName, updatedById: ctx.user.id });
       await writeAudit(tx, ctx, { action: "employee.hr_employment_update", entityType: "employee", entityId: employee.id, before: employee, after, diff: true });
       return { id: after.id };
     });

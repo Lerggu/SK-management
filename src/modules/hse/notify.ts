@@ -19,6 +19,7 @@ export async function seriousIncidentRecipients(companyId: string, projectId: st
     const r = resolvePermissions(
       m.roles.map((x) => toGrant(x.role)),
       m.projectMemberships.map((pm) => ({ projectId: pm.projectId, role: toGrant(pm.role) })),
+      m.extraPermissions.map((x) => x.permissionKey),
     );
     if (r.external) return false;
     const access = r.projectAccess === "ALL" || r.projectGrants.has(projectId);
