@@ -50,6 +50,9 @@ param mailFrom string = 'SK Management <no-reply@example.com>'
 @description('Set to true once the Key Vault secret smtp-url exists.')
 param enableSmtp bool = false
 
+@description('Own public host name (e.g. sk.skinfra.fi) once its custom domain and certificate are bound; empty = the azurewebsites.net address.')
+param publicHostName string = ''
+
 @description('Set to true once the Key Vault secret anthropic-api-key exists.')
 param enableAi bool = false
 
@@ -206,7 +209,7 @@ var baseSettings = [
   { name: 'DATABASE_URL', value: '@Microsoft.KeyVault(${kvRef}database-url)' }
   { name: 'DATABASE_ADMIN_URL', value: '@Microsoft.KeyVault(${kvRef}database-admin-url)' }
   { name: 'AUTH_SECRET', value: '@Microsoft.KeyVault(${kvRef}auth-secret)' }
-  { name: 'AUTH_URL', value: 'https://${webAppName}.azurewebsites.net' }
+  { name: 'AUTH_URL', value: empty(publicHostName) ? 'https://${webAppName}.azurewebsites.net' : 'https://${publicHostName}' }
   { name: 'AUTH_TRUST_HOST', value: 'true' }
   { name: 'AUTH_MICROSOFT_ENTRA_ID_ID', value: entraClientId }
   { name: 'AUTH_MICROSOFT_ENTRA_ID_SECRET', value: '@Microsoft.KeyVault(${kvRef}entra-client-secret)' }

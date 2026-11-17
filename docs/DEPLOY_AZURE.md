@@ -144,7 +144,12 @@ Jatkossa julkaisu tapahtuu automaattisesti aina, kun muutos yhdistetään `main`
   - `infra/install.sh` säilyttää uudelleen ajettaessa sähköposti- ja tekoälyasetukset, jos niiden salaisuudet ovat Key Vaultissa.
   - Henkilöstökorttien vanhenemismuistutukset (ADR 0025) lähtevät tällä samalla sähköpostilla tunnin välein. Ilman sähköpostia muistutuksia ei merkitä lähetetyiksi. Ajastuksen voi kytkeä pois asetuksella `HR_REMINDERS=off`.
 - **Tekoälyohjaaja:** luo API-avain osoitteessa console.anthropic.com → API Keys ja aseta sille kuukausiraja. Tallenna avain Key Vaultiin nimellä `anthropic-api-key` ja aja vaihe 4 uudelleen parametrilla `-p enableAi=true`.
-- **Oma verkkotunnus**, esim. `sk.skinfra.fi`: App Service → Custom domains, ja maksuton hallittu varmenne. Päivitä silloin Entra-rekisteröinnin Redirect URI sekä `AUTH_URL`.
+- **Oma verkkotunnus**, esim. `sk.skinfra.fi`:
+  1. Hae vahvistustunnus: `az webapp show -g <RG> -n <APP> --query customDomainVerificationId -o tsv`.
+  2. Lisää verkkotunnuksen DNS:ään CNAME `sk` → `<APP>.azurewebsites.net` ja TXT `asuid.sk` → vahvistustunnus.
+  3. Kun DNS näkyy: `az webapp config hostname add`, sitten `az webapp config ssl create` (maksuton hallittu varmenne) ja `az webapp config ssl bind --ssl-type SNI`.
+  4. Lisää Entra-rekisteröintiin Redirect URI `https://sk.skinfra.fi/api/auth/callback/microsoft-entra-id`, aseta `AUTH_URL=https://sk.skinfra.fi` ja käynnistä sovellus uudelleen.
+  - `infra/install.sh` säilyttää uudelleen ajettaessa oman osoitteen (`AUTH_URL`, parametri `publicHostName`) ja molemmat Redirect URI:t.
 
 ## 10. Ylläpito
 | Asia | Miten |
