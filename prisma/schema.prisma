@@ -586,6 +586,10 @@ model Employee {
   trousersSize          String?        @map("trousers_size")
   shoeSize              String?        @map("shoe_size")
   photoFileId           String?        @map("photo_file_id") @db.Uuid
+  /// Finnish personal identity code (ADR 0028): AES-256-GCM ciphertext, never stored in clear.
+  personalIdEnc         String?        @map("personal_id_enc")
+  /// Keyed HMAC of the normalized code: uniqueness within the company without the clear value.
+  personalIdHash        String?        @map("personal_id_hash") @db.Char(64)
   createdAt             DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   createdById           String?        @map("created_by") @db.Uuid
   updatedAt             DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -615,6 +619,7 @@ model Employee {
   expiryReminders ExpiryReminder[]
 
   @@unique([companyId, id])
+  @@unique([companyId, personalIdHash])
   @@unique([companyId, employeeNumber])
   @@index([companyId, archivedAt])
   @@map("employees")

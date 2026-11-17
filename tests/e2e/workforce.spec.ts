@@ -16,6 +16,23 @@ test("employee CRUD with rates", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Luo" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Eero Esimerkki");
 
+  // Employee number and personal identity code are separate fields (ADR 0028).
+  await expect(page.getByTestId("employee-number")).toHaveText(number);
+  const pid = page.getByTestId("personal-id");
+  await expect(pid).toContainText("Ei tallennettu.");
+  await pid.getByText("Lisää henkilötunnus").click();
+  await pid.getByLabel("Henkilötunnus").fill("131052-308x");
+  await pid.getByRole("button", { name: "Tallenna" }).click();
+  await expect(pid.getByText("Virheellinen henkilötunnus", { exact: false })).toBeVisible();
+  // Fictional codes with valid check characters; one per viewport (unique per company).
+  await pid.getByLabel("Henkilötunnus").fill(testInfo.project.name.includes("mobile") ? "010101A123N" : "131052-308T");
+  await pid.getByRole("button", { name: "Tallenna" }).click();
+  await expect(pid.getByTestId("pid-value")).toHaveText(/^••••••[-A]•••[NT]$/);
+  await pid.getByRole("button", { name: "Näytä" }).click();
+  await expect(pid.getByTestId("pid-value")).toHaveText(/^(131052-308T|010101A123N)$/);
+  await pid.getByRole("button", { name: "Piilota" }).click();
+  await expect(pid.getByTestId("pid-value")).toContainText("•");
+
   // Update
   await page.getByRole("link", { name: "Muokkaa" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Muokkaa henkilöä");

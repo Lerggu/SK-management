@@ -175,7 +175,7 @@
     "title": "Henkilöstö",
     "new": "Uusi henkilö",
     "edit": "Muokkaa henkilöä",
-    "employeeNumber": "Henkilönumero",
+    "employeeNumber": "Henkilönumero (yrityksen oma)",
     "firstName": "Etunimi",
     "lastName": "Sukunimi",
     "fullName": "Nimi",
@@ -200,7 +200,26 @@
       "ACTIVE": "Aktiivinen",
       "INACTIVE": "Poistunut"
     },
-    "shareableInGroup": "Jaettavissa konsernin yrityksille (varauksella)"
+    "shareableInGroup": "Jaettavissa konsernin yrityksille (varauksella)",
+    "employeeNumberShort": "Henkilönro",
+    "employeeNumberHint": "Yrityksen oma tunniste henkilölle, esim. palkanlaskennan numero. Ei henkilötunnus.",
+    "pid": {
+      "title": "Henkilötunnus",
+      "hint": "Henkilötunnus tallennetaan salattuna. Sen näkevät ja voivat muuttaa vain henkilötunnusoikeuden omaavat (toimitusjohtaja ja henkilöstöhallinto). Jokainen näyttäminen kirjataan muutoslokiin.",
+      "label": "Henkilötunnus",
+      "format": "Muoto PPKKVV-NNNT, esim. 010190-123A",
+      "notSet": "Ei tallennettu.",
+      "unreadable": "Tallennettu (ei luettavissa tässä ympäristössä)",
+      "show": "Näytä",
+      "hide": "Piilota",
+      "add": "Lisää henkilötunnus",
+      "change": "Vaihda henkilötunnus",
+      "clear": "Poista henkilötunnus",
+      "confirmClear": "Poistetaanko henkilötunnus?",
+      "saved": "Henkilötunnus tallennettu salattuna.",
+      "none": "Henkilötunnusta ei ole tallennettu.",
+      "unavailable": "Henkilötunnuksen salausavain puuttuu tästä ympäristöstä, joten henkilötunnusta ei voi tallentaa eikä näyttää."
+    }
   },
   "rates": {
     "title": "Hinnat",
@@ -462,7 +481,8 @@
       "hr_view": "Näkee työtehtävien kannalta tarpeelliset henkilöstötiedot: osaamismatriisi, julkaistut arviot, koulutukset, kortit, perehdytykset, käyttöluvat ja kielitaito",
       "hr_manage": "Hallitsee kaikkia henkilöstötietoja: osaamisalueet, korttityypit, vaatimukset, arvioinnit, liitteet, työvaatteet ja tavarat",
       "rotation_view": "Näkee henkilöstön rotaatiosuunnitelman (poissaolon syyt piilotettu)",
-      "rotation_manage": "Suunnittelee rotaation ja näkee poissaolojen syyt (sairauspoissaolo on terveystieto)"
+      "rotation_manage": "Suunnittelee rotaation ja näkee poissaolojen syyt (sairauspoissaolo on terveystieto)",
+      "employee_pid_manage": "Näkee ja muokkaa henkilötunnuksia (arkaluonteinen)"
     },
     "calendar": "Työkalenteri",
     "inviteSent": "Kutsu lähetetty sähköpostilla.",
@@ -750,7 +770,10 @@
       "membership_invite_resend": "Kutsu lähetetty uudelleen",
       "rotation_set": "Rotaatio merkitty",
       "rotation_clear": "Rotaatio tyhjennetty",
-      "rotation_pattern": "Rotaatiorytmi lisätty"
+      "rotation_pattern": "Rotaatiorytmi lisätty",
+      "employee_pid_set": "Henkilötunnus tallennettu",
+      "employee_pid_clear": "Henkilötunnus poistettu",
+      "employee_pid_view": "Henkilötunnus näytetty"
     }
   },
   "errors": {
@@ -896,7 +919,9 @@
       "OUT_OF_SERVICE": "Kalusto on huollossa tai poistettu käytöstä.",
       "FULL": "Tarve on jo täytetty.",
       "ALREADY_ASSIGNED": "Resurssi on jo varattu tähän tehtävään."
-    }
+    },
+    "personalId": "Virheellinen henkilötunnus. Tarkista muoto ja tarkistemerkki.",
+    "personalIdTaken": "Tämä henkilötunnus on jo toisella henkilöllä."
   },
   "time": {
     "title": "Tunnit",

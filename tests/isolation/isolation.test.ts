@@ -61,6 +61,7 @@ import { staffingService, taskTypeService } from "@/modules/production/service";
 import { productionCalendarService } from "@/modules/production/calendar.service";
 import { logisticsAiService } from "@/modules/production/ai.service";
 import { rotationService } from "@/modules/workforce/rotation.service";
+import { personalIdService } from "@/modules/workforce/personal-id.service";
 import { deviationService } from "@/modules/production/deviation.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
@@ -1297,6 +1298,13 @@ const cases: Record<string, Case> = {
     await expectRejected(rotationService.applyPattern(w.bCtx, { employeeIds: [w.bhr.employee], from: "2026-11-02", until: "2026-11-03", workDays: "1", offDays: "1", siteId: w.ids.site }));
     expect(await db.rotationEntry.count({ where: { companyId: w.a.companyId } })).toBe(0);
   },
+  "personalId.status": () => expectNotFound(personalIdService.status(w.bCtx, w.ids.employee)),
+  "personalId.reveal": () => expectNotFound(personalIdService.reveal(w.bCtx, w.ids.employee)),
+  "personalId.set": async () => {
+    await expectNotFound(personalIdService.set(w.bCtx, w.ids.employee, { personalId: "131052-308T" }));
+    expect((await db.employee.findUniqueOrThrow({ where: { id: w.ids.employee } })).personalIdEnc).toBeNull();
+  },
+  "personalId.clear": () => expectNotFound(personalIdService.clear(w.bCtx, w.ids.employee)),
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
