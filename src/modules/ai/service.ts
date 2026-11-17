@@ -143,9 +143,11 @@ async function persist(
   return runInTransaction(async (tx) => {
     const repo = new AiRepo(tx, ctx.company.id);
     const run = await repo.createRun({ ...data, result: result ?? Prisma.DbNull });
-    if (recommendations.length) {
+    // Recommendations belong to a project; runs without one (the assistant) have none.
+    if (recommendations.length && run.projectId) {
+      const projectId = run.projectId;
       await repo.createRecommendations(
-        recommendations.map((r, i) => ({ projectId: run.projectId, runId: run.id, position: i, severity: r.severity as "INFO" | "WARNING" | "CRITICAL", title: r.title, detail: r.detail, evidence: r.evidence })),
+        recommendations.map((r, i) => ({ projectId, runId: run.id, position: i, severity: r.severity as "INFO" | "WARNING" | "CRITICAL", title: r.title, detail: r.detail, evidence: r.evidence })),
       );
     }
     await writeAudit(tx, ctx, {

@@ -77,6 +77,8 @@ export interface AiUsage {
 export interface AiRunRequest {
   system: string;
   prompt: string;
+  /** Earlier turns of a conversation, oldest first (plain text). */
+  history?: { role: "user" | "assistant"; text: string }[];
   tools: AiTool[];
   /** Executes a tool for the requesting user; errors come back as results. */
   executeTool(name: string, input: unknown): Promise<unknown>;
