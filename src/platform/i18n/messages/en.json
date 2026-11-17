@@ -2798,7 +2798,8 @@
       "lookahead": "Look-ahead",
       "logistics": "Logistics",
       "bookings": "Resource bookings",
-      "taskTypes": "Task types"
+      "taskTypes": "Task types",
+      "calendar": "Calendar"
     },
     "taskType": "Task type",
     "taskTypes": {
@@ -2865,6 +2866,55 @@
         "OUT_OF_SERVICE": "Out of service",
         "INSPECTION_DUE": "Inspection due",
         "BUSY": "Booked at the same time"
+      }
+    },
+    "calendar": {
+      "title": "Production calendar",
+      "hint": "Logistics tasks on a timeline. Drag a person or equipment onto a task, or tap a resource and then a task.",
+      "noAccess": "You have no access to logistics.",
+      "previous": "Previous",
+      "next": "Next",
+      "today": "Today",
+      "zoom": "Scale",
+      "zooms": {
+        "day": "Day",
+        "week": "Week",
+        "twoWeeks": "2 weeks",
+        "month": "Month"
+      },
+      "view": "View",
+      "views": {
+        "tasks": "Tasks",
+        "resources": "Resources"
+      },
+      "site": "Site",
+      "allSites": "All sites",
+      "show": "Show",
+      "noTasks": "No tasks in this period.",
+      "resources": "Resources",
+      "dragHint": "Drag onto a task. On a phone: tap a resource, then a task.",
+      "filter": "Filter resources",
+      "filters": {
+        "ALL": "All",
+        "EMPLOYEE": "People",
+        "EQUIPMENT": "Equipment"
+      },
+      "bookingsCount": "{count} bkd",
+      "tapTask": "Selected: {resource}. Tap the task to book it for.",
+      "clearSelection": "Clear selection",
+      "assigned": "{resource} booked for {task}.",
+      "noOpenNeed": "{task} has no open need for this resource.",
+      "chooseRole": "Choose the role",
+      "missingShort": "−{count}",
+      "legend": "Legend",
+      "phases": {
+        "PLANNED": "Planned",
+        "MISSING_RESOURCES": "Resources missing",
+        "READY": "Ready to start",
+        "IN_PROGRESS": "In progress",
+        "COMPLETE": "Complete",
+        "LATE": "Late",
+        "DEVIATION": "Deviation"
       }
     }
   }

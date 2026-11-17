@@ -32,3 +32,11 @@ export async function productionAction(slug: string, op: ProductionOp, id: strin
   revalidatePath(`/c/${slug}/logistics`, "layout");
   return r;
 }
+
+/** Drag-and-drop or tap assignment from the production calendar. */
+export async function calendarAssignAction(slug: string, taskId: string, roleId: string, resource: string): Promise<ActionState> {
+  const ctx = await requireCompanyContext(slug);
+  const r = await runAction(null, () => staffingService.assign(ctx, taskId, { roleId, resource }).then(() => undefined));
+  revalidatePath(`/c/${slug}/logistics`, "layout");
+  return r;
+}

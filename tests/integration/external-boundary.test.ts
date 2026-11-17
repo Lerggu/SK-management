@@ -60,6 +60,7 @@ import {
 import { employeeFileService } from "@/modules/hr/files.service";
 import { hrOverviewService } from "@/modules/hr/overview.service";
 import { staffingService, taskTypeService } from "@/modules/production/service";
+import { productionCalendarService } from "@/modules/production/calendar.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Role = "CLIENT" | "CLIENT_APPROVER" | "SUBCONTRACTOR";
@@ -136,6 +137,7 @@ const hrPdf = () => ({ fileName: "x.pdf", bytes: new TextEncoder().encode("%PDF-
 const CALLS: Record<string, Call> = {
   // Production control (ADR 0026): task types and staffing are internal.
   "production.taskTypes.list": r("taskType", (c) => taskTypeService.list(c)),
+  "production.calendar.view": r("productionCalendar", (c) => productionCalendarService.view(c)),
   "production.taskTypes.create": w("taskType", (c) => taskTypeService.create(c, { name: uniq("x") })),
   "production.staffing.get": r("staffing", async (c) => {
     const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });

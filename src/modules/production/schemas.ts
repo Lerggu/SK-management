@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalDecimal, optionalText, optionalUuid, text, uuid } from "@/platform/http/validation";
+import { ZOOMS } from "./calendar";
 import { TASK_COLORS } from "./rules";
 
 const emptyToNull = (v: unknown) => (v === undefined || (typeof v === "string" && v.trim() === "") ? null : v);
@@ -39,3 +40,10 @@ export const setTaskTypeSchema = z.object({ taskTypeId: optionalUuid() });
 const resourceRef = () => z.string().regex(/^(EMPLOYEE|EQUIPMENT):[0-9a-f-]{36}$/i, "validation.invalidOption");
 export const assignSchema = z.object({ roleId: uuid(), resource: resourceRef() });
 export type AssignInput = z.input<typeof assignSchema>;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+export const calendarSchema = z.object({
+  zoom: z.preprocess((v) => (v === undefined || v === "" ? "week" : v), z.enum(ZOOMS)),
+  date: z.preprocess(emptyToNull, z.string().regex(ISO_DATE, "validation.date").nullable()).default(null),
+  siteId: optionalUuid(),
+});

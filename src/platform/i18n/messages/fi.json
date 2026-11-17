@@ -2798,7 +2798,8 @@
       "lookahead": "Look-ahead",
       "logistics": "Logistiikka",
       "bookings": "Resurssivaraukset",
-      "taskTypes": "Tehtävätyypit"
+      "taskTypes": "Tehtävätyypit",
+      "calendar": "Kalenteri"
     },
     "taskType": "Tehtävätyyppi",
     "taskTypes": {
@@ -2865,6 +2866,55 @@
         "OUT_OF_SERVICE": "Ei käytössä",
         "INSPECTION_DUE": "Tarkastus erääntyy",
         "BUSY": "Varattu samaan aikaan"
+      }
+    },
+    "calendar": {
+      "title": "Tuotantokalenteri",
+      "hint": "Logistiikkatehtävät aikajanalla. Raahaa henkilö tai kalusto tehtävään, tai napauta resurssia ja sitten tehtävää.",
+      "noAccess": "Sinulla ei ole pääsyä logistiikkaan.",
+      "previous": "Edellinen",
+      "next": "Seuraava",
+      "today": "Tänään",
+      "zoom": "Mittakaava",
+      "zooms": {
+        "day": "Päivä",
+        "week": "Viikko",
+        "twoWeeks": "2 viikkoa",
+        "month": "Kuukausi"
+      },
+      "view": "Näkymä",
+      "views": {
+        "tasks": "Tehtävät",
+        "resources": "Resurssit"
+      },
+      "site": "Työmaa",
+      "allSites": "Kaikki työmaat",
+      "show": "Näytä",
+      "noTasks": "Ei tehtäviä tällä aikavälillä.",
+      "resources": "Resurssit",
+      "dragHint": "Raahaa tehtävään. Puhelimella: napauta resurssia ja sitten tehtävää.",
+      "filter": "Rajaa resursseja",
+      "filters": {
+        "ALL": "Kaikki",
+        "EMPLOYEE": "Henkilöt",
+        "EQUIPMENT": "Kalusto"
+      },
+      "bookingsCount": "{count} var.",
+      "tapTask": "Valittu: {resource}. Napauta tehtävää, johon resurssi varataan.",
+      "clearSelection": "Poista valinta",
+      "assigned": "{resource} varattu tehtävään {task}.",
+      "noOpenNeed": "Tehtävällä {task} ei ole avointa tarvetta tälle resurssille.",
+      "chooseRole": "Valitse tehtävän rooli",
+      "missingShort": "−{count}",
+      "legend": "Selite",
+      "phases": {
+        "PLANNED": "Suunniteltu",
+        "MISSING_RESOURCES": "Resursseja puuttuu",
+        "READY": "Valmis aloitettavaksi",
+        "IN_PROGRESS": "Käynnissä",
+        "COMPLETE": "Valmis",
+        "LATE": "Myöhässä",
+        "DEVIATION": "Poikkeama"
       }
     }
   }

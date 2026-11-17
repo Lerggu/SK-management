@@ -58,6 +58,7 @@ import {
 import { employeeFileService } from "@/modules/hr/files.service";
 import { hrOverviewService } from "@/modules/hr/overview.service";
 import { staffingService, taskTypeService } from "@/modules/production/service";
+import { productionCalendarService } from "@/modules/production/calendar.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -1238,6 +1239,12 @@ const cases: Record<string, Case> = {
     expect(await db.logisticsTaskType.count({ where: { companyId: w.a.companyId } })).toBe(before);
   },
   "staffing.get": () => expectNotFound(staffingService.get(w.bCtx, w.prod.request)),
+  "productionCalendar.view": async () => {
+    const v = await productionCalendarService.view(w.bCtx, { zoom: "month", date: "2026-11-05" });
+    expect(v.tasks.map((t) => t.id)).not.toContain(w.prod.request);
+    expect(JSON.stringify(v.resources)).not.toContain(w.ids.employee);
+    await expectNotFound(productionCalendarService.view(w.bCtx, { siteId: w.ids.site }));
+  },
   "staffing.setTaskType": async () => {
     await expectNotFound(staffingService.setTaskType(w.bCtx, w.prod.request, { taskTypeId: w.prod.bType }));
     await expectRejected(staffingService.setTaskType(w.bCtx, w.prod.bRequest, { taskTypeId: w.prod.type }));

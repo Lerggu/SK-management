@@ -44,3 +44,34 @@ test.describe("client", () => {
     await expect(page.getByRole("link", { name: "Tuotannonohjaus" })).toHaveCount(0);
   });
 });
+
+test.describe("production calendar", () => {
+  test.use({ storageState: authFile("logistics") });
+
+  test("tasks on the timeline with status colours; tap a resource, then the task, to book it", async ({ page }, testInfo) => {
+    const day = new Date(Date.now() + 3 * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
+    await page.goto("/c/sk-infra-demo/logistics");
+    const title = unique(testInfo, "Kalenteri");
+    const form = page.getByTestId("request-form");
+    await form.getByLabel("Otsikko").fill(title);
+    await form.getByLabel("Alkaa").fill(`${day}T09:00`);
+    await form.getByLabel("Päättyy").fill(`${day}T11:00`);
+    await form.getByLabel("Tehtävätyyppi").selectOption({ label: "Asennustyö" });
+    await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+
+    await page.goto(`/c/sk-infra-demo/logistics/calendar?zoom=day&date=${day}`);
+    const bar = page.locator(`[data-task="${title}"]`);
+    await expect(bar).toBeVisible();
+    await expect(bar).toHaveAttribute("data-phase", "PLANNED");
+    await expect(page.getByText("Myöhässä", { exact: true })).toBeVisible(); // legend
+    const panel = page.getByTestId("resource-panel");
+    await panel.getByRole("button", { name: "Henkilöt" }).click();
+    await panel.locator("[data-resource]").first().click();
+    await expect(page.getByTestId("selected-resource")).toBeVisible();
+    await bar.click();
+    await expect(page.getByRole("status").filter({ hasText: "varattu tehtävään" })).toBeVisible();
+    await page.goto(`/c/sk-infra-demo/logistics/calendar?zoom=day&date=${day}&view=resources`);
+    await expect(page.locator("[data-resource-row]").getByText(title).first()).toBeVisible();
+  });
+});

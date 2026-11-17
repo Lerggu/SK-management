@@ -46,6 +46,26 @@
   - candidates are shown, and assignment is allowed, only with `booking.manage`;
   - external parties have no access.
 
+### Phase 2: production calendar (`/logistics/calendar`, tab "Kalenteri")
+- **Time axis:**
+  - day (06–22 Helsinki time, hourly), week, 2 weeks or month;
+  - weeks start on Monday, and the daylight-saving change is handled (`production/calendar.ts`, unit tested).
+- **Two views:**
+  - *tasks*: logistics tasks grouped by site;
+  - *resources*: own people and equipment with their bookings.
+- **Task bars:**
+  - a colour by phase, always with a text label in the legend and the tooltip;
+  - the task type's colour dot;
+  - the number of missing resources.
+- **Phases:** planned, resources missing (approved but not fully staffed), ready to start, in progress, complete, and late (the end has passed). Reported deviations (phase 3) blink red; with reduced motion they are a steady red.
+- **Assigning from the calendar:**
+  - drag a resource from the side panel onto a task (desktop), or tap a resource and then a task (phone);
+  - with several open needs of the same kind, a dialog asks which role;
+  - the assignment goes through `staffingService.assign`, so the same hard rules and booking conflicts apply.
+- **Access:**
+  - the resource panel is shown only to members with `booking.manage` in some visible project;
+  - external members have no access.
+
 ## Consequences
 - **Visible HR facts.** Candidates show only fit reasons ("Kortti puuttuu", "Osaaminen alle vaatimuksen"), never card details or assessment texts.
 - **Own resources only.** Group-shared resources (V4) are not yet candidates. They can still be booked through the bookings page.

@@ -177,3 +177,45 @@ describe("staffing", () => {
     await expect(db.resourceBooking.update({ where: { id: booking.id }, data: { logisticsRequestId: null } })).rejects.toThrow();
   });
 });
+
+describe("production calendar", () => {
+  it("shows tasks in the range with colour phase and open needs, and own resources with bookings", async () => {
+    const { productionCalendarService } = await import("@/modules/production/calendar.service");
+    const r = await task("Kalenterinosto", "2027-02-03T08:00", "2027-02-03T12:00");
+    await staffingService.assign(w.o, r.id, { roleId: w.riggerRole, resource: `EMPLOYEE:${w.ok}` });
+    const v = await productionCalendarService.view(w.o, { zoom: "week", date: "2027-02-03" });
+    expect(v.range.startDate).toBe("2027-02-01");
+    expect(v.ticks).toHaveLength(7);
+    const row = v.tasks.find((x) => x.id === r.id)!;
+    expect(row.phase).toBe("PLANNED");
+    expect(row.bar!.width).toBeGreaterThan(0);
+    expect(row.openRoles.find((x) => x.id === w.riggerRole)!.missing).toBe(1);
+    expect(row.missing).toBe(1 + 1 + 1);
+    expect(row.canAssign).toBe(true);
+    const olli = v.resources.find((x) => x.value === `EMPLOYEE:${w.ok}`)!;
+    expect(olli.bookings.map((b) => b.taskId)).toContain(r.id);
+    // Out-of-service equipment is not offered in the panel.
+    expect(v.resources.some((x) => x.value === `EQUIPMENT:${w.brokenCrane}`)).toBe(false);
+
+    await logisticsRequestService.transition(w.o, r.id, { to: "APPROVED" });
+    expect((await productionCalendarService.view(w.o, { zoom: "day", date: "2027-02-03" })).tasks.find((x) => x.id === r.id)!.phase).toBe("MISSING_RESOURCES");
+    expect((await productionCalendarService.view(w.o, { zoom: "day", date: "2027-02-04" })).tasks.some((x) => x.id === r.id)).toBe(false);
+  });
+
+  it("members without booking rights get no resource panel; outsiders and other sites are refused", async () => {
+    const { productionCalendarService } = await import("@/modules/production/calendar.service");
+    await task("Rajattu", "2027-02-10T08:00", "2027-02-10T09:00");
+    const emp = await createMember(w.t, "EMPLOYEE", [{ projectId: w.projectId }]);
+    const v = await productionCalendarService.view(emp, { zoom: "week", date: "2027-02-10" });
+    expect(v.tasks.length).toBeGreaterThan(0);
+    expect(v.resources).toEqual([]);
+    expect(v.tasks.every((x) => !x.canAssign)).toBe(true);
+    const client = await createMember(w.t, "CLIENT", [{ projectId: w.projectId }]);
+    await expect(productionCalendarService.view(client)).rejects.toBeInstanceOf(ForbiddenError);
+    const other = await createTenant("ProdOther");
+    const p = await projectService.create(other.ownerCtx, { code: "O", name: "O" });
+    const s = await siteService.create(other.ownerCtx, p.id, { name: "O" });
+    await expect(productionCalendarService.view(w.o, { siteId: s.id })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(productionCalendarService.view(w.o, { zoom: "year" })).rejects.toBeInstanceOf(ValidationError);
+  });
+});

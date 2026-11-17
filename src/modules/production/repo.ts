@@ -119,6 +119,46 @@ export class ProductionRepo {
     });
   }
 
+  // ── calendar ───────────────────────────────────────────────────────
+  tasksInRange(params: { projectIds?: string[]; siteId?: string | null; from: Date; to: Date }) {
+    return this.tx.logisticsRequest.findMany({
+      where: {
+        ...this.c,
+        status: { not: "CANCELLED" },
+        requestedStart: { lt: params.to },
+        requestedEnd: { gt: params.from },
+        ...(params.projectIds ? { projectId: { in: params.projectIds } } : {}),
+        ...(params.siteId ? { siteId: params.siteId } : {}),
+      },
+      include: { site: { select: { id: true, name: true, project: { select: { code: true } } } } },
+      orderBy: [{ siteId: "asc" }, { requestedStart: "asc" }],
+      take: 500,
+    });
+  }
+
+  bookingsOfTasks(requestIds: string[]) {
+    return requestIds.length
+      ? this.tx.resourceBooking.findMany({ where: { ...this.c, logisticsRequestId: { in: requestIds }, status: ACTIVE_BOOKING }, select: { logisticsRequestId: true, taskRoleId: true } })
+      : Promise.resolve([]);
+  }
+
+  /** Bookings of the company's own resources in a period, with the task they staff. */
+  resourceBookings(from: Date, to: Date) {
+    return this.tx.resourceBooking.findMany({
+      where: { ownerCompanyId: this.companyId, status: ACTIVE_BOOKING, startsAt: { lt: to }, endsAt: { gt: from } },
+      select: { id: true, employeeId: true, equipmentId: true, startsAt: true, endsAt: true, status: true, logisticsRequestId: true, logisticsRequest: { select: { title: true } }, project: { select: { code: true } } },
+      orderBy: { startsAt: "asc" },
+    });
+  }
+
+  sites(projectIds?: string[]) {
+    return this.tx.site.findMany({
+      where: { ...this.c, archivedAt: null, project: { archivedAt: null }, ...(projectIds ? { projectId: { in: projectIds } } : {}) },
+      select: { id: true, name: true, project: { select: { code: true } } },
+      orderBy: [{ project: { code: "asc" } }, { name: "asc" }],
+    });
+  }
+
   /** Active bookings overlapping a period (any company's bookings of own resources). */
   overlapping(from: Date, to: Date) {
     return this.tx.resourceBooking.findMany({
