@@ -10,6 +10,7 @@ import {
   SENSITIVE_PERMISSIONS,
   hasPermission,
   isPermissionKey,
+  projectPermissions,
   requirePermission,
   type Locale,
   type PermissionKey,
@@ -173,7 +174,15 @@ export const companyAdminService = {
       ...m,
       external: m.roles.some((r) => r.role.templateKey !== null && EXTERNAL_TEMPLATE_KEYS.has(r.role.templateKey)),
       extraPermissions: m.extraPermissions.map((x) => x.permissionKey),
+      projectCount: m._count.projectMemberships,
     }));
+  },
+
+  /** Projects the inviter may add a new member to (project.members.manage in that project). */
+  async invitableProjects(ctx: RequestContext) {
+    requirePermission(ctx, "company.members.manage");
+    const rows = await new CompanyScopedRepo(readClient(), ctx.company.id).listOpenProjects();
+    return rows.filter((p) => projectPermissions(ctx, p.id).has("project.members.manage"));
   },
 
   /**
@@ -218,6 +227,11 @@ export const companyAdminService = {
       const repo = new CompanyScopedRepo(tx, ctx.company.id);
       const roles = await repo.findRolesByIds(data.roleIds);
       if (roles.length !== new Set(data.roleIds).size) throw new ValidationError({ roleIds: ["validation.invalidOption"] });
+      const projectIds = [...new Set(data.projectIds)];
+      const projects = projectIds.length ? await repo.findOpenProjects(projectIds) : [];
+      if (projects.length !== projectIds.length || projects.some((p) => !projectPermissions(ctx, p.id).has("project.members.manage"))) {
+        throw new ValidationError({ projectIds: ["validation.invalidOption"] });
+      }
 
       const user =
         (await tx.user.findUnique({ where: { email: data.email } })) ??
@@ -248,6 +262,18 @@ export const companyAdminService = {
         entityId: membership.id,
         after: { email: user.email, status: "INVITED", roles: roles.map((r) => r.key) },
       });
+      // Project role: an external role when one was chosen (portal access), otherwise the first role.
+      const projectRole = roles.find((r) => r.templateKey !== null && EXTERNAL_TEMPLATE_KEYS.has(r.templateKey)) ?? roles[0];
+      for (const project of projects) {
+        const pm = await repo.createProjectMembership(project.id, user.id, projectRole.id, ctx.user.id);
+        await writeAudit(tx, ctx, {
+          action: "project_member.assign",
+          entityType: "project_membership",
+          entityId: pm.id,
+          projectId: project.id,
+          after: { userId: user.id, email: user.email, role: projectRole.key },
+        });
+      }
       return membership;
     });
     // After the commit: the e-mail tells the person how to sign in; a failure never undoes the invite.

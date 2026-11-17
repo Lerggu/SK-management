@@ -20,6 +20,8 @@ export const inviteMemberSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email().max(200)),
   name: optionalText(120),
   roleIds: z.array(uuid()).min(1, "validation.roleRequired"),
+  /** Optional: projects the person is added to at once (needed for the portal of external users). */
+  projectIds: z.array(uuid()).max(50).default([]),
 });
 export type InviteMemberInput = z.input<typeof inviteMemberSchema>;
 

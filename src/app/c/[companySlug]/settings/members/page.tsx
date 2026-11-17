@@ -14,8 +14,15 @@ import { inviteMemberAction, resendInviteAction, setMemberPermissionsAction, set
 export default async function MembersPage({ params }: { params: Promise<{ companySlug: string }> }) {
   const { companySlug } = await params;
   const ctx = await requireCompanyContext(companySlug);
-  const [members, roles, t, format] = await Promise.all([loadOr404(companyAdminService.listMembers(ctx)), companyAdminService.listRoles(ctx), getTranslations("settings"), getFormatter()]);
+  const [members, roles, projects, t, format] = await Promise.all([
+    loadOr404(companyAdminService.listMembers(ctx)),
+    companyAdminService.listRoles(ctx),
+    companyAdminService.invitableProjects(ctx),
+    getTranslations("settings"),
+    getFormatter(),
+  ]);
   const roleOptions = roles.map((r) => ({ value: r.id, label: r.name }));
+  const projectOptions = projects.map((p) => ({ value: p.id, label: `${p.code} · ${p.name}` }));
   const canGrant = hasPermission(ctx, "company.roles.manage");
   const categories = [...new Set(ALL_PERMISSIONS.map((p) => PERMISSIONS[p].category))];
   /** Extra permissions a member may receive: never portal ones; for external members never sensitive or company-wide ones. */
@@ -33,6 +40,12 @@ export default async function MembersPage({ params }: { params: Promise<{ compan
             <div className="sm:col-span-2">
               <CheckboxGroupField name="roleIds" label={t("memberRoles")} options={roleOptions} />
             </div>
+            {projectOptions.length > 0 && (
+              <div className="sm:col-span-2" data-testid="invite-projects">
+                <CheckboxGroupField name="projectIds" label={t("inviteProjects")} options={projectOptions} />
+                <p className="mt-1 text-xs text-muted-foreground">{t("inviteProjectsHint")}</p>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <SubmitButton>{t("invite")}</SubmitButton>
             </div>
@@ -57,11 +70,17 @@ export default async function MembersPage({ params }: { params: Promise<{ compan
                     </span>
                     <span className="text-sm text-muted-foreground">{m.roles.map((r) => r.role.name).join(", ")}</span>
                     {m.external && <Badge variant="secondary">{t("external")}</Badge>}
+                    {m.external && m.projectCount === 0 && (
+                      <Badge variant="destructive" title={t("noProjectsHint")} data-testid="member-no-projects">
+                        {t("noProjectsBadge")}
+                      </Badge>
+                    )}
                     {m.extraPermissions.length > 0 && <Badge variant="outline">{t("extraPermissionsN", { count: m.extraPermissions.length })}</Badge>}
                     {!m.user.registeredAt && m.status !== "INVITED" && <Badge variant="outline">{t("notRegistered")}</Badge>}
                     <StatusBadge status={m.status} label={t(`memberStatuses.${m.status}`)} />
                   </summary>
                   <div className="mt-3 space-y-3 rounded-lg bg-muted/40 p-3">
+                    {m.external && m.projectCount === 0 && <p className="text-xs text-destructive">{t("noProjectsHint")}</p>}
                     {m.user.registeredAt && (
                       <p className="text-xs text-muted-foreground">
                         {t("registeredAt")}: {fmtDateTime(format, m.user.registeredAt)}

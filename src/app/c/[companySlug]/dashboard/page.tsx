@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { AlertTriangle, BookOpen, ClipboardCheck, Clock, FileText, FolderKanban, MapPin, Plus, Truck, Users } from "lucide-react";
 import { hasPermission, projectIdsWithPermission, projectPermissions } from "@/platform/authz";
@@ -43,6 +44,8 @@ function Stat({ label, value, href, icon: Icon }: { label: string; value: number
 export default async function DashboardPage({ params }: { params: Promise<{ companySlug: string }> }) {
   const { companySlug } = await params;
   const ctx = await requireCompanyContext(companySlug);
+  // External members land in the portal (a page-level redirect is followed on every navigation).
+  if (ctx.external) redirect(`/c/${companySlug}/portal`);
   const base = `/c/${companySlug}`;
   const [summary, t, ta, format] = await Promise.all([dashboardService.summary(ctx), getTranslations("dashboard"), getTranslations("audit.actions"), getFormatter()]);
   await companyAdminService.rememberCompany(ctx);

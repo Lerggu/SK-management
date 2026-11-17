@@ -14,8 +14,8 @@ export interface NavItem {
  */
 export const EXTERNAL_PATHS = ["portal", "hse", "documents"] as const;
 
-export function externalPathAllowed(ctx: RequestContext, pathname: string | null): boolean {
-  if (!ctx.external) return true;
+/** True when `/c/<slug>/<section>/…` is a section external members may use. */
+export function isExternalPath(pathname: string | null): boolean {
   const rest = (pathname ?? "").split("/").slice(3);
   return rest.length > 0 && (EXTERNAL_PATHS as readonly string[]).includes(rest[0]);
 }

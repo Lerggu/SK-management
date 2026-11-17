@@ -499,7 +499,11 @@
     "extraPermissionsExternalHint": "External user: only project-level, non-sensitive permissions can be given. Prices, costs and personnel data are never shown to external users.",
     "saveExtraPermissions": "Save extra permissions",
     "notRegistered": "Not registered",
-    "registeredAt": "Registered"
+    "registeredAt": "Registered",
+    "inviteProjects": "Projects (optional)",
+    "inviteProjectsHint": "Clients and subcontractors see only the projects they have been added to in the portal. Choose them here and access opens at once.",
+    "noProjectsBadge": "No projects",
+    "noProjectsHint": "An external user sees nothing in the portal until they are added to a project (Project → People)."
   },
   "audit": {
     "actions": {
@@ -2293,7 +2297,7 @@
   "portal": {
     "title": "Portal",
     "intro": "Collaboration portal – {company}",
-    "noProjects": "No projects have been opened for you yet.",
+    "noProjects": "No projects have been opened for you yet. You are signed in – ask the person who invited you to add you to a project and it will appear here.",
     "clientPortal": "Client portal",
     "subcontractorPortal": "Subcontractor portal",
     "reportedThanks": "Thank you! The report has been received.",

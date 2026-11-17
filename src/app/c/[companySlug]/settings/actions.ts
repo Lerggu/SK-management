@@ -19,7 +19,7 @@ export async function inviteMemberAction(slug: string, _: ActionState | null, fo
   const ctx = await requireCompanyContext(slug);
   let sent = false;
   const r = await runAction(formData, async () => {
-    const m = await companyAdminService.inviteMember(ctx, { ...formInput<InviteMemberInput>(formData), roleIds: roleIds(formData) });
+    const m = await companyAdminService.inviteMember(ctx, { ...formInput<InviteMemberInput>(formData), roleIds: roleIds(formData), projectIds: formData.getAll("projectIds").map(String) });
     sent = m.email.sent;
   });
   revalidatePath(`/c/${slug}/settings/members`);

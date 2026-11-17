@@ -499,7 +499,11 @@
     "extraPermissionsExternalHint": "Ulkoinen käyttäjä: valittavissa ovat vain projektikohtaiset, ei-arkaluonteiset oikeudet. Hinnat, kustannukset ja henkilöstötiedot eivät koskaan näy ulkoisille.",
     "saveExtraPermissions": "Tallenna lisäoikeudet",
     "notRegistered": "Ei rekisteröitynyt",
-    "registeredAt": "Rekisteröitynyt"
+    "registeredAt": "Rekisteröitynyt",
+    "inviteProjects": "Projektit (valinnainen)",
+    "inviteProjectsHint": "Asiakkaat ja aliurakoitsijat näkevät portaalissa vain projektit, joihin heidät on lisätty. Valitse projektit tässä, niin pääsy aukeaa heti.",
+    "noProjectsBadge": "Ei projekteja",
+    "noProjectsHint": "Ulkoinen käyttäjä ei näe portaalissa mitään ennen kuin hänet lisätään projektiin (Projekti → Henkilöt)."
   },
   "audit": {
     "actions": {
@@ -2293,7 +2297,7 @@
   "portal": {
     "title": "Portaali",
     "intro": "Yhteistyöportaali – {company}",
-    "noProjects": "Sinulle ei ole vielä avattu projekteja.",
+    "noProjects": "Sinulle ei ole vielä avattu projekteja. Kirjautuminen onnistui – pyydä sinut kutsunutta henkilöä lisäämään sinut projektiin, niin se näkyy tässä.",
     "clientPortal": "Asiakasportaali",
     "subcontractorPortal": "Aliurakoitsijaportaali",
     "reportedThanks": "Kiitos! Ilmoitus on vastaanotettu.",

@@ -471,7 +471,16 @@ const cases: Record<string, Case> = {
     const members = await companyAdminService.listMembers(w.bCtx);
     expect(members.map((m) => m.id)).not.toContain(w.ids.membership);
   },
-  "companyAdmin.inviteMember": () => expectRejected(companyAdminService.inviteMember(w.bCtx, { email: `x${Date.now()}@example.test`, roleIds: [w.ids.role] })),
+  "companyAdmin.invitableProjects": async () => {
+    expect((await companyAdminService.invitableProjects(w.bCtx)).map((p) => p.id)).not.toContain(w.ids.project);
+  },
+  "companyAdmin.inviteMember": async () => {
+    await expectRejected(companyAdminService.inviteMember(w.bCtx, { email: `y${Date.now()}@example.test`, roleIds: [w.ids.role] }));
+    const bRole = await db.role.findFirstOrThrow({ where: { companyId: w.b.companyId, templateKey: "SUBCONTRACTOR" } });
+    const email = `x${Date.now()}@example.test`;
+    await expectRejected(companyAdminService.inviteMember(w.bCtx, { email, roleIds: [bRole.id], projectIds: [w.ids.project] }));
+    expect(await db.projectMembership.count({ where: { projectId: w.ids.project, membership: { user: { email } } } })).toBe(0);
+  },
   "companyAdmin.resendInvite": () => expectNotFound(companyAdminService.resendInvite(w.bCtx, w.ids.membership)),
   "companyAdmin.setMemberPermissions": async () => {
     await expectNotFound(companyAdminService.setMemberPermissions(w.bCtx, w.ids.membership, { permissionKeys: ["project.view"] }));

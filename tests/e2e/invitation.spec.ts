@@ -15,6 +15,8 @@ test.describe("invitation e-mail", () => {
     await page.getByLabel("Sähköposti").first().fill(email);
     await page.getByLabel("Nimi").first().fill("Urho Urakoitsija");
     await page.getByRole("checkbox", { name: "Aliurakoitsija" }).first().check();
+    // Project access in the same step: the portal opens straight to the project.
+    await page.getByTestId("invite-projects").getByRole("checkbox").first().check();
     await page.getByRole("button", { name: "Kutsu käyttäjä" }).click();
     await expect(page.getByText("Kutsu lähetetty sähköpostilla.")).toBeVisible();
 
@@ -58,7 +60,7 @@ test.describe("invitation e-mail", () => {
     await reg.getByLabel("Yritys, jota edustat").fill("Urakointi Testi Oy");
     await reg.getByRole("checkbox").check();
     await reg.getByRole("button", { name: "Tallenna ja jatka" }).click();
-    await expect(g2).toHaveURL(/\/c\/sk-infra-demo\/portal/);
+    await expect(g2).toHaveURL(/\/c\/sk-infra-demo\/portal\/[0-9a-f-]{36}/);
     await guest2.close();
 
     // The members list shows the registered external user; the CEO grants an extra permission.
@@ -66,6 +68,7 @@ test.describe("invitation e-mail", () => {
     const member = page.locator("li").filter({ hasText: email }).first();
     await expect(member.getByTestId("member-registration")).toContainText("Urakointi Testi Oy");
     await expect(member.getByText("Ulkoinen rooli")).toBeVisible();
+    await expect(member.getByTestId("member-no-projects")).toHaveCount(0);
     await member.locator("summary").first().click();
     const extra = member.getByTestId("extra-permissions");
     await extra.locator("summary").click();

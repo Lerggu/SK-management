@@ -209,6 +209,7 @@ const CALLS: Record<string, Call> = {
   "company.listMembers": r("companyAdmin", (c) => companyAdminService.listMembers(c)),
   "company.listRoles": r("companyAdmin", (c) => companyAdminService.listRoles(c)),
   "company.audit": r("companyAdmin", (c) => companyAdminService.listAuditEvents(c, {})),
+  "company.invitableProjects": r("companyAdmin", (c) => companyAdminService.invitableProjects(c)),
   "company.rememberCompany": w("companyAdmin", (c) => companyAdminService.rememberCompany(c)),
   "company.invite": w("companyAdmin", (c) => companyAdminService.inviteMember(c, { email: `${uniq("x")}@example.test`, roleIds: [] })),
   "dashboard.summary": r("dashboard", (c) => dashboardService.summary(c)),
