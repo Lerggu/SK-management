@@ -314,6 +314,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "hse.create",
       "hse.manage",
       "permit.approve",
+      "ai.use",
     ),
   },
   {
@@ -328,7 +329,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Logistiikkakoordinaattori", en: "Logistics Coordinator" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "logistics.approve", "booking.manage", "delivery.manage", "lift.request", "lift.plan.manage", "material.view", "material.manage", "hse.view", "hse.create"),
+    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "logistics.approve", "booking.manage", "delivery.manage", "lift.request", "lift.plan.manage", "material.view", "material.manage", "hse.view", "hse.create", "ai.use"),
   },
   {
     key: "HSE",

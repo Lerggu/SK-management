@@ -1689,6 +1689,7 @@ model LogisticsRequest {
   deviations    LogisticsDeviation[]
   deliveries    Delivery[]
   liftPlans     LiftPlan[]
+  aiRuns        AiRun[]
 
   @@unique([companyId, id])
   @@unique([companyId, siteId, id])
@@ -2916,6 +2917,10 @@ model DevMailOutbox {
 enum AiRunKind {
   REVIEW
   QUESTION
+  /// Production control phase 4: AI staffing suggestion for one logistics task.
+  STAFFING
+  /// Production control phase 4: §27 logistics risk analysis of a project.
+  LOGISTICS_RISK
 }
 
 enum AiRunStatus {
@@ -2941,35 +2946,39 @@ enum AiRecommendationStatus {
 /// Cost is a usage metric with 6 decimals so sub-cent runs add up exactly
 /// against the monthly cap; it is not an accounting amount.
 model AiRun {
-  id               String      @id @default(uuid(7)) @db.Uuid
-  companyId        String      @map("company_id") @db.Uuid
-  projectId        String      @map("project_id") @db.Uuid
-  requestedById    String      @map("requested_by") @db.Uuid
-  kind             AiRunKind
-  question         String?
-  locale           String
-  provider         String
-  model            String
-  promptVersion    String      @map("prompt_version")
-  toolCalls        Json        @default("[]") @map("tool_calls")
-  result           Json?
-  inputTokens      Int         @default(0) @map("input_tokens")
-  outputTokens     Int         @default(0) @map("output_tokens")
-  cacheReadTokens  Int         @default(0) @map("cache_read_tokens")
-  cacheWriteTokens Int         @default(0) @map("cache_write_tokens")
-  costEur          Decimal     @default(0) @map("cost_eur") @db.Decimal(14, 6)
-  currency         String      @default("EUR") @db.Char(3)
-  status           AiRunStatus
-  error            String?
-  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                 String      @id @default(uuid(7)) @db.Uuid
+  companyId          String      @map("company_id") @db.Uuid
+  projectId          String      @map("project_id") @db.Uuid
+  requestedById      String      @map("requested_by") @db.Uuid
+  kind               AiRunKind
+  question           String?
+  locale             String
+  provider           String
+  model              String
+  promptVersion      String      @map("prompt_version")
+  toolCalls          Json        @default("[]") @map("tool_calls")
+  result             Json?
+  inputTokens        Int         @default(0) @map("input_tokens")
+  outputTokens       Int         @default(0) @map("output_tokens")
+  cacheReadTokens    Int         @default(0) @map("cache_read_tokens")
+  cacheWriteTokens   Int         @default(0) @map("cache_write_tokens")
+  costEur            Decimal     @default(0) @map("cost_eur") @db.Decimal(14, 6)
+  currency           String      @default("EUR") @db.Char(3)
+  status             AiRunStatus
+  error              String?
+  /// STAFFING runs: the logistics task the suggestion is for.
+  logisticsRequestId String?     @map("logistics_request_id") @db.Uuid
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  company         Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  project         Project            @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
-  recommendations AiRecommendation[]
+  company          Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project            @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  logisticsRequest LogisticsRequest?  @relation(fields: [companyId, logisticsRequestId], references: [companyId, id], onDelete: Restrict)
+  recommendations  AiRecommendation[]
 
   @@unique([companyId, id])
   @@index([companyId, createdAt])
   @@index([companyId, projectId, createdAt])
+  @@index([companyId, logisticsRequestId, createdAt])
   @@map("ai_runs")
 }
 

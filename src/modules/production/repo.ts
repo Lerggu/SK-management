@@ -146,7 +146,7 @@ export class ProductionRepo {
   resourceBookings(from: Date, to: Date) {
     return this.tx.resourceBooking.findMany({
       where: { ownerCompanyId: this.companyId, status: ACTIVE_BOOKING, startsAt: { lt: to }, endsAt: { gt: from } },
-      select: { id: true, employeeId: true, equipmentId: true, startsAt: true, endsAt: true, status: true, logisticsRequestId: true, logisticsRequest: { select: { title: true } }, project: { select: { code: true } } },
+      select: { id: true, projectId: true, employeeId: true, equipmentId: true, startsAt: true, endsAt: true, status: true, logisticsRequestId: true, logisticsRequest: { select: { title: true } }, project: { select: { code: true } } },
       orderBy: { startsAt: "asc" },
     });
   }
@@ -224,5 +224,50 @@ export class ProductionRepo {
       where: { ownerCompanyId: this.companyId, status: ACTIVE_BOOKING, startsAt: { lt: to }, endsAt: { gt: from } },
       select: { id: true, employeeId: true, equipmentId: true, logisticsRequestId: true, startsAt: true, endsAt: true },
     });
+  }
+
+  // ── AI (phase 4) ───────────────────────────────────────────────────
+  findProject(id: string) {
+    return this.tx.project.findFirst({ where: { id, ...this.c, archivedAt: null }, select: { id: true } });
+  }
+
+  latestStaffingRun(requestId: string) {
+    return this.tx.aiRun.findFirst({ where: { ...this.c, kind: "STAFFING", logisticsRequestId: requestId }, orderBy: { createdAt: "desc" } });
+  }
+
+  findAiRun(id: string) {
+    return this.tx.aiRun.findFirst({ where: { id, ...this.c } });
+  }
+
+  latestRiskRun(projectId: string) {
+    return this.tx.aiRun.findFirst({ where: { ...this.c, kind: "LOGISTICS_RISK", projectId }, orderBy: { createdAt: "desc" }, include: { recommendations: { orderBy: { position: "asc" } } } });
+  }
+
+  /** Requests of the given tasks with a STAFFING run with picks (for the calendar badge). */
+  async tasksWithStaffingSuggestion(requestIds: string[]) {
+    if (!requestIds.length) return new Set<string>();
+    const rows = await this.tx.aiRun.findMany({ where: { ...this.c, kind: "STAFFING", status: "SUCCEEDED", logisticsRequestId: { in: requestIds } }, select: { logisticsRequestId: true } });
+    return new Set(rows.map((r) => r.logisticsRequestId!));
+  }
+
+  deliveries(projectId: string, from: Date, to: Date) {
+    return this.tx.delivery.findMany({
+      where: { ...this.c, projectId, status: { notIn: ["CANCELLED", "INSTALLED", "STORED", "MOVED_TO_WORKFACE"] }, slotStart: { lt: to }, slotEnd: { gt: from } },
+      select: { id: true, material: true, supplier: true, slotStart: true, slotEnd: true, status: true, activity: { select: { name: true } } },
+      orderBy: { slotStart: "asc" },
+      take: 200,
+    });
+  }
+
+  blockedActivities(projectId: string) {
+    return this.tx.taktActivity.findMany({
+      where: { ...this.c, projectId, archivedAt: null, execution: { not: "COMPLETE" }, blocked: true },
+      select: { id: true, name: true },
+      take: 50,
+    });
+  }
+
+  activityNames(ids: string[]) {
+    return ids.length ? this.tx.taktActivity.findMany({ where: { ...this.c, id: { in: ids } }, select: { id: true, name: true } }) : Promise.resolve([]);
   }
 }

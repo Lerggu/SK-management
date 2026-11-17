@@ -59,6 +59,7 @@ import { employeeFileService } from "@/modules/hr/files.service";
 import { hrOverviewService } from "@/modules/hr/overview.service";
 import { staffingService, taskTypeService } from "@/modules/production/service";
 import { productionCalendarService } from "@/modules/production/calendar.service";
+import { logisticsAiService } from "@/modules/production/ai.service";
 import { deviationService } from "@/modules/production/deviation.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
@@ -138,7 +139,7 @@ interface World {
     photo: string;
   };
   bhr: { employee: string; area: string; type: string; profile: string };
-  prod: { type: string; role: string; request: string; bType: string; bRole: string; bRequest: string; deviation: string; photo: string };
+  prod: { type: string; role: string; request: string; bType: string; bRole: string; bRequest: string; deviation: string; photo: string; aiRun: string };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
@@ -309,6 +310,7 @@ beforeAll(async () => {
   const prodRequest = await logisticsRequestService.create(actx, { siteId: site.id, serviceType: "LIFT", title: "A secret lift", requestedStart: "2026-11-05T07:00", requestedEnd: "2026-11-05T08:00", taskTypeId: prodType.id, submit: "on" });
   const prodDeviation = await deviationService.report(actx, prodRequest.id, { type: "SAFETY", comment: "A secret" }, { fileName: "a.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]) });
   const prodPhoto = await db.logisticsDeviationPhoto.findFirstOrThrow({ where: { deviationId: prodDeviation.id } });
+  const prodAiRun = await logisticsAiService.suggest(actx, prodRequest.id); // deterministic provider
   const bProdType = await taskTypeService.create(b.ownerCtx, { name: "B task type" });
   const bProdRole = await taskTypeService.addRole(b.ownerCtx, bProdType.id, { kind: "PERSON", label: "B role" });
   const bProdRequest = await logisticsRequestService.create(b.ownerCtx, { siteId: bSite.id, serviceType: "LIFT", title: "B lift", requestedStart: "2026-11-05T07:00", requestedEnd: "2026-11-05T08:00", taskTypeId: bProdType.id, submit: "on" });
@@ -422,7 +424,7 @@ beforeAll(async () => {
       photo: hrPhoto.id,
     },
     bhr: { employee: bOwnEmployee.id, area: bHrArea.id, type: bHrType.id, profile: bHrProfile.id },
-    prod: { type: prodType.id, role: prodRole.id, request: prodRequest.id, bType: bProdType.id, bRole: bProdRole.id, bRequest: bProdRequest.id, deviation: prodDeviation.id, photo: prodPhoto.id },
+    prod: { type: prodType.id, role: prodRole.id, request: prodRequest.id, bType: bProdType.id, bRole: bProdRole.id, bRequest: bProdRequest.id, deviation: prodDeviation.id, photo: prodPhoto.id, aiRun: prodAiRun.id },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
@@ -1265,6 +1267,14 @@ const cases: Record<string, Case> = {
     await expectRejected(staffingService.assign(w.bCtx, w.prod.bRequest, { roleId: w.prod.role, resource: `EMPLOYEE:${w.bhr.employee}` }));
     await expectRejected(staffingService.assign(w.bCtx, w.prod.bRequest, { roleId: w.prod.bRole, resource: `EMPLOYEE:${w.ids.employee}` }));
   },
+  "logisticsAi.suggestion": () => expectNotFound(logisticsAiService.suggestion(w.bCtx, w.prod.request)),
+  "logisticsAi.suggest": () => expectNotFound(logisticsAiService.suggest(w.bCtx, w.prod.request)),
+  "logisticsAi.accept": () => expectNotFound(logisticsAiService.accept(w.bCtx, w.prod.aiRun)),
+  "logisticsAi.risks": async () => {
+    await expectNotFound(logisticsAiService.risks(w.bCtx, w.ids.project));
+    expect(JSON.stringify(await logisticsAiService.risks(w.bCtx, w.bProject))).not.toContain("A secret");
+  },
+  "logisticsAi.analyseRisks": () => expectNotFound(logisticsAiService.analyseRisks(w.bCtx, w.ids.project)),
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -1336,7 +1346,7 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.variationClientApproval.findUniqueOrThrow({ where: { id: w.v7.approval } })).decision).toBe("PENDING");
     expect((await db.document.findUniqueOrThrow({ where: { id: w.ids.document } })).sharedWithClient).toBe(false);
     expect((await db.aiRecommendation.findUniqueOrThrow({ where: { id: w.v8.recommendation } })).status).toBe("PROPOSED");
-    expect(await db.aiRun.count({ where: { companyId: w.a.companyId } })).toBe(1);
+    expect(await db.aiRun.count({ where: { companyId: w.a.companyId } })).toBe(2); // project review + staffing suggestion
     expect((await db.competenceAssessment.findUniqueOrThrow({ where: { id: w.hr.draft } })).status).toBe("DRAFT");
     expect((await db.competenceAssessment.findUniqueOrThrow({ where: { id: w.hr.published } })).employeeComment).toBeNull();
     expect((await db.employeeQualification.findUniqueOrThrow({ where: { id: w.hr.qualification } })).replacedAt).toBeNull();

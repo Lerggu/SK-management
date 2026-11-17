@@ -736,7 +736,8 @@
       "logistics_deviation_report": "Poikkeama ilmoitettu",
       "logistics_deviation_acknowledge": "Poikkeama kuitattu",
       "logistics_deviation_resolve": "Poikkeama ratkaistu",
-      "logistics_deviation_notify": "Poikkeamasta ilmoitettu"
+      "logistics_deviation_notify": "Poikkeamasta ilmoitettu",
+      "ai_staffing_accept": "AI:n resurssiehdotus hyväksytty"
     }
   },
   "errors": {
@@ -879,7 +880,9 @@
       "QUALIFICATION_MISSING": "Vaadittu kortti puuttuu tai ei ole voimassa.",
       "INACTIVE": "Henkilö ei ole aktiivinen.",
       "TYPE_MISMATCH": "Väärä kalustotyyppi.",
-      "OUT_OF_SERVICE": "Kalusto on huollossa tai poistettu käytöstä."
+      "OUT_OF_SERVICE": "Kalusto on huollossa tai poistettu käytöstä.",
+      "FULL": "Tarve on jo täytetty.",
+      "ALREADY_ASSIGNED": "Resurssi on jo varattu tähän tehtävään."
     }
   },
   "time": {
@@ -2306,7 +2309,9 @@
     },
     "runKinds": {
       "REVIEW": "Projektikatsaus",
-      "QUESTION": "Kysymys"
+      "QUESTION": "Kysymys",
+      "STAFFING": "Resurssiehdotus",
+      "LOGISTICS_RISK": "Logistiikkariskit"
     },
     "runStatuses": {
       "SUCCEEDED": "Valmis",
@@ -2806,7 +2811,8 @@
       "bookings": "Resurssivaraukset",
       "taskTypes": "Tehtävätyypit",
       "calendar": "Kalenteri",
-      "deviations": "Poikkeamat"
+      "deviations": "Poikkeamat",
+      "risks": "Riskit"
     },
     "taskType": "Tehtävätyyppi",
     "taskTypes": {
@@ -2922,7 +2928,8 @@
         "COMPLETE": "Valmis",
         "LATE": "Myöhässä",
         "DEVIATION": "Poikkeama"
-      }
+      },
+      "aiSuggested": "AI-ehdotus odottaa hyväksyntää tehtäväsivulla"
     },
     "deviations": {
       "title": "Poikkeamat",
@@ -2956,6 +2963,56 @@
         "OPEN": "Avoin",
         "ACKNOWLEDGED": "Kuitattu",
         "RESOLVED": "Ratkaistu"
+      }
+    },
+    "ai": {
+      "title": "AI-ehdotus",
+      "intro": "Tekoäly ehdottaa resursseja avoimiin tarpeisiin. Sille lähetetään vain tarpeet ja nimettömät ehdokkaat (ammatti ja varoitukset), ei nimiä.",
+      "suggest": "Pyydä AI-ehdotus",
+      "again": "Pyydä uusi ehdotus",
+      "accept": "Hyväksy ehdotus",
+      "accepted": "Ehdotus hyväksytty: {assigned} varattu, {skipped} ohitettu.",
+      "none": "Ei vielä ehdotusta.",
+      "notApplicable": "Ei enää sovellu",
+      "rejected": "{count} mallin ehdotusta hylättiin sääntötarkistuksessa.",
+      "testProvider": "Testitila: AI-mallia ei ole kytketty, ehdotus perustuu sääntöjen järjestykseen.",
+      "unavailable": "Tekoäly ei ole käytössä tässä ympäristössä.",
+      "nothingToStaff": "Tehtävällä ei ole avoimia resurssitarpeita.",
+      "nothingToAccept": "Hyväksyttävää ehdotusta ei ole."
+    },
+    "risks": {
+      "title": "Logistiikkariskit",
+      "intro": "Säännöt tunnistavat seuraavan {days} päivän riskit: resurssivaje, hyväksymättömät tehtävät, toimitukset, poikkeamat, päällekkäiset varaukset, vapaa kapasiteetti ja vaikutus tahtiin. Mitään ei siirretä automaattisesti.",
+      "project": "Projekti",
+      "show": "Näytä",
+      "facts": "Havaitut riskit ({count})",
+      "none": "Ei havaittuja riskejä.",
+      "analyse": "Analysoi AI:lla",
+      "analysis": "AI-analyysi",
+      "noAnalysis": "Ei vielä AI-analyysiä.",
+      "dataNotice": "Tekoälylle lähetetään vain yllä olevat havainnot (tehtävien otsikot, ajat ja määrät), ei henkilöiden nimiä.",
+      "noProjects": "Ei projekteja, joiden logistiikkaa voit tarkastella.",
+      "type": {
+        "RESOURCE_SHORTAGE": "Resurssivaje",
+        "NOT_APPROVED": "Hyväksymättä",
+        "TASK_LATE": "Tehtävä myöhässä",
+        "OPEN_DEVIATION": "Avoin poikkeama",
+        "DELIVERY_LATE": "Toimitus myöhässä",
+        "DELIVERY_UNCONFIRMED": "Toimitus vahvistamatta",
+        "BOOKING_CONFLICT": "Päällekkäinen varaus",
+        "IDLE_CAPACITY": "Vapaata kapasiteettia",
+        "TAKT_IMPACT": "Vaikutus tahtiin"
+      },
+      "detail": {
+        "RESOURCE_SHORTAGE": "Puuttuu {missing}: {roles}",
+        "NOT_APPROVED": "Alkaa pian, tila {status}",
+        "TASK_LATE": "Päättymisaika ohi, tila {status}",
+        "OPEN_DEVIATION": "{deviation} · {status}",
+        "DELIVERY_LATE": "Aikaikkuna ohi, ei saapunut",
+        "DELIVERY_UNCONFIRMED": "Alkaa 48 h sisällä, ei vahvistettu",
+        "BOOKING_CONFLICT": "Sama resurssi kahdessa tehtävässä yhtä aikaa",
+        "IDLE_CAPACITY": "{people} henkilöä ja {equipment} kalustoa ilman varauksia {days} päivään",
+        "TAKT_IMPACT": "Riskissä oleva logistiikka palvelee tätä tahtitehtävää"
       }
     }
   }

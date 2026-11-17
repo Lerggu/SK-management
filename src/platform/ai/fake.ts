@@ -39,7 +39,7 @@ export class FakeAiProvider implements AiProvider {
       }
     }
 
-    const result = this.options.respond ? this.options.respond(outputs) : defaultAnswer(outputs);
+    const result = this.options.respond ? this.options.respond(outputs) : request.deterministicAnswer ? request.deterministicAnswer(outputs) : defaultAnswer(outputs);
     return {
       provider: this.name,
       model: this.model,

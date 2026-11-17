@@ -29,7 +29,8 @@ async function projectOr404(repo: AiRepo, projectId: string) {
   return project;
 }
 
-async function budgetStatus(repo: AiRepo) {
+/** The company's monthly AI cap and what is used of it (shared by every AI feature). */
+export async function budgetStatus(repo: AiRepo) {
   const [company, used] = await Promise.all([repo.findCompanyBudget(), repo.costSince(monthStart())]);
   const limit = company?.aiMonthlyBudgetEur ?? D(0);
   const usedEur = used ?? D(0);
@@ -96,8 +97,19 @@ async function execute(ctx: RequestContext, projectId: string, kind: "REVIEW" | 
     error = e instanceof Error ? e.message.slice(0, 500) : "AI run failed";
   }
 
+  const metered = meteredFields(output, provider);
+  if (!output) return persist(ctx, { ...base, ...metered, status: "FAILED", error }, null, []);
+
+  const parsed = insightResultSchema.safeParse(output.result);
+  if (!parsed.success) return persist(ctx, { ...base, ...metered, status: "FAILED", error: "ai.errors.invalidResult" }, null, []);
+  const result = cleanResult(parsed.data, new Set(output.toolCalls.filter((c) => c.ok).map((c) => c.name)));
+  return persist(ctx, { ...base, ...metered, status: "SUCCEEDED", error: null }, result, result.items.filter((i) => i.kind === "AI_RECOMMENDATION"));
+}
+
+/** Provider, model, tool calls, tokens and cost of a run, for `ai_runs`. */
+export function meteredFields(output: AiRunResult | null, provider: { name: string; model: string }) {
   const usage = output?.usage;
-  const metered = {
+  return {
     provider: output?.provider ?? provider.name,
     model: output?.model ?? provider.model,
     toolCalls: (output?.toolCalls ?? []) as unknown as Prisma.InputJsonValue,
@@ -107,12 +119,19 @@ async function execute(ctx: RequestContext, projectId: string, kind: "REVIEW" | 
     cacheWriteTokens: usage?.cacheWriteTokens ?? 0,
     costEur: D(usdToEur(usage?.costUsd ?? 0).toFixed(6)),
   };
-  if (!output) return persist(ctx, { ...base, ...metered, status: "FAILED", error }, null, []);
+}
 
-  const parsed = insightResultSchema.safeParse(output.result);
-  if (!parsed.success) return persist(ctx, { ...base, ...metered, status: "FAILED", error: "ai.errors.invalidResult" }, null, []);
-  const result = cleanResult(parsed.data, new Set(output.toolCalls.filter((c) => c.ok).map((c) => c.name)));
-  return persist(ctx, { ...base, ...metered, status: "SUCCEEDED", error: null }, result, result.items.filter((i) => i.kind === "AI_RECOMMENDATION"));
+/**
+ * Stores a run, its AI_RECOMMENDATION items and the `ai.run` audit event in
+ * one transaction. `result` is any validated answer shape.
+ */
+export async function recordAiRun(
+  ctx: RequestContext,
+  data: Omit<Prisma.AiRunUncheckedCreateInput, "companyId" | "result">,
+  result: unknown,
+  recommendations: InsightResult["items"],
+) {
+  return persist(ctx, data, result as InsightResult | null, recommendations);
 }
 
 async function persist(
@@ -134,13 +153,20 @@ async function persist(
       entityType: "ai_run",
       entityId: run.id,
       projectId: run.projectId,
-      after: { kind: run.kind, status: run.status, provider: run.provider, model: run.model, promptVersion: run.promptVersion, costEur: run.costEur.toString(), tools: (data.toolCalls as { name: string }[] | undefined)?.map((c) => c.name) ?? [], recommendations: recommendations.length },
+      after: { kind: run.kind, status: run.status, logisticsRequestId: run.logisticsRequestId ?? undefined, provider: run.provider, model: run.model, promptVersion: run.promptVersion, costEur: run.costEur.toString(), tools: (data.toolCalls as { name: string }[] | undefined)?.map((c) => c.name) ?? [], recommendations: recommendations.length },
     });
     return mapRun(run);
   });
 }
 
 type RunRow = Awaited<ReturnType<AiRepo["listRuns"]>>[number];
+
+/** Runs of other shapes (e.g. production staffing suggestions) show their summary only. */
+function insightView(result: unknown): InsightResult | null {
+  const r = result as { summary?: unknown; items?: unknown } | null;
+  if (!r || typeof r.summary !== "string") return null;
+  return { summary: r.summary, items: Array.isArray(r.items) ? (r.items as InsightResult["items"]) : [] };
+}
 function mapRun(r: RunRow) {
   return {
     id: r.id,
@@ -154,7 +180,7 @@ function mapRun(r: RunRow) {
     costEur: r.costEur.toString(),
     tokens: r.inputTokens + r.outputTokens + r.cacheReadTokens + r.cacheWriteTokens,
     toolCalls: r.toolCalls as { name: string; ok: boolean }[],
-    result: r.result as InsightResult | null,
+    result: insightView(r.result),
   };
 }
 

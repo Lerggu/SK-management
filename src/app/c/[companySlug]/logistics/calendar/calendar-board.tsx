@@ -20,6 +20,7 @@ export interface BoardTask {
   phase: Phase;
   missing: number;
   deviation: boolean;
+  aiSuggested: boolean;
   canAssign: boolean;
   taskType: { name: string; color: string } | null;
   openRoles: { id: string; label: string; kind: "PERSON" | "EQUIPMENT"; missing: number }[];
@@ -168,6 +169,11 @@ export function CalendarBoard({ slug, ticks, tasks, resources, view, assign }: {
                             {task.taskType && <span className={cn("size-2 shrink-0 rounded-full", SWATCH[task.taskType.color])} aria-hidden />}
                             <span className="truncate">{task.title}</span>
                             {task.missing > 0 && <span className="ml-auto shrink-0 rounded bg-white/70 px-1 text-[10px] text-amber-900">{t("missingShort", { count: task.missing })}</span>}
+                            {task.aiSuggested && (
+                              <span className="shrink-0 rounded bg-violet-700 px-1 text-[10px] font-semibold text-white" title={t("aiSuggested")} data-ai-suggested>
+                                AI
+                              </span>
+                            )}
                           </button>
                         </div>
                       </div>

@@ -298,6 +298,12 @@ export const staffingService = {
     if (!type || !role) throw new ValidationError({ roleId: ["validation.invalidOption"] });
     const [kind, id] = data.resource.split(":") as ["EMPLOYEE" | "EQUIPMENT", string];
     if ((kind === "EMPLOYEE") !== (role.kind === "PERSON")) throw new ValidationError({ resource: ["validation.invalidOption"] });
+    // A need is staffed once: no booking beyond its quantity, and a resource only once per task.
+    const taskBookings = await repo.taskBookings(r.id);
+    if (taskBookings.some((b) => (b.employeeId ? `EMPLOYEE:${b.employeeId}` : `EQUIPMENT:${b.equipmentId}`) === data.resource)) {
+      throw new ValidationError({ resource: ["validation.fit.ALREADY_ASSIGNED"] });
+    }
+    if (taskBookings.filter((b) => b.taskRoleId === role.id).length >= role.quantity) throw new ValidationError({ roleId: ["validation.fit.FULL"] });
     const facts = await resourceFacts(repo, r.requestedStart, r.requestedEnd, r.id);
     const view = roleView(role);
     let issues: FitIssue[];

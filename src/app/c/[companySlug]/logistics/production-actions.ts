@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import type { RequestContext } from "@/platform/authz";
 import { staffingService, taskTypeService } from "@/modules/production/service";
 import { deviationService } from "@/modules/production/deviation.service";
+import { logisticsAiService } from "@/modules/production/ai.service";
+import { aiProjectControllerService } from "@/modules/ai/service";
 import { formInput, readFile, runAction, type ActionState } from "@/app/_lib/action";
 import { requireCompanyContext } from "@/app/_lib/context";
 
@@ -22,6 +24,10 @@ const OPS = {
   assign: (c, id, fd) => staffingService.assign(c, id, input(fd)),
   deviationAcknowledge: (c, id) => deviationService.acknowledge(c, id),
   deviationResolve: (c, id, fd) => deviationService.resolve(c, id, input(fd)),
+  aiSuggest: (c, id) => logisticsAiService.suggest(c, id),
+  aiAccept: (c, id) => logisticsAiService.accept(c, id),
+  riskAnalyse: (c, id) => logisticsAiService.analyseRisks(c, id),
+  recommendationDecide: (c, id, fd) => aiProjectControllerService.decideRecommendation(c, id, input(fd)),
 } satisfies Record<string, Op>;
 
 export type ProductionOp = keyof typeof OPS;

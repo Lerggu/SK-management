@@ -12,6 +12,20 @@ const WEEKDAYS_FI = ["ma", "ti", "ke", "to", "pe", "la", "su"];
 const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const num = (d: { toString(): string } | null) => (d === null ? null : Number(d.toString()));
 
+type TypeWithRoles = Awaited<ReturnType<ProductionRepo["listTypes"]>>[number];
+
+/** Needs of a task (from its type and heaviest load) still missing active bookings. */
+export function openRolesOf(type: TypeWithRoles | null, weightKg: { toString(): string } | null, taskId: string, bookings: { logisticsRequestId: string | null; taskRoleId: string | null }[]) {
+  const { roles } = applicableRoles(
+    (type?.roles ?? []).map((r) => ({ ...r, minWeightKg: num(r.minWeightKg), maxWeightKg: num(r.maxWeightKg) })),
+    num(weightKg),
+  );
+  const openRoles = roles
+    .map((r) => ({ id: r.id, label: r.label, kind: r.kind, missing: Math.max(0, r.quantity - bookings.filter((b) => b.logisticsRequestId === taskId && b.taskRoleId === r.id).length) }))
+    .filter((r) => r.missing > 0);
+  return { openRoles, missing: openRoles.reduce((n, r) => n + r.missing, 0) };
+}
+
 /**
  * Production calendar (ADR 0026, phase 2): logistics tasks of the visible
  * projects on a scalable time axis, with their colour phase and open
@@ -32,21 +46,18 @@ export const productionCalendarService = {
     const ticks = calendarTicks(range, (iso) => weekdays[(new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7]);
 
     const [tasks, types] = await Promise.all([repo.tasksInRange({ projectIds, siteId: data.siteId, from: range.from, to: range.to }), repo.listTypes(true)]);
-    const [bookings, openDeviations] = await Promise.all([repo.bookingsOfTasks(tasks.map((t) => t.id)), repo.openDeviationTaskIds(tasks.map((t) => t.id))]);
+    const [bookings, openDeviations, aiSuggested] = await Promise.all([
+      repo.bookingsOfTasks(tasks.map((t) => t.id)),
+      repo.openDeviationTaskIds(tasks.map((t) => t.id)),
+      repo.tasksWithStaffingSuggestion(tasks.map((t) => t.id)),
+    ]);
     const deviating = new Set(openDeviations.map((d) => d.requestId));
     const now = new Date();
     const canBookAny = tasks.some((t) => hasProjectPermission(ctx, t.projectId, "booking.manage"));
 
     const taskRows = tasks.map((t) => {
       const type = types.find((x) => x.id === t.taskTypeId) ?? null;
-      const { roles } = applicableRoles(
-        (type?.roles ?? []).map((r) => ({ ...r, minWeightKg: num(r.minWeightKg), maxWeightKg: num(r.maxWeightKg) })),
-        num(t.weightKg),
-      );
-      const openRoles = roles
-        .map((r) => ({ id: r.id, label: r.label, kind: r.kind, missing: Math.max(0, r.quantity - bookings.filter((b) => b.logisticsRequestId === t.id && b.taskRoleId === r.id).length) }))
-        .filter((r) => r.missing > 0);
-      const missing = openRoles.reduce((n, r) => n + r.missing, 0);
+      const { openRoles, missing } = openRolesOf(type, t.weightKg, t.id, bookings);
       return {
         id: t.id,
         title: t.title,
@@ -62,6 +73,8 @@ export const productionCalendarService = {
         canAssign: hasProjectPermission(ctx, t.projectId, "booking.manage") && t.status !== "COMPLETE",
         // Open or acknowledged deviations reported from the phone (phase 3).
         deviation: deviating.has(t.id),
+        // An AI staffing suggestion exists for the task (phase 4); accepting it is on the task page.
+        aiSuggested: missing > 0 && aiSuggested.has(t.id),
         bar: barPosition(range, t.requestedStart, t.requestedEnd),
       };
     });

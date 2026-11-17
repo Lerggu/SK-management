@@ -81,6 +81,14 @@ export interface AiRunRequest {
   /** Executes a tool for the requesting user; errors come back as results. */
   executeTool(name: string, input: unknown): Promise<unknown>;
   maxToolRounds: number;
+  /** Schema of the final answer; defaults to `AI_INSIGHT_SCHEMA`. */
+  resultSchema?: JsonSchema;
+  /**
+   * Answer used by providers without a model (the deterministic test and
+   * keyless-development fake) for a custom `resultSchema`, built from the
+   * tool outputs. Real providers ignore it.
+   */
+  deterministicAnswer?: (toolOutputs: Record<string, unknown>) => unknown;
 }
 
 export interface AiRunResult {

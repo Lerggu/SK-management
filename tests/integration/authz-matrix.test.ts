@@ -289,8 +289,9 @@ const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
   "portal HSE figures":      ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "✓", "✓"],
   "approve variation in portal":["N", "N", "N", "N", "N", "N", "N", "N", "N", "F", "N", "✓"],
   // V8 — AI project controller (ai.use); never for external roles
-  "open AI project controller":["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
-  "run AI project review":   ["✓", "✓", "✓", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
+  // Production control phase 4 — the site manager and logistics coordinator use AI too
+  "open AI project controller":["✓", "✓", "✓", "✓", "F", "✓", "F", "F", "F", "F", "F", "F"],
+  "run AI project review":   ["✓", "✓", "✓", "✓", "F", "✓", "F", "F", "F", "F", "F", "F"],
   "set AI monthly budget":   ["✓", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F"],
 };
 

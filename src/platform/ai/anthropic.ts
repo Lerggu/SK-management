@@ -68,7 +68,7 @@ export class AnthropicProvider implements AiProvider {
       {
         name: SUBMIT_TOOL,
         description: "Deliver the final structured answer. Call exactly once, after gathering data.",
-        input_schema: AI_INSIGHT_SCHEMA as unknown as { type: "object" },
+        input_schema: (request.resultSchema ?? AI_INSIGHT_SCHEMA) as unknown as { type: "object" },
         strict: true,
       },
     ] as BetaToolUnion[];

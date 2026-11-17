@@ -12,6 +12,8 @@ import { staffingService, taskTypeService } from "@/modules/production/service";
 import { StaffingSection } from "../../_components/staffing";
 import { deviationService } from "@/modules/production/deviation.service";
 import { DeviationList } from "../../_components/deviation-list";
+import { logisticsAiService } from "@/modules/production/ai.service";
+import { AiSuggestionSection } from "../../_components/ai-suggestion";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("logistics"))("request") };
@@ -21,7 +23,7 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
   const { companySlug, requestId } = await params;
   const ctx = await requireCompanyContext(companySlug);
   const r = await loadOr404(logisticsRequestService.get(ctx, requestId));
-  const [t, td, format, staffing, taskTypes, deviations] = await Promise.all([getTranslations("logistics"), getTranslations("production.deviations"), getFormatter(), staffingService.get(ctx, requestId), taskTypeService.list(ctx).catch(() => []), deviationService.list(ctx, { requestId })]);
+  const [t, td, format, staffing, taskTypes, deviations, ai] = await Promise.all([getTranslations("logistics"), getTranslations("production.deviations"), getFormatter(), staffingService.get(ctx, requestId), taskTypeService.list(ctx).catch(() => []), deviationService.list(ctx, { requestId }), logisticsAiService.suggestion(ctx, requestId)]);
   const base = `/c/${companySlug}/logistics`;
   const user = (id: string | null) => r.users.find((u) => u.id === id)?.name ?? "–";
   return (
@@ -94,6 +96,7 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
           )}
         </Section>
         <StaffingSection slug={companySlug} s={staffing} taskTypes={taskTypes.map((x) => ({ id: x.id, name: x.name }))} />
+        {staffing.taskType && staffing.needs.length > 0 && <AiSuggestionSection slug={companySlug} taskId={requestId} s={ai} />}
         <Section
           title={td("history")}
           actions={
