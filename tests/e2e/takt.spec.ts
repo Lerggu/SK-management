@@ -111,3 +111,17 @@ test.describe("external roles", () => {
     await expect(page).toHaveURL(/\/portal/);
   });
 });
+
+test.describe("takt tab guides set-up", () => {
+  test.use({ storageState: authFile("pm") });
+
+  test("the takt tab lists projects with their structure status and opens the structure page", async ({ page }) => {
+    await page.goto("/c/sk-infra-demo/takt");
+    await expect(page.getByTestId("takt-steps")).toContainText("työpaketit");
+    const row = page.getByTestId("takt-projects").locator("li").filter({ hasText: "Nordic Data Center Demo" });
+    await expect(row).toContainText("työpakettia");
+    await row.getByRole("link", { name: "Avaa tahtirakenne" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tahtirakenne");
+    await expect(page.getByRole("button", { name: "Lisää työpaketti" })).toBeVisible();
+  });
+});

@@ -1059,7 +1059,7 @@
   "takt": {
     "title": "Tahti",
     "plans": "Tahtisuunnitelmat",
-    "noPlans": "Ei tahtisuunnitelmia. Luo suunnitelma projektin Tahti-sivulla.",
+    "noPlans": "Ei vielä tahtisuunnitelmia. Aloita avaamalla projektin tahtirakenne yllä.",
     "lookahead": "Look-ahead",
     "structure": "Tahtirakenne",
     "structureHint": "Työmaa → rakennus/alue → takt-alue. Työpaketit ovat projektin tahtijunan vaunuja.",
@@ -1299,7 +1299,17 @@
     "noLogistics": "Ei toimituksia, pyyntöjä tai varauksia.",
     "requirements": "Resurssitarve (baseline)",
     "bookResource": "Varaa resurssi",
-    "booked": "varattu {count}"
+    "booked": "varattu {count}",
+    "projectsTitle": "Projektit ja tahtirakenne",
+    "step1": "Luo projektin tahtirakenteeseen rakennus tai alue, tahtialueet (esim. kerrokset) ja työpaketit.",
+    "step2": "Luo työmaalle tahtisuunnitelma ja generoi tahtijuna tai tuo aikataulu tiedostosta.",
+    "step3": "Hyväksy suunnitelma ja seuraa edistymistä; logistiikkatehtävät voi liittää tahtitehtäviin.",
+    "noProjects": "Ei projekteja, joiden tahtia voit tarkastella.",
+    "projectCounts": "{areas} tahtialuetta · {workPackages} työpakettia · {plans} suunnitelmaa",
+    "nextStructure": "Seuraavaksi: tahtialueet ja työpaketit",
+    "nextPlan": "Seuraavaksi: luo suunnitelma",
+    "openStructure": "Avaa tahtirakenne",
+    "viewStructure": "Näytä tahtirakenne"
   },
   "logistics": {
     "title": "Logistiikka",
