@@ -10,3 +10,10 @@ onlyBuiltDependencies:
 overrides:
   # GHSA: deepmerge-ts <8 stack exhaustion (pulled in by @prisma/config; only merges our own config file).
   deepmerge-ts: "^8.0.0"
+auditConfig:
+  ignoreGhsas:
+    # picomatch <=4.0.7 ReDoS (published 2026-11-17, no patched version yet). Only reached via
+    # next-intl > @parcel/watcher, used by next-intl's message-extractor file watcher, which this
+    # app does not enable; patterns would come from our own config, never user input.
+    # Owner-approved 2026-11-17. Remove once a fixed picomatch / next-intl is released.
+    - GHSA-fc5q-39xc-vjpf
