@@ -63,7 +63,8 @@
     "billing": "Laskutus",
     "hse": "Työturvallisuus",
     "portal": "Portaali",
-    "myCard": "Oma kortti"
+    "myCard": "Oma kortti",
+    "production": "Tuotannonohjaus"
   },
   "auth": {
     "signInTitle": "Kirjaudu sisään",
@@ -724,7 +725,14 @@
       "training_archive": "Koulutus poistettu",
       "training_create": "Koulutus lisätty",
       "training_update": "Koulutusta muokattu",
-      "training_verify": "Koulutus tarkistettu"
+      "training_verify": "Koulutus tarkistettu",
+      "logistics_task_type_create": "Tehtävätyyppi lisätty",
+      "logistics_task_type_update": "Tehtävätyyppiä muokattu",
+      "logistics_task_type_archive": "Tehtävätyyppi poistettu käytöstä",
+      "logistics_task_type_add_suggested": "Ehdotetut tehtävätyypit lisätty",
+      "logistics_task_role_create": "Tehtävätyypin resurssitarve lisätty",
+      "logistics_task_role_archive": "Tehtävätyypin resurssitarve poistettu",
+      "logistics_request_task_type": "Logistiikkatehtävän tyyppi vaihdettu"
     }
   },
   "errors": {
@@ -862,7 +870,13 @@
     "supervisorCycle": "Valinta tekisi esihenkilöketjusta kehän.",
     "assessmentPublished": "Julkaistua arviointia ei voi muuttaa. Tee uusi arviointi.",
     "hrFileType": "Sallitut tiedostot: JPG, PNG, WEBP ja PDF. Tiedoston sisältö ei vastannut tyyppiä.",
-    "userAlreadyLinked": "Käyttäjä on jo liitetty toiseen henkilöön."
+    "userAlreadyLinked": "Käyttäjä on jo liitetty toiseen henkilöön.",
+    "fit": {
+      "QUALIFICATION_MISSING": "Vaadittu kortti puuttuu tai ei ole voimassa.",
+      "INACTIVE": "Henkilö ei ole aktiivinen.",
+      "TYPE_MISMATCH": "Väärä kalustotyyppi.",
+      "OUT_OF_SERVICE": "Kalusto on huollossa tai poistettu käytöstä."
+    }
   },
   "time": {
     "title": "Tunnit",
@@ -2776,5 +2790,82 @@
     "save": "Tallenna",
     "addedBy": "Lisännyt {name}",
     "none": "–"
+  },
+  "production": {
+    "tabs": {
+      "label": "Tuotannonohjaus",
+      "takt": "Tahtiaikataulu",
+      "lookahead": "Look-ahead",
+      "logistics": "Logistiikka",
+      "bookings": "Resurssivaraukset",
+      "taskTypes": "Tehtävätyypit"
+    },
+    "taskType": "Tehtävätyyppi",
+    "taskTypes": {
+      "title": "Tehtävätyypit",
+      "hint": "Määritä, mitä resursseja kukin logistiikkatehtävä tarvitsee. Tehtävälle ehdotetaan resursseja näiden sääntöjen ja henkilöstökorttien perusteella.",
+      "addSuggested": "Lisää ehdotetut tehtävätyypit",
+      "none": "Tehtävätyyppejä ei ole vielä määritetty.",
+      "noRoles": "Ei resurssitarpeita.",
+      "addRole": "Lisää resurssitarve",
+      "addType": "Lisää tehtävätyyppi",
+      "name": "Nimi",
+      "color": "Väri kalenterissa",
+      "kind": "Resurssi",
+      "kinds": {
+        "PERSON": "Henkilö",
+        "EQUIPMENT": "Kalusto"
+      },
+      "label": "Rooli tai nimi",
+      "quantity": "Määrä",
+      "card": "Vaadittu kortti",
+      "competence": "Osaaminen",
+      "minLevel": "Vähintään taso",
+      "trade": "Ammatti",
+      "equipmentType": "Kalustotyyppi",
+      "minWeight": "Kun kuorma vähintään (kg)",
+      "maxWeight": "Kun kuorma enintään (kg)",
+      "roleHint": "Vaadittu kortti on ehdoton: henkilöä, jolla ei ole voimassa olevaa korttia, ei voi varata. Osaamistaso ja ammatti näytetään varoituksina. Painorajat koskevat tehtävän painavinta taakkaa.",
+      "colors": {
+        "slate": "Harmaa",
+        "sky": "Sininen",
+        "amber": "Keltainen",
+        "emerald": "Vihreä",
+        "violet": "Violetti",
+        "rose": "Punainen",
+        "orange": "Oranssi",
+        "teal": "Turkoosi"
+      }
+    },
+    "staffing": {
+      "title": "Resurssit",
+      "taskType": "Tehtävätyyppi",
+      "setType": "Vaihda tyyppi",
+      "weightUnknown": "Taakan paino puuttuu, joten painoon perustuvat resurssitarpeet eivät ole mukana.",
+      "noType": "Valitse tehtävätyyppi, niin tehtävän resurssitarve ja ehdokkaat näytetään.",
+      "noNeeds": "Tehtävätyypillä ei ole resurssitarpeita.",
+      "missing": "Puuttuu {count}",
+      "covered": "Kunnossa",
+      "pending": "odottaa hyväksyntää",
+      "candidates": "Ehdotetut resurssit",
+      "noCandidates": "Ei sopivia resursseja.",
+      "assign": "Varaa",
+      "readiness": {
+        "READY": "Resurssit kunnossa",
+        "MISSING": "Resursseja puuttuu",
+        "NO_TYPE": "Tehtävätyyppi puuttuu"
+      },
+      "issues": {
+        "QUALIFICATION_MISSING": "Kortti puuttuu",
+        "INACTIVE": "Ei aktiivinen",
+        "NOT_ASSESSED": "Osaamista ei arvioitu",
+        "LEVEL_LOW": "Osaaminen alle vaatimuksen",
+        "TRADE_MISMATCH": "Eri ammatti",
+        "TYPE_MISMATCH": "Väärä tyyppi",
+        "OUT_OF_SERVICE": "Ei käytössä",
+        "INSPECTION_DUE": "Tarkastus erääntyy",
+        "BUSY": "Varattu samaan aikaan"
+      }
+    }
   }
 }

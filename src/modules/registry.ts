@@ -43,6 +43,7 @@ import {
 } from "./hr/card.service";
 import { employeeFileService } from "./hr/files.service";
 import { hrOverviewService } from "./hr/overview.service";
+import { staffingService, taskTypeService } from "./production/service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -127,6 +128,9 @@ export const SERVICE_REGISTRY = {
   companyItem: companyItemService,
   employeeFile: employeeFileService,
   hrOverview: hrOverviewService,
+  // Production control (ADR 0026)
+  taskType: taskTypeService,
+  staffing: staffingService,
 } as const;
 
 // ── V8: tenant scope for row-level security ──────────────────────────

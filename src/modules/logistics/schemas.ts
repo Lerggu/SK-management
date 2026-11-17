@@ -59,6 +59,9 @@ const bookingBase = z.object({
   requirementId: optionalUuid(),
   /** V5: crew booked for a lift plan (riggers, crane operators). */
   liftPlanId: optionalUuid(),
+  /** Production control: the logistics task and its resource need (ADR 0026). */
+  logisticsRequestId: optionalUuid(),
+  taskRoleId: optionalUuid(),
   startsAt: localDateTime(),
   endsAt: localDateTime(),
   note: optionalText(300),
@@ -94,6 +97,8 @@ export const requestSchema = z
     pickup: optionalText(160),
     destination: optionalText(160),
     equipmentTypeId: optionalUuid(),
+    /** Production control: task type defining the resource needs (ADR 0026). */
+    taskTypeId: optionalUuid(),
     priority: z.enum(PRIORITIES).default("NORMAL"),
     note: optionalText(500),
     submit: flag(),

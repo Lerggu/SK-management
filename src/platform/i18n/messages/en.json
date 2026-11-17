@@ -63,7 +63,8 @@
     "billing": "Billing",
     "hse": "Safety (HSE)",
     "portal": "Portal",
-    "myCard": "My card"
+    "myCard": "My card",
+    "production": "Production control"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -724,7 +725,14 @@
       "training_archive": "Training removed",
       "training_create": "Training added",
       "training_update": "Training edited",
-      "training_verify": "Training checked"
+      "training_verify": "Training checked",
+      "logistics_task_type_create": "Task type added",
+      "logistics_task_type_update": "Task type edited",
+      "logistics_task_type_archive": "Task type disabled",
+      "logistics_task_type_add_suggested": "Suggested task types added",
+      "logistics_task_role_create": "Task type resource need added",
+      "logistics_task_role_archive": "Task type resource need removed",
+      "logistics_request_task_type": "Logistics task type changed"
     }
   },
   "errors": {
@@ -862,7 +870,13 @@
     "supervisorCycle": "This would make the supervisor chain circular.",
     "assessmentPublished": "A published assessment cannot be changed. Make a new assessment.",
     "hrFileType": "Allowed files: JPG, PNG, WEBP and PDF. The file content did not match its type.",
-    "userAlreadyLinked": "The user is already linked to another person."
+    "userAlreadyLinked": "The user is already linked to another person.",
+    "fit": {
+      "QUALIFICATION_MISSING": "The required card is missing or not valid.",
+      "INACTIVE": "The person is not active.",
+      "TYPE_MISMATCH": "Wrong equipment type.",
+      "OUT_OF_SERVICE": "The equipment is in maintenance or out of service."
+    }
   },
   "time": {
     "title": "Hours",
@@ -2776,5 +2790,82 @@
     "save": "Save",
     "addedBy": "Added by {name}",
     "none": "–"
+  },
+  "production": {
+    "tabs": {
+      "label": "Production control",
+      "takt": "Takt schedule",
+      "lookahead": "Look-ahead",
+      "logistics": "Logistics",
+      "bookings": "Resource bookings",
+      "taskTypes": "Task types"
+    },
+    "taskType": "Task type",
+    "taskTypes": {
+      "title": "Task types",
+      "hint": "Define the resources each logistics task needs. Resources are suggested for a task from these rules and the personnel cards.",
+      "addSuggested": "Add suggested task types",
+      "none": "No task types yet.",
+      "noRoles": "No resource needs.",
+      "addRole": "Add resource need",
+      "addType": "Add task type",
+      "name": "Name",
+      "color": "Calendar colour",
+      "kind": "Resource",
+      "kinds": {
+        "PERSON": "Person",
+        "EQUIPMENT": "Equipment"
+      },
+      "label": "Role or name",
+      "quantity": "Quantity",
+      "card": "Required card",
+      "competence": "Competence",
+      "minLevel": "At least level",
+      "trade": "Trade",
+      "equipmentType": "Equipment type",
+      "minWeight": "When load at least (kg)",
+      "maxWeight": "When load at most (kg)",
+      "roleHint": "A required card is absolute: a person without a valid card cannot be booked. Competence level and trade are shown as warnings. Weight limits apply to the heaviest load of the task.",
+      "colors": {
+        "slate": "Grey",
+        "sky": "Blue",
+        "amber": "Yellow",
+        "emerald": "Green",
+        "violet": "Violet",
+        "rose": "Red",
+        "orange": "Orange",
+        "teal": "Teal"
+      }
+    },
+    "staffing": {
+      "title": "Resources",
+      "taskType": "Task type",
+      "setType": "Change type",
+      "weightUnknown": "The load weight is missing, so weight-based resource needs are not included.",
+      "noType": "Choose a task type to see the resource needs and candidates.",
+      "noNeeds": "The task type has no resource needs.",
+      "missing": "{count} missing",
+      "covered": "Covered",
+      "pending": "awaiting approval",
+      "candidates": "Suggested resources",
+      "noCandidates": "No suitable resources.",
+      "assign": "Book",
+      "readiness": {
+        "READY": "Resources ready",
+        "MISSING": "Resources missing",
+        "NO_TYPE": "Task type missing"
+      },
+      "issues": {
+        "QUALIFICATION_MISSING": "Card missing",
+        "INACTIVE": "Not active",
+        "NOT_ASSESSED": "Competence not assessed",
+        "LEVEL_LOW": "Competence below requirement",
+        "TRADE_MISMATCH": "Different trade",
+        "TYPE_MISMATCH": "Wrong type",
+        "OUT_OF_SERVICE": "Out of service",
+        "INSPECTION_DUE": "Inspection due",
+        "BUSY": "Booked at the same time"
+      }
+    }
   }
 }

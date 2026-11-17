@@ -9,6 +9,7 @@ import { EmptyState, PageHeader, Section } from "@/ui/components/page";
 import { requireCompanyContext } from "@/app/_lib/context";
 import { BookingRow } from "../_components/booking-row";
 import { createBookingAction } from "../actions";
+import { ProductionTabs } from "@/app/c/[companySlug]/_components/production-tabs";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("logistics"))("bookings") };
@@ -34,6 +35,7 @@ export default async function BookingsPage({ params, searchParams }: Props) {
   return (
     <>
       <PageHeader title={t("bookings")} backHref={`/c/${companySlug}/logistics`} backLabel={t("board")} />
+      <ProductionTabs ctx={ctx} active="bookings" />
       <div className="space-y-4">
         {incoming && incoming.length > 0 && (
           <Section title={t("incoming")}>

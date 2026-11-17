@@ -127,6 +127,10 @@ export const logisticsRequestService = {
         if (!a || a.siteId !== site.id) throw new ValidationError({ activityId: ["validation.invalidOption"] });
       }
       if (data.equipmentTypeId && !(await repo.findEquipmentType(data.equipmentTypeId))) throw new ValidationError({ equipmentTypeId: ["validation.invalidOption"] });
+      if (data.taskTypeId) {
+        const tt = await repo.findTaskType(data.taskTypeId);
+        if (!tt || tt.archivedAt) throw new ValidationError({ taskTypeId: ["validation.invalidOption"] });
+      }
       const { submit, ...fields } = data;
       const r = await repo.createRequest({
         ...fields,

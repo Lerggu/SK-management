@@ -5,6 +5,7 @@ import { lookaheadService } from "@/modules/takt/lookahead.service";
 import { EmptyState, PageHeader, Section } from "@/ui/components/page";
 import { cn } from "@/ui/lib/utils";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
+import { ProductionTabs } from "@/app/c/[companySlug]/_components/production-tabs";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("takt"))("lookaheadTitle") };
@@ -32,6 +33,7 @@ export default async function LookaheadPage({ params, searchParams }: Props) {
   return (
     <>
       <PageHeader title={t("lookaheadTitle")} description={`${la.from} – ${la.to}`} backHref={`/c/${companySlug}/takt`} backLabel={t("title")} />
+      <ProductionTabs ctx={ctx} active="lookahead" />
       <div className="space-y-4">
         <Section title={t("lookahead")}>
           <p className="mb-4 text-sm text-muted-foreground">{t("lookaheadHint")}</p>

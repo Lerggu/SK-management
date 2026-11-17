@@ -1,10 +1,11 @@
 import type { RequestContext } from "@/platform/authz";
 
-export type NavKey = "dashboard" | "portal" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "hse" | "sales" | "billing" | "workforce" | "myCard" | "equipment" | "documents" | "settings";
+export type NavKey = "dashboard" | "portal" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "hse" | "sales" | "billing" | "workforce" | "myCard" | "production" | "equipment" | "documents" | "settings";
 
 export interface NavItem {
   key: NavKey;
   href: string;
+  match?: string[];
 }
 
 /**
@@ -31,8 +32,10 @@ export function navItems(ctx: RequestContext, opts: { myEmployeeId?: string | nu
   const items: NavItem[] = [{ key: "dashboard", href: `${base}/dashboard` }];
   if (has("project.view") || anyProjectGrant) items.push({ key: "projects", href: `${base}/projects` });
   if (hasTimeAccess(ctx)) items.push({ key: "time", href: `${base}/time` });
-  if (hasTaktAccess(ctx)) items.push({ key: "takt", href: `${base}/takt` });
-  if (hasLogisticsAccess(ctx)) items.push({ key: "logistics", href: `${base}/logistics` });
+  // Production control ("Tuotannonohjaus"): takt schedule and logistics in one place.
+  const takt = hasTaktAccess(ctx);
+  const logistics = hasLogisticsAccess(ctx);
+  if (takt || logistics) items.push({ key: "production", href: takt ? `${base}/takt` : `${base}/logistics`, match: [`${base}/takt`, `${base}/logistics`] });
   if (hasLogisticsAccess(ctx)) items.push({ key: "lifting", href: `${base}/lifting` });
   if (hasMaterialAccess(ctx)) items.push({ key: "materials", href: `${base}/materials` });
   if (hasHseAccess(ctx)) items.push({ key: "hse", href: `${base}/hse` });

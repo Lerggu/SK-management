@@ -42,6 +42,7 @@ import { todayInDisplayZone } from "@/platform/i18n/config";
 import { competenceAreaService, hrSettingsService, jobProfileService, qualificationTypeService } from "@/modules/hr/settings.service";
 import { assessmentService, authorizationService, clothingService, companyItemService, hrCardService, languageService, orientationService, qualificationService, trainingService } from "@/modules/hr/card.service";
 import { addCalendarMonths } from "@/modules/hr/rules";
+import { staffingService, taskTypeService } from "@/modules/production/service";
 
 
 const meta: RequestMeta = { requestId: "seed", ip: null, userAgent: "seed" };
@@ -700,6 +701,14 @@ async function main() {
   await clothingService.issue(hrCtx, timo, { product: "Turvajalkineet S3", size: "44", quantity: "1", issuedOn: day(-3) });
   await companyItemService.add(hrCtx, timo, { name: "Työpuhelin", itemType: "PHONE", brand: "Demo", model: "X1", serialNumber: "DEMO-IMEI-1007", issuedOn: day(-3), conditionAtIssue: "Uusi" });
   await companyItemService.add(hrCtx, timo, { name: "Valjaat", itemType: "HARNESS", brand: "Demo", serialNumber: "VAL-0007", issuedOn: day(-3), conditionAtIssue: "Hyvä", nextInspectionOn: day(0, 14) });
+
+  // ── Production control: suggested task types; demo lifts use "Nosto" (ADR 0026) ──
+  const logisticsCtx = await ctxFor("logistics@skinfra.example.com", "sk-infra-demo");
+  await taskTypeService.addSuggested(logisticsCtx);
+  const liftType = (await taskTypeService.list(logisticsCtx)).find((x) => x.name === "Nosto")!;
+  for (const r of await db.logisticsRequest.findMany({ where: { company: { slug: "sk-infra-demo" }, serviceType: "LIFT", status: { notIn: ["COMPLETE", "CANCELLED"] } } })) {
+    await staffingService.setTaskType(logisticsCtx, r.id, { taskTypeId: liftType.id });
+  }
 
   console.log("✔ Seed complete (fictional data).");
   console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, pd@skinfra.example.com, hse@skinfra.example.com, hr@skinfra.example.com (HR admin), client@example.com (client approver), subcontractor@example.com, ceo@purent.example.com …");
