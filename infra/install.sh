@@ -39,7 +39,13 @@ CURRENT_FROM=$(az webapp config appsettings list -g "$RG" -n "$APP" --query "[?n
 MAIL_FROM=$(ask "Sähköpostin lähettäjä" "${CURRENT_FROM:-SK Management <$OWNER_EMAIL>}")
 GITHUB_SUBJECT=$(ask "GitHub OIDC subject" "repo:Lerggu@284750201/SK-management@1393773590:environment:production")
 URL="https://$APP.azurewebsites.net"
+# A re-run keeps an own domain (e.g. sk.skinfra.fi) already set as AUTH_URL.
+CURRENT_URL=$(az webapp config appsettings list -g "$RG" -n "$APP" --query "[?name=='AUTH_URL'].value | [0]" -o tsv 2>/dev/null || true)
+PUBLIC_HOST=""
+case "$CURRENT_URL" in https://*.azurewebsites.net|"") ;; https://*) PUBLIC_HOST=${CURRENT_URL#https://} ;; esac
 REDIRECT="$URL/api/auth/callback/microsoft-entra-id"
+REDIRECTS=("$REDIRECT")
+[ -n "$PUBLIC_HOST" ] && REDIRECTS+=("https://$PUBLIC_HOST/api/auth/callback/microsoft-entra-id")
 
 say "Rekisteröidään Azure-palveluntarjoajat (kerran tilausta kohden)"
 for ns in Microsoft.Web Microsoft.DBforPostgreSQL Microsoft.ContainerRegistry Microsoft.KeyVault Microsoft.Storage Microsoft.ManagedIdentity; do
@@ -53,10 +59,10 @@ az group create -n "$RG" -l "$LOCATION" -o none
 say "Microsoft-kirjautumisen sovellusrekisteröinti"
 APP_ID=$(az ad app list --display-name "SK Management" --query "[0].appId" -o tsv)
 if [ -z "$APP_ID" ]; then
-  APP_ID=$(az ad app create --display-name "SK Management" --sign-in-audience AzureADMyOrg --web-redirect-uris "$REDIRECT" --query appId -o tsv)
+  APP_ID=$(az ad app create --display-name "SK Management" --sign-in-audience AzureADMyOrg --web-redirect-uris "${REDIRECTS[@]}" --query appId -o tsv)
   echo "  luotu: $APP_ID"
 else
-  az ad app update --id "$APP_ID" --web-redirect-uris "$REDIRECT"
+  az ad app update --id "$APP_ID" --web-redirect-uris "${REDIRECTS[@]}"
   echo "  käytetään olemassa olevaa: $APP_ID"
 fi
 az ad sp show --id "$APP_ID" -o none 2>/dev/null || az ad sp create --id "$APP_ID" -o none
@@ -85,7 +91,7 @@ say "Luodaan Azure-resurssit (5–15 min)"
 ADMIN_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create -g "$RG" -n main -f infra/main.bicep \
   -p webAppName="$APP" keyVaultAdminObjectId="$ADMIN_ID" entraClientId="$APP_ID" entraTenantId="$TENANT_ID" \
-     githubOidcSubject="$GITHUB_SUBJECT" mailFrom="$MAIL_FROM" enableSmtp="$ENABLE_SMTP" enableAi="$ENABLE_AI" \
+     githubOidcSubject="$GITHUB_SUBJECT" mailFrom="$MAIL_FROM" enableSmtp="$ENABLE_SMTP" enableAi="$ENABLE_AI" publicHostName="$PUBLIC_HOST" \
      bootstrapOwnerEmail="$OWNER_EMAIL" bootstrapOwnerName="$OWNER_NAME" bootstrapOrgName="$ORG_NAME" \
      bootstrapOrgSlug="sk-group" bootstrapCompanies="$COMPANIES" \
      pgAdminPassword="$PG_ADMIN_PW" appDbPassword="$APP_DB_PW" \
