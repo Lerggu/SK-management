@@ -63,6 +63,7 @@ import { staffingService, taskTypeService } from "@/modules/production/service";
 import { productionCalendarService } from "@/modules/production/calendar.service";
 import { deviationService } from "@/modules/production/deviation.service";
 import { logisticsAiService } from "@/modules/production/ai.service";
+import { rotationService } from "@/modules/workforce/rotation.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Role = "CLIENT" | "CLIENT_APPROVER" | "SUBCONTRACTOR";
@@ -158,6 +159,8 @@ const CALLS: Record<string, Call> = {
     const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });
     return logisticsAiService.suggest(c, req.id);
   }),
+  "rotation.board": r("rotation", (c) => rotationService.board(c)),
+  "rotation.setRange": w("rotation", (c) => rotationService.setRange(c, { employeeId: f.employee, from: "2026-12-01", until: "2026-12-01", status: "OFF" })),
   // HR (ADR 0025): external parties never get HR access.
   "hr.settings.get": r("hrSettings", (c) => hrSettingsService.get(c)),
   "hr.settings.update": w("hrSettings", (c) => hrSettingsService.update(c, { reminderEmail: "x@example.test" })),

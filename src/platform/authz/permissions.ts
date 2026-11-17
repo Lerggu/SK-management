@@ -24,6 +24,8 @@ export const PERMISSIONS = {
   // themselves get access through the employee records, not a permission.
   "hr.view": { category: "workforce", sensitive: true, description: "View work-related HR data: competence matrix, published assessments, trainings, cards, orientations, permits and languages" },
   "hr.manage": { category: "workforce", sensitive: true, description: "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items" },
+  "rotation.view": { category: "workforce", sensitive: false, description: "View the workforce rotation plan (absence reasons hidden)" },
+  "rotation.manage": { category: "workforce", sensitive: true, description: "Plan workforce rotation and see absence reasons (sick leave is health data)" },
 
   "equipment.view": { category: "equipment", sensitive: false, description: "View equipment" },
   "equipment.manage": { category: "equipment", sensitive: false, description: "Create, edit and archive equipment and types" },
@@ -122,6 +124,8 @@ export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "employee.rates.manage",
   "hr.view",
   "hr.manage",
+  "rotation.view",
+  "rotation.manage",
   "equipment.view",
   "equipment.manage",
   "equipment.rates.view",
@@ -230,6 +234,8 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "hse.serious.notify",
       "permit.approve",
       "ai.use",
+      "rotation.view",
+      "rotation.manage",
     ),
   },
   {
@@ -277,6 +283,8 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "hse.manage",
       "hse.action.approve",
       "ai.use",
+      "rotation.view",
+      "rotation.manage",
     ),
   },
   {
@@ -315,6 +323,8 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "hse.manage",
       "permit.approve",
       "ai.use",
+      "rotation.view",
+      "rotation.manage",
     ),
   },
   {
@@ -322,14 +332,14 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Työnjohtaja", en: "Supervisor" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign", "takt.view", "takt.progress.update", "logistics.view", "logistics.request", "delivery.manage", "lift.request", "material.view", "material.manage", "hse.view", "hse.create"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign", "takt.view", "takt.progress.update", "logistics.view", "logistics.request", "delivery.manage", "lift.request", "material.view", "material.manage", "hse.view", "hse.create", "rotation.view"),
   },
   {
     key: "LOGISTICS_COORDINATOR",
     name: { fi: "Logistiikkakoordinaattori", en: "Logistics Coordinator" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "logistics.approve", "booking.manage", "delivery.manage", "lift.request", "lift.plan.manage", "material.view", "material.manage", "hse.view", "hse.create", "ai.use"),
+    permissions: P("project.view", "employee.view", "equipment.view", "equipment.manage", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "logistics.approve", "booking.manage", "delivery.manage", "lift.request", "lift.plan.manage", "material.view", "material.manage", "hse.view", "hse.create", "ai.use", "rotation.view"),
   },
   {
     key: "HSE",
@@ -382,7 +392,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Henkilöstöhallinto", en: "HR administrator" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("employee.view", "employee.manage", "hr.view", "hr.manage", "equipment.view"),
+    permissions: P("employee.view", "employee.manage", "hr.view", "hr.manage", "equipment.view", "rotation.view", "rotation.manage"),
   },
 ];
 

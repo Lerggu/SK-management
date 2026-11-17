@@ -40,7 +40,7 @@ export function applicableRoles<R extends RoleLike>(roles: readonly R[], weightK
   return { roles: out, weightUnknown };
 }
 
-export type FitIssue = "QUALIFICATION_MISSING" | "INACTIVE" | "NOT_ASSESSED" | "LEVEL_LOW" | "TRADE_MISMATCH" | "TYPE_MISMATCH" | "OUT_OF_SERVICE" | "INSPECTION_DUE" | "BUSY";
+export type FitIssue = "QUALIFICATION_MISSING" | "INACTIVE" | "NOT_ASSESSED" | "LEVEL_LOW" | "TRADE_MISMATCH" | "TYPE_MISMATCH" | "OUT_OF_SERVICE" | "INSPECTION_DUE" | "BUSY" | "ABSENT";
 
 /** Issues that make a resource unusable for the need (assignment is refused). */
 export const BLOCKING: ReadonlySet<FitIssue> = new Set(["QUALIFICATION_MISSING", "INACTIVE", "TYPE_MISMATCH", "OUT_OF_SERVICE"]);
@@ -87,7 +87,7 @@ export const isBlocking = (issues: readonly FitIssue[]) => issues.some((i) => BL
 
 /** Best first: usable and free, then fewer warnings, then busy, then unusable; ties by name. */
 export function rankCandidates<C extends { issues: FitIssue[]; label: string }>(list: readonly C[]): C[] {
-  const score = (c: C) => (isBlocking(c.issues) ? 1000 : 0) + (c.issues.includes("BUSY") ? 100 : 0) + c.issues.length;
+  const score = (c: C) => (isBlocking(c.issues) ? 1000 : 0) + (c.issues.includes("ABSENT") ? 200 : 0) + (c.issues.includes("BUSY") ? 100 : 0) + c.issues.length;
   return [...list].sort((a, b) => score(a) - score(b) || a.label.localeCompare(b.label, "fi"));
 }
 

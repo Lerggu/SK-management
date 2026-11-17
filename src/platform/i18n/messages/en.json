@@ -460,7 +460,9 @@
       "variation_client_approve": "Approve or reject variations on behalf of the client",
       "ai_use": "Use the AI project controller (sends project data the user can see to the AI provider)",
       "hr_view": "View work-related HR data: competence matrix, published assessments, trainings, cards, orientations, permits and languages",
-      "hr_manage": "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items"
+      "hr_manage": "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items",
+      "rotation_view": "View the workforce rotation plan (absence reasons hidden)",
+      "rotation_manage": "Plan workforce rotation and see absence reasons (sick leave is health data)"
     },
     "calendar": "Work calendar",
     "inviteSent": "Invitation sent by e-mail.",
@@ -745,7 +747,10 @@
       "logistics_deviation_notify": "Deviation notified",
       "ai_staffing_accept": "AI staffing suggestion accepted",
       "membership_invite_email": "Invitation e-mail sent",
-      "membership_invite_resend": "Invitation resent"
+      "membership_invite_resend": "Invitation resent",
+      "rotation_set": "Rotation set",
+      "rotation_clear": "Rotation cleared",
+      "rotation_pattern": "Rotation rhythm applied"
     }
   },
   "errors": {
@@ -2367,7 +2372,8 @@
       "matrix": "Competence matrix",
       "qualifications": "Cards and qualifications",
       "overview": "Summary",
-      "settings": "Settings"
+      "settings": "Settings",
+      "rotation": "Rotation"
     },
     "cardTabs": {
       "basics": "Basics",
@@ -2899,7 +2905,8 @@
         "TYPE_MISMATCH": "Wrong type",
         "OUT_OF_SERVICE": "Out of service",
         "INSPECTION_DUE": "Inspection due",
-        "BUSY": "Booked at the same time"
+        "BUSY": "Booked at the same time",
+        "ABSENT": "Away in the rotation plan"
       }
     },
     "calendar": {
@@ -3036,5 +3043,81 @@
         "TAKT_IMPACT": "Logistics at risk serves this takt activity"
       }
     }
+  },
+  "rotation": {
+    "title": "Rotation",
+    "intro": "Workforce rotation plan: who is at work on which site, off, on vacation, sick or away for another reason.",
+    "noAccess": "You have no access to the rotation plan.",
+    "readOnly": "View only. Sick leave and other reasons show as \"Away\".",
+    "previous": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "period": "Period",
+    "weeksN": "{count, plural, one {# wk} other {# wks}}",
+    "trade": "Trade",
+    "allTrades": "All trades",
+    "show": "Show",
+    "view": "View",
+    "views": {
+      "sites": "Sites",
+      "people": "People"
+    },
+    "legend": "Legend",
+    "statuses": {
+      "WORK": "At work",
+      "OFF": "Off",
+      "VACATION": "On vacation",
+      "SICK": "Sick",
+      "TRAINING": "In training",
+      "OTHER": "Other reason",
+      "ABSENT": "Away"
+    },
+    "letters": {
+      "WORK": "W",
+      "OFF": "O",
+      "VACATION": "V",
+      "SICK": "S",
+      "TRAINING": "T",
+      "OTHER": "X",
+      "ABSENT": "A"
+    },
+    "weekdays": {
+      "0": "Mon",
+      "1": "Tue",
+      "2": "Wed",
+      "3": "Thu",
+      "4": "Fri",
+      "5": "Sat",
+      "6": "Sun"
+    },
+    "workNoSite": "At work, no site",
+    "people": "People",
+    "panelHint": "Drag a person into the calendar, or tap a person and then a day.",
+    "search": "Search by name or trade",
+    "tapCell": "Tap a day on the row where {name} goes.",
+    "clearSelection": "Clear selection",
+    "noPeople": "No active people.",
+    "workDaysN": "{count, plural, one {# work day} other {# work days}}",
+    "dialogTitle": "Entry: {name}",
+    "status": "Status",
+    "site": "Site",
+    "noSite": "No site",
+    "from": "From",
+    "until": "Until",
+    "note": "Note (optional)",
+    "sickNotice": "Sick leave is health data: only members who manage rotation see it; others see \"Away\".",
+    "save": "Save",
+    "clear": "Clear period",
+    "cancel": "Cancel",
+    "saved": "{name}: entry saved.",
+    "cleared": "{name}: period cleared.",
+    "patternTitle": "Rotation rhythm",
+    "patternHint": "Apply a repeating rhythm to the selected people, e.g. 10 days at work and 4 off. Vacations, sick leave, training and other absences are never overwritten.",
+    "workDays": "Days at work",
+    "offDays": "Days off",
+    "overwrite": "Replace existing at-work/off entries",
+    "applyPattern": "Apply rhythm",
+    "patternDone": "Rhythm applied.",
+    "patternKept": "Rhythm applied. Some days were kept (absences or days already planned)."
   }
 }

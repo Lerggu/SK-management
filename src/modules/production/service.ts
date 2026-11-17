@@ -8,6 +8,7 @@ import { hasPermission, projectPermissions, type RequestContext } from "@/platfo
 import { requireLogistics } from "@/modules/logistics/access";
 import { bookingService } from "@/modules/logistics/booking.service";
 import { isCurrentlyValid, isoDate, latestPublishedByArea } from "@/modules/hr/rules";
+import { RotationRepo } from "@/modules/workforce/rotation.repo";
 import { ProductionRepo } from "./repo";
 import { applicableRoles, equipmentFit, isBlocking, personFit, rankCandidates, readiness, SUGGESTED_TASK_TYPES, type FitIssue, type RoleLike } from "./rules";
 import { assignSchema, setTaskTypeSchema, taskRoleSchema, taskTypeSchema, type AssignInput, type TaskRoleInput, type TaskTypeInput } from "./schemas";
@@ -204,7 +205,10 @@ async function resourceFacts(repo: ProductionRepo, from: Date, to: Date, request
   // Bookings for other tasks or other work in the same period make a resource busy.
   const busyEmployees = new Set(overlaps.filter((b) => b.employeeId && b.logisticsRequestId !== requestId).map((b) => b.employeeId!));
   const busyEquipment = new Set(overlaps.filter((b) => b.equipmentId && b.logisticsRequestId !== requestId).map((b) => b.equipmentId!));
-  return { employees, equipment, validTypes, levels, busyEmployees, busyEquipment };
+  // Rotation plan (ADR 0027): off, on vacation, sick or otherwise away on a day of the task.
+  const absences = await new RotationRepo(repo.db, repo.companyId).absences(ids, todayInDisplayZone(from), todayInDisplayZone(new Date(to.getTime() - 1)));
+  const absentEmployees = new Set(absences.map((a) => a.employeeId));
+  return { employees, equipment, validTypes, levels, busyEmployees, busyEquipment, absentEmployees };
 }
 
 function candidatesFor(role: RoleLike, facts: Awaited<ReturnType<typeof resourceFacts>>, periodEnd: Date, assigned: Set<string>): Candidate[] {
@@ -215,6 +219,7 @@ function candidatesFor(role: RoleLike, facts: Awaited<ReturnType<typeof resource
           .map((e) => {
             const issues = personFit(role, { active: e.status === "ACTIVE", trade: e.trade, validQualificationTypes: facts.validTypes.get(e.id) ?? new Set(), levels: facts.levels.get(e.id) ?? new Map() });
             if (facts.busyEmployees.has(e.id)) issues.push("BUSY");
+            if (facts.absentEmployees.has(e.id)) issues.push("ABSENT");
             return { value: `EMPLOYEE:${e.id}`, label: `${e.lastName} ${e.firstName}`, detail: e.trade, issues, blocking: isBlocking(issues) };
           })
       : facts.equipment

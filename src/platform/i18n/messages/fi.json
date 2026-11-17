@@ -460,7 +460,9 @@
       "variation_client_approve": "Hyväksyy tai hylkää muutostyöt asiakkaan puolesta",
       "ai_use": "Tekoälyohjaajan käyttö (lähettää käyttäjän näkemiä projektitietoja tekoälypalveluun)",
       "hr_view": "Näkee työtehtävien kannalta tarpeelliset henkilöstötiedot: osaamismatriisi, julkaistut arviot, koulutukset, kortit, perehdytykset, käyttöluvat ja kielitaito",
-      "hr_manage": "Hallitsee kaikkia henkilöstötietoja: osaamisalueet, korttityypit, vaatimukset, arvioinnit, liitteet, työvaatteet ja tavarat"
+      "hr_manage": "Hallitsee kaikkia henkilöstötietoja: osaamisalueet, korttityypit, vaatimukset, arvioinnit, liitteet, työvaatteet ja tavarat",
+      "rotation_view": "Näkee henkilöstön rotaatiosuunnitelman (poissaolon syyt piilotettu)",
+      "rotation_manage": "Suunnittelee rotaation ja näkee poissaolojen syyt (sairauspoissaolo on terveystieto)"
     },
     "calendar": "Työkalenteri",
     "inviteSent": "Kutsu lähetetty sähköpostilla.",
@@ -745,7 +747,10 @@
       "logistics_deviation_notify": "Poikkeamasta ilmoitettu",
       "ai_staffing_accept": "AI:n resurssiehdotus hyväksytty",
       "membership_invite_email": "Kutsusähköposti lähetetty",
-      "membership_invite_resend": "Kutsu lähetetty uudelleen"
+      "membership_invite_resend": "Kutsu lähetetty uudelleen",
+      "rotation_set": "Rotaatio merkitty",
+      "rotation_clear": "Rotaatio tyhjennetty",
+      "rotation_pattern": "Rotaatiorytmi lisätty"
     }
   },
   "errors": {
@@ -2367,7 +2372,8 @@
       "matrix": "Osaamismatriisi",
       "qualifications": "Kortit ja pätevyydet",
       "overview": "Yhteenveto",
-      "settings": "Asetukset"
+      "settings": "Asetukset",
+      "rotation": "Rotaatio"
     },
     "cardTabs": {
       "basics": "Perustiedot",
@@ -2899,7 +2905,8 @@
         "TYPE_MISMATCH": "Väärä tyyppi",
         "OUT_OF_SERVICE": "Ei käytössä",
         "INSPECTION_DUE": "Tarkastus erääntyy",
-        "BUSY": "Varattu samaan aikaan"
+        "BUSY": "Varattu samaan aikaan",
+        "ABSENT": "Poissa rotaation mukaan"
       }
     },
     "calendar": {
@@ -3036,5 +3043,81 @@
         "TAKT_IMPACT": "Riskissä oleva logistiikka palvelee tätä tahtitehtävää"
       }
     }
+  },
+  "rotation": {
+    "title": "Rotaatio",
+    "intro": "Henkilöstön rotaatiosuunnitelma: kuka on töissä millä työmaalla, vapaalla, lomalla, sairaana tai muusta syystä poissa.",
+    "noAccess": "Sinulla ei ole oikeutta rotaatiosuunnitelmaan.",
+    "readOnly": "Katselutila. Sairauspoissaolot ja muut syyt näkyvät merkinnällä \"Poissa\".",
+    "previous": "Edellinen",
+    "next": "Seuraava",
+    "today": "Tänään",
+    "period": "Jakso",
+    "weeksN": "{count, plural, one {# vk} other {# vk}}",
+    "trade": "Ammatti",
+    "allTrades": "Kaikki ammatit",
+    "show": "Näytä",
+    "view": "Näkymä",
+    "views": {
+      "sites": "Työmaat",
+      "people": "Henkilöt"
+    },
+    "legend": "Selite",
+    "statuses": {
+      "WORK": "Töissä",
+      "OFF": "Vapaalla",
+      "VACATION": "Lomalla",
+      "SICK": "Sairaana",
+      "TRAINING": "Koulutuksessa",
+      "OTHER": "Muu syy",
+      "ABSENT": "Poissa"
+    },
+    "letters": {
+      "WORK": "T",
+      "OFF": "V",
+      "VACATION": "L",
+      "SICK": "S",
+      "TRAINING": "K",
+      "OTHER": "M",
+      "ABSENT": "P"
+    },
+    "weekdays": {
+      "0": "ma",
+      "1": "ti",
+      "2": "ke",
+      "3": "to",
+      "4": "pe",
+      "5": "la",
+      "6": "su"
+    },
+    "workNoSite": "Töissä, ei työmaata",
+    "people": "Henkilöt",
+    "panelHint": "Raahaa henkilö kalenteriin tai napauta henkilöä ja sitten päivää.",
+    "search": "Hae nimellä tai ammatilla",
+    "tapCell": "Napauta päivää rivillä, johon {name} merkitään.",
+    "clearSelection": "Poista valinta",
+    "noPeople": "Ei aktiivisia henkilöitä.",
+    "workDaysN": "{count, plural, one {# työpäivä} other {# työpäivää}}",
+    "dialogTitle": "Merkintä: {name}",
+    "status": "Tila",
+    "site": "Työmaa",
+    "noSite": "Ei työmaata",
+    "from": "Alkaen",
+    "until": "Asti",
+    "note": "Lisätieto (valinnainen)",
+    "sickNotice": "Sairauspoissaolo on terveystieto: se näkyy vain rotaation hallintaoikeuden omaaville, muille merkinnällä \"Poissa\".",
+    "save": "Tallenna",
+    "clear": "Tyhjennä jakso",
+    "cancel": "Peruuta",
+    "saved": "{name}: merkintä tallennettu.",
+    "cleared": "{name}: jakso tyhjennetty.",
+    "patternTitle": "Rotaatiorytmi",
+    "patternHint": "Merkitse valituille henkilöille toistuva rytmi, esim. 10 päivää töissä ja 4 vapaalla. Lomia, sairauspoissaoloja, koulutuksia ja muita poissaoloja ei koskaan korvata.",
+    "workDays": "Työpäiviä",
+    "offDays": "Vapaapäiviä",
+    "overwrite": "Korvaa olemassa olevat töissä/vapaalla-merkinnät",
+    "applyPattern": "Lisää rytmi",
+    "patternDone": "Rytmi lisätty.",
+    "patternKept": "Rytmi lisätty. Osa päivistä jätettiin ennalleen (poissaolot tai jo merkityt päivät)."
   }
 }

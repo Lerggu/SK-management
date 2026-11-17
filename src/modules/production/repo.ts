@@ -10,6 +10,11 @@ export class ProductionRepo {
     readonly companyId: string,
   ) {}
 
+  /** The client this repository runs on (for sibling repositories in the same transaction). */
+  get db(): Tx {
+    return this.tx;
+  }
+
   private get c() {
     return { companyId: this.companyId };
   }
