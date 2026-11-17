@@ -219,3 +219,56 @@ describe("production calendar", () => {
     await expect(productionCalendarService.view(w.o, { zoom: "year" })).rejects.toBeInstanceOf(ValidationError);
   });
 });
+
+describe("deviations (phase 3)", () => {
+  const PNG = () => ({ fileName: "kuva.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]) });
+
+  it("a project member reports from the phone; approvers are e-mailed; the task blinks in the calendar until resolved", async () => {
+    const { deviationService } = await import("@/modules/production/deviation.service");
+    const { productionCalendarService } = await import("@/modules/production/calendar.service");
+    const { MemoryMailer, setMailerForTests } = await import("@/platform/mail");
+    const mailer = new MemoryMailer();
+    setMailerForTests(mailer);
+    try {
+      const approver = await createMember(w.t, "LOGISTICS_COORDINATOR", [{ projectId: w.projectId }]);
+      const worker = await createMember(w.t, "EMPLOYEE", [{ projectId: w.projectId }]);
+      const r = await task("Poikkeamanosto", "2027-03-02T08:00", "2027-03-02T10:00");
+      const d = await deviationService.report(worker, r.id, { type: "EQUIPMENT_FAULT", comment: "Nosturin hydrauliikka vuotaa" }, PNG());
+      expect(d.status).toBe("OPEN");
+      expect(d.emailsSent).toBeGreaterThanOrEqual(1);
+      expect(mailer.sent.some((m) => m.to === approver.user.email && m.subject.includes("Poikkeamanosto") && m.subject.includes("Kalusto rikki"))).toBe(true);
+      expect(mailer.sent.some((m) => m.to === worker.user.email)).toBe(false);
+
+      const cal = await productionCalendarService.view(w.o, { zoom: "day", date: "2027-03-02" });
+      expect(cal.tasks.find((x) => x.id === r.id)!.deviation).toBe(true);
+
+      const list = await deviationService.list(approver, { requestId: r.id });
+      expect(list[0]).toMatchObject({ type: "EQUIPMENT_FAULT", status: "OPEN", canManage: true, comment: "Nosturin hydrauliikka vuotaa" });
+      expect(list[0].photoIds).toHaveLength(1);
+      expect((await deviationService.photo(worker, list[0].photoIds[0])).contentType).toBe("image/png");
+      expect((await deviationService.list(worker, { requestId: r.id }))[0].canManage).toBe(false);
+
+      await expect(deviationService.acknowledge(worker, d.id)).rejects.toBeInstanceOf(ForbiddenError);
+      expect((await deviationService.acknowledge(approver, d.id)).status).toBe("ACKNOWLEDGED");
+      expect((await productionCalendarService.view(w.o, { zoom: "day", date: "2027-03-02" })).tasks.find((x) => x.id === r.id)!.deviation).toBe(true);
+      expect((await deviationService.resolve(approver, d.id, { resolution: "Nosturi vaihdettu" })).status).toBe("RESOLVED");
+      expect((await productionCalendarService.view(w.o, { zoom: "day", date: "2027-03-02" })).tasks.find((x) => x.id === r.id)!.deviation).toBe(false);
+      expect(await deviationService.list(approver, { open: true })).not.toContainEqual(expect.objectContaining({ id: d.id }));
+      await expect(db.logisticsDeviation.delete({ where: { id: d.id } })).rejects.toThrow(/never deleted/);
+    } finally {
+      setMailerForTests(undefined);
+    }
+  });
+
+  it("only images are accepted; outsiders and external members cannot report or see", async () => {
+    const { deviationService } = await import("@/modules/production/deviation.service");
+    const r = await task("Rajattu poikkeama", "2027-03-03T08:00", "2027-03-03T09:00");
+    await expect(deviationService.report(w.o, r.id, { type: "OTHER" }, { fileName: "a.pdf", bytes: new TextEncoder().encode("%PDF-1.4") })).rejects.toBeInstanceOf(ValidationError);
+    await expect(deviationService.report(w.o, r.id, { type: "NOPE" })).rejects.toBeInstanceOf(ValidationError);
+    const outsider = await createMember(w.t, "SUPERVISOR");
+    await expect(deviationService.report(outsider, r.id, { type: "OTHER" })).rejects.toBeInstanceOf(NotFoundError);
+    const client = await createMember(w.t, "CLIENT", [{ projectId: w.projectId }]);
+    await expect(deviationService.report(client, r.id, { type: "OTHER" })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(deviationService.list(client)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});

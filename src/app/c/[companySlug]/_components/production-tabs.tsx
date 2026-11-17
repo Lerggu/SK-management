@@ -3,7 +3,7 @@ import type { RequestContext } from "@/platform/authz";
 import { TabBar } from "@/ui/components/tabs";
 import { hasLogisticsAccess, hasTaktAccess } from "@/app/_lib/nav";
 
-export type ProductionTab = "takt" | "lookahead" | "calendar" | "logistics" | "bookings" | "taskTypes";
+export type ProductionTab = "takt" | "lookahead" | "calendar" | "deviations" | "logistics" | "bookings" | "taskTypes";
 
 /** Production control ("Tuotannonohjaus"): takt schedule and logistics under one menu item. */
 export async function ProductionTabs({ ctx, active }: { ctx: RequestContext; active: ProductionTab }) {
@@ -15,6 +15,7 @@ export async function ProductionTabs({ ctx, active }: { ctx: RequestContext; act
     { key: "takt", href: `${base}/takt`, show: hasTaktAccess(ctx) },
     { key: "lookahead", href: `${base}/takt/lookahead`, show: hasTaktAccess(ctx) },
     { key: "calendar", href: `${base}/logistics/calendar`, show: logistics },
+    { key: "deviations", href: `${base}/logistics/deviations`, show: logistics },
     { key: "logistics", href: `${base}/logistics`, show: logistics },
     { key: "bookings", href: `${base}/logistics/bookings`, show: logistics },
     { key: "taskTypes", href: `${base}/logistics/task-types`, show: manageTypes },

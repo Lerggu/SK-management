@@ -75,3 +75,37 @@ test.describe("production calendar", () => {
     await expect(page.locator("[data-resource-row]").getByText(title).first()).toBeVisible();
   });
 });
+
+test.describe("deviations", () => {
+  test.use({ storageState: authFile("logistics") });
+
+  test("report a deviation from the task, it blinks in the calendar, the approver resolves it", async ({ page }, testInfo) => {
+    const day = new Date(Date.now() + 4 * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
+    await page.goto("/c/sk-infra-demo/logistics");
+    const title = unique(testInfo, "Poikkeama");
+    const form = page.getByTestId("request-form");
+    await form.getByLabel("Otsikko").fill(title);
+    await form.getByLabel("Alkaa").fill(`${day}T10:00`);
+    await form.getByLabel("Päättyy").fill(`${day}T12:00`);
+    await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+
+    await page.getByRole("link", { name: "Ilmoita poikkeama" }).click();
+    const report = page.getByTestId("deviation-form");
+    await report.getByText("Kalusto rikki").click();
+    await report.getByLabel("Kommentti (valinnainen)").fill("Trukin akku tyhjä");
+    await report.getByRole("button", { name: "Lähetä poikkeama" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Poikkeama lähetetty" })).toBeVisible();
+
+    await page.goto(`/c/sk-infra-demo/logistics/calendar?zoom=day&date=${day}`);
+    await expect(page.locator(`[data-task="${title}"]`)).toHaveAttribute("data-phase", "DEVIATION");
+
+    await page.locator(`[data-task="${title}"]`).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+    const item = page.getByTestId("deviation-list").locator('[data-deviation="EQUIPMENT_FAULT"]');
+    await expect(item).toHaveAttribute("data-status", "OPEN");
+    await item.getByLabel("Ratkaisu").fill("Akku vaihdettu");
+    await item.getByRole("button", { name: "Merkitse ratkaistuksi" }).click();
+    await expect(page.getByTestId("deviation-list").locator('[data-deviation="EQUIPMENT_FAULT"]')).toHaveAttribute("data-status", "RESOLVED");
+  });
+});
