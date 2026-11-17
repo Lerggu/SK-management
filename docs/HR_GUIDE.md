@@ -64,6 +64,14 @@ Komento ottaa käyttöön Azure Communication Services -sähköpostin ja asettaa
 
 **Henkilöt**-välilehden *Haku ja suodatus* rajaa henkilöt tehtävän, tiimin, toimipisteen, osaamisen ja tason, kielen ja kielitaidon tai voimassa olevan kortin mukaan.
 
+## Henkilönumero ja henkilötunnus
+- **Henkilönumero** on yrityksen oma tunniste henkilölle, esim. palkanlaskennan numero.
+- **Henkilötunnus** on oma kenttänsä henkilökortilla ([ADR 0028](adr/0028-personal-identity-code.md)):
+  - se tallennetaan salattuna, ja sen muoto ja tarkistemerkki tarkistetaan;
+  - sen näkevät ja voivat muuttaa vain toimitusjohtaja ja henkilöstöhallinto;
+  - kortilla se näkyy peitettynä, ja koko tunnuksen saa esiin Näytä-painikkeella;
+  - jokainen näyttäminen kirjataan muutoslokiin.
+
 ## Rotaatio
 **Henkilöstö → Rotaatio** on henkilöstön rotaatiosuunnitelma kalenterina ([ADR 0027](adr/0027-workforce-rotation.md)).
 - **Tilat:** töissä (työmaa), vapaalla, lomalla, sairaana, koulutuksessa ja muu syy.

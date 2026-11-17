@@ -80,10 +80,11 @@ fi
 [ -n "$PG_ADMIN_PW" ] || PG_ADMIN_PW=$(openssl rand -base64 30 | tr -d '/+=')
 [ -n "$APP_DB_PW" ] || APP_DB_PW=$(openssl rand -base64 30 | tr -d '/+=')
 # Keep e-mail and AI switched on when their secrets already exist.
-ENABLE_SMTP=false; ENABLE_AI=false
+ENABLE_SMTP=false; ENABLE_AI=false; ENABLE_FIELD_KEY=false
 if [ -n "$KV" ]; then
   az keyvault secret show --vault-name "$KV" --name smtp-url -o none 2>/dev/null && ENABLE_SMTP=true
   az keyvault secret show --vault-name "$KV" --name anthropic-api-key -o none 2>/dev/null && ENABLE_AI=true
+  az keyvault secret show --vault-name "$KV" --name field-key -o none 2>/dev/null && ENABLE_FIELD_KEY=true
 fi
 
 # ── 4. Azure resources ───────────────────────────────────────────────
@@ -91,7 +92,7 @@ say "Luodaan Azure-resurssit (5–15 min)"
 ADMIN_ID=$(az ad signed-in-user show --query id -o tsv)
 az deployment group create -g "$RG" -n main -f infra/main.bicep \
   -p webAppName="$APP" keyVaultAdminObjectId="$ADMIN_ID" entraClientId="$APP_ID" entraTenantId="$TENANT_ID" \
-     githubOidcSubject="$GITHUB_SUBJECT" mailFrom="$MAIL_FROM" enableSmtp="$ENABLE_SMTP" enableAi="$ENABLE_AI" publicHostName="$PUBLIC_HOST" \
+     githubOidcSubject="$GITHUB_SUBJECT" mailFrom="$MAIL_FROM" enableSmtp="$ENABLE_SMTP" enableAi="$ENABLE_AI" enableFieldKey="$ENABLE_FIELD_KEY" publicHostName="$PUBLIC_HOST" \
      bootstrapOwnerEmail="$OWNER_EMAIL" bootstrapOwnerName="$OWNER_NAME" bootstrapOrgName="$ORG_NAME" \
      bootstrapOrgSlug="sk-group" bootstrapCompanies="$COMPANIES" \
      pgAdminPassword="$PG_ADMIN_PW" appDbPassword="$APP_DB_PW" \
@@ -105,6 +106,11 @@ say "Salaisuudet Key Vaultiin ($KV)"
 kv_set() { retry az keyvault secret set --vault-name "$KV" --name "$1" --value "$2" -o none; }
 kv_set pg-admin-password "$PG_ADMIN_PW"
 if ! az keyvault secret show --vault-name "$KV" --name auth-secret -o none 2>/dev/null; then kv_set auth-secret "$(openssl rand -base64 32)"; fi
+# Encryption key for personal identity codes (ADR 0028): created once, never rotated by a re-run.
+if ! az keyvault secret show --vault-name "$KV" --name field-key -o none 2>/dev/null; then
+  kv_set field-key "$(openssl rand -base64 32)"
+  retry az webapp config appsettings set -g "$RG" -n "$APP" --settings "SK_FIELD_KEY=@Microsoft.KeyVault(VaultName=$KV;SecretName=field-key)" -o none
+fi
 kv_set entra-client-secret "$(az ad app credential reset --id "$APP_ID" --append --display-name "sk-management-$(date +%Y%m%d)" --years 2 --query password -o tsv)"
 az keyvault secret list --vault-name "$KV" --query "[].name" -o tsv | sed 's/^/  /'
 

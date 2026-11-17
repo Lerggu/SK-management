@@ -24,6 +24,7 @@ export const PERMISSIONS = {
   // themselves get access through the employee records, not a permission.
   "hr.view": { category: "workforce", sensitive: true, description: "View work-related HR data: competence matrix, published assessments, trainings, cards, orientations, permits and languages" },
   "hr.manage": { category: "workforce", sensitive: true, description: "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items" },
+  "employee.pid.manage": { category: "workforce", sensitive: true, description: "View and edit employees' personal identity codes (henkilötunnus)" },
   "rotation.view": { category: "workforce", sensitive: false, description: "View the workforce rotation plan (absence reasons hidden)" },
   "rotation.manage": { category: "workforce", sensitive: true, description: "Plan workforce rotation and see absence reasons (sick leave is health data)" },
 
@@ -126,6 +127,7 @@ export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "hr.manage",
   "rotation.view",
   "rotation.manage",
+  "employee.pid.manage",
   "equipment.view",
   "equipment.manage",
   "equipment.rates.view",
@@ -392,7 +394,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Henkilöstöhallinto", en: "HR administrator" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("employee.view", "employee.manage", "hr.view", "hr.manage", "equipment.view", "rotation.view", "rotation.manage"),
+    permissions: P("employee.view", "employee.manage", "hr.view", "hr.manage", "equipment.view", "rotation.view", "rotation.manage", "employee.pid.manage"),
   },
 ];
 

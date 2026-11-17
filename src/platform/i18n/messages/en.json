@@ -175,7 +175,7 @@
     "title": "Workforce",
     "new": "New person",
     "edit": "Edit person",
-    "employeeNumber": "Employee number",
+    "employeeNumber": "Employee number (company's own)",
     "firstName": "First name",
     "lastName": "Last name",
     "fullName": "Name",
@@ -200,7 +200,26 @@
       "ACTIVE": "Active",
       "INACTIVE": "Left"
     },
-    "shareableInGroup": "Shareable with group companies (by booking)"
+    "shareableInGroup": "Shareable with group companies (by booking)",
+    "employeeNumberShort": "Emp. no.",
+    "employeeNumberHint": "The company's own identifier for the person, e.g. the payroll number. Not the personal identity code.",
+    "pid": {
+      "title": "Personal identity code",
+      "hint": "The personal identity code is stored encrypted. Only members with the personal identity code permission (CEO and HR) see or change it. Every view is logged.",
+      "label": "Personal identity code",
+      "format": "Format DDMMYY-NNNC, e.g. 010190-123A",
+      "notSet": "Not stored.",
+      "unreadable": "Stored (not readable in this environment)",
+      "show": "Show",
+      "hide": "Hide",
+      "add": "Add personal identity code",
+      "change": "Change personal identity code",
+      "clear": "Remove personal identity code",
+      "confirmClear": "Remove the personal identity code?",
+      "saved": "Personal identity code saved encrypted.",
+      "none": "No personal identity code is stored.",
+      "unavailable": "The encryption key for personal identity codes is missing in this environment, so codes cannot be stored or shown."
+    }
   },
   "rates": {
     "title": "Rates",
@@ -462,7 +481,8 @@
       "hr_view": "View work-related HR data: competence matrix, published assessments, trainings, cards, orientations, permits and languages",
       "hr_manage": "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items",
       "rotation_view": "View the workforce rotation plan (absence reasons hidden)",
-      "rotation_manage": "Plan workforce rotation and see absence reasons (sick leave is health data)"
+      "rotation_manage": "Plan workforce rotation and see absence reasons (sick leave is health data)",
+      "employee_pid_manage": "View and edit personal identity codes (sensitive)"
     },
     "calendar": "Work calendar",
     "inviteSent": "Invitation sent by e-mail.",
@@ -750,7 +770,10 @@
       "membership_invite_resend": "Invitation resent",
       "rotation_set": "Rotation set",
       "rotation_clear": "Rotation cleared",
-      "rotation_pattern": "Rotation rhythm applied"
+      "rotation_pattern": "Rotation rhythm applied",
+      "employee_pid_set": "Personal identity code set",
+      "employee_pid_clear": "Personal identity code removed",
+      "employee_pid_view": "Personal identity code viewed"
     }
   },
   "errors": {
@@ -896,7 +919,9 @@
       "OUT_OF_SERVICE": "The equipment is in maintenance or out of service.",
       "FULL": "This need is already filled.",
       "ALREADY_ASSIGNED": "This resource is already assigned to the task."
-    }
+    },
+    "personalId": "Invalid personal identity code. Check the format and the check character.",
+    "personalIdTaken": "This personal identity code already belongs to another person."
   },
   "time": {
     "title": "Hours",

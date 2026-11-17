@@ -21,7 +21,7 @@ const GLOBAL_SENSITIVE = new Set([
 
 /** Entity-specific sensitive fields. */
 export const SENSITIVE_FIELDS: Readonly<Record<string, readonly string[]>> = {
-  employee: ["email", "phone", "emergencyContactName", "emergencyContactPhone"],
+  employee: ["email", "phone", "emergencyContactName", "emergencyContactPhone", "personalIdEnc", "personalIdHash"],
   // HR (ADR 0025): free-text evaluations stay in the HR tables, not in audit deltas.
   competence_assessment: ["observations", "strengths", "developmentAreas", "agreedActions", "employeeComment"],
   employee_rate: ["amount"],

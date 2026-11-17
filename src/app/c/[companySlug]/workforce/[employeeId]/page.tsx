@@ -3,6 +3,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { Pencil, UserRound } from "lucide-react";
 import { hasPermission } from "@/platform/authz";
 import { employeeService } from "@/modules/workforce/service";
+import { personalIdService } from "@/modules/workforce/personal-id.service";
 import { hrCardService } from "@/modules/hr/card.service";
 import { employeeFileService, hrFileMaxBytes } from "@/modules/hr/files.service";
 import { jobProfileService, qualificationTypeService } from "@/modules/hr/settings.service";
@@ -17,6 +18,9 @@ import { LinkedDocuments } from "../../_components/linked-documents";
 import { addEmployeeRateAction, archiveEmployeeAction, archiveEmployeeRateAction } from "../actions";
 import { hrAction, type HrOp } from "../hr-actions";
 import { TabBar } from "../_components/hr/tabs";
+import { PersonalIdReveal } from "../_components/hr/personal-id-reveal";
+import { clearPersonalIdAction, revealPersonalIdAction, setPersonalIdAction } from "../personal-id-actions";
+import { TextField } from "@/ui/components/form";
 import { Disclosure } from "../_components/hr/disclosure";
 import { BasicsTab } from "../_components/hr/card-basics";
 import { CompetenceTab } from "../_components/hr/card-competence";
@@ -34,7 +38,8 @@ export default async function EmployeePage({ params, searchParams }: { params: P
   const ctx = await requireCompanyContext(companySlug);
   const card = await loadOr404(hrCardService.get(ctx, employeeId));
   const canViewEmployees = hasPermission(ctx, "employee.view");
-  const [t, th, tc, format, employee, files, profiles, types, people, users] = await Promise.all([
+  const canPid = !ctx.external && hasPermission(ctx, "employee.pid.manage");
+  const [t, th, tc, format, employee, files, profiles, types, people, users, pid] = await Promise.all([
     getTranslations("workforce"),
     getTranslations("hr"),
     getTranslations("common"),
@@ -45,6 +50,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
     card.work ? qualificationTypeService.list(ctx) : Promise.resolve([]),
     canViewEmployees ? employeeService.list(ctx) : Promise.resolve([]),
     card.can.editEmployment ? hrCardService.linkableUsers(ctx) : Promise.resolve([]),
+    canPid ? personalIdService.status(ctx, employeeId) : Promise.resolve(null),
   ]);
   const act: Act = (op: HrOp, id: string) => hrAction.bind(null, companySlug, op, id);
   const available: Record<Tab, boolean> = {
@@ -73,7 +79,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             {e.archivedAt ? <StatusBadge status="ARCHIVED" label={tc("archived")} /> : <StatusBadge status={e.status} label={t(`statuses.${e.status}`)} />}
-            {[e.employeeNumber, e.jobTitle ?? e.trade, e.team].filter(Boolean).join(" · ")}
+            {[`${t("employeeNumberShort")} ${e.employeeNumber}`, e.jobTitle ?? e.trade, e.team].filter(Boolean).join(" · ")}
           </span>
         }
         backHref={canViewEmployees ? `/c/${companySlug}/workforce` : undefined}
@@ -124,12 +130,38 @@ export default async function EmployeePage({ params, searchParams }: { params: P
             <Section title={tc("details")}>
               <DetailList
                 items={[
+                  { label: t("employeeNumber"), value: <span data-testid="employee-number">{employee.employeeNumber}</span> },
                   { label: t("employmentType"), value: t(`employmentTypes.${employee.employmentType}`) },
                   { label: t("trade"), value: employee.trade },
                   { label: t("startDate"), value: fmtDate(format, employee.startDate) },
                   { label: t("notes"), value: employee.notes },
                 ]}
               />
+            </Section>
+          )}
+          {pid && (
+            <Section title={t("pid.title")}>
+              <div className="space-y-3" data-testid="personal-id">
+                <p className="text-xs text-muted-foreground">{t("pid.hint")}</p>
+                {pid.set ? <PersonalIdReveal masked={pid.masked} reveal={revealPersonalIdAction.bind(null, companySlug, e.id)} /> : <p className="text-sm text-muted-foreground">{t("pid.notSet")}</p>}
+                {!pid.available ? (
+                  <p className="rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-900">{t("pid.unavailable")}</p>
+                ) : (
+                  !e.archivedAt && (
+                    <Disclosure summary={pid.set ? t("pid.change") : t("pid.add")} testId="pid-form">
+                      <ActionForm action={setPersonalIdAction.bind(null, companySlug, e.id)} className="flex flex-col gap-2 sm:flex-row sm:items-end" showSuccess>
+                        <TextField name="personalId" label={t("pid.label")} hint={t("pid.format")} autoComplete="off" required className="sm:flex-1" />
+                        <SubmitButton>{tc("save")}</SubmitButton>
+                      </ActionForm>
+                    </Disclosure>
+                  )
+                )}
+                {pid.set && (
+                  <ActionButton action={clearPersonalIdAction.bind(null, companySlug, e.id)} confirm={t("pid.confirmClear")} variant="destructive">
+                    {t("pid.clear")}
+                  </ActionButton>
+                )}
+              </div>
             </Section>
           )}
           {employee && "rates" in employee && (

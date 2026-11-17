@@ -56,6 +56,9 @@ param publicHostName string = ''
 @description('Set to true once the Key Vault secret anthropic-api-key exists.')
 param enableAi bool = false
 
+@description('Set to true once the Key Vault secret field-key (32 random bytes, base64) exists: encrypts personal identity codes (ADR 0028).')
+param enableFieldKey bool = false
+
 @description('One-time bootstrap: group organization and first owner (see docs/DEPLOY_AZURE.md). Leave empty to skip.')
 param bootstrapOwnerEmail string = ''
 param bootstrapOwnerName string = ''
@@ -226,6 +229,7 @@ var baseSettings = [
 ]
 var smtpSettings = enableSmtp ? [{ name: 'SMTP_URL', value: '@Microsoft.KeyVault(${kvRef}smtp-url)' }] : []
 var aiSettings = enableAi ? [{ name: 'SK_ANTHROPIC_API_KEY', value: '@Microsoft.KeyVault(${kvRef}anthropic-api-key)' }] : []
+var fieldKeySettings = enableFieldKey ? [{ name: 'SK_FIELD_KEY', value: '@Microsoft.KeyVault(${kvRef}field-key)' }] : []
 
 resource web 'Microsoft.Web/sites@2023-12-01' = {
   name: webAppName
@@ -244,7 +248,7 @@ resource web 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
-      appSettings: concat(baseSettings, smtpSettings, aiSettings)
+      appSettings: concat(baseSettings, smtpSettings, aiSettings, fieldKeySettings)
     }
   }
 }

@@ -32,7 +32,7 @@ export async function EmployeeForm({
     <ActionForm action={action} className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2 md:p-6">
       <TextField name="firstName" label={t("firstName")} defaultValue={employee?.firstName} required autoComplete="off" />
       <TextField name="lastName" label={t("lastName")} defaultValue={employee?.lastName} required autoComplete="off" />
-      <TextField name="employeeNumber" label={t("employeeNumber")} defaultValue={employee?.employeeNumber} required />
+      <TextField name="employeeNumber" label={t("employeeNumber")} hint={t("employeeNumberHint")} defaultValue={employee?.employeeNumber} required />
       <TextField name="trade" label={t("trade")} defaultValue={employee?.trade} />
       <TextField name="jobTitle" label={t("jobTitle")} defaultValue={employee?.jobTitle} />
       <SelectField name="employmentType" label={t("employmentType")} defaultValue={employee?.employmentType ?? "EMPLOYEE"} options={EMPLOYMENT_TYPES.map((v) => ({ value: v, label: t(`employmentTypes.${v}`) }))} />
