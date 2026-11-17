@@ -17,11 +17,19 @@ export async function updateCompanyAction(slug: string, _: ActionState | null, f
 
 export async function inviteMemberAction(slug: string, _: ActionState | null, formData: FormData): Promise<ActionState> {
   const ctx = await requireCompanyContext(slug);
+  let sent = false;
   const r = await runAction(formData, async () => {
-    await companyAdminService.inviteMember(ctx, { ...formInput<InviteMemberInput>(formData), roleIds: roleIds(formData) });
+    const m = await companyAdminService.inviteMember(ctx, { ...formInput<InviteMemberInput>(formData), roleIds: roleIds(formData) });
+    sent = m.email.sent;
   });
   revalidatePath(`/c/${slug}/settings/members`);
-  return r.ok ? { ok: true, message: r.message } : r;
+  return r.ok ? { ok: true, message: sent ? "settings.inviteSent" : "settings.inviteSavedNoMail" } : r;
+}
+
+export async function resendInviteAction(slug: string, membershipId: string): Promise<ActionState> {
+  const ctx = await requireCompanyContext(slug);
+  const r = await runAction(null, () => companyAdminService.resendInvite(ctx, membershipId).then(() => undefined));
+  return r.ok ? { ok: true, message: "settings.inviteSent" } : r;
 }
 
 export async function updateMemberRolesAction(slug: string, membershipId: string, _: ActionState | null, formData: FormData): Promise<ActionState> {

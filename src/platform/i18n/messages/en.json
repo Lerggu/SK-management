@@ -353,7 +353,7 @@
     "audit": "Audit log",
     "defaultLocale": "Default language",
     "invite": "Invite user",
-    "inviteHint": "Invited users sign in with their Microsoft account. There is no open sign-up.",
+    "inviteHint": "The invited person gets an e-mail telling them how to sign in: own staff with their Microsoft account, clients and subcontractors with a sign-in link sent by e-mail. There is no open sign-up.",
     "email": "Email",
     "name": "Name",
     "memberRoles": "Roles",
@@ -462,7 +462,13 @@
       "hr_view": "View work-related HR data: competence matrix, published assessments, trainings, cards, orientations, permits and languages",
       "hr_manage": "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items"
     },
-    "calendar": "Work calendar"
+    "calendar": "Work calendar",
+    "inviteSent": "Invitation sent by e-mail.",
+    "inviteSavedNoMail": "Invitation saved, but the e-mail could not be sent. Give the sign-in address to the person yourself or resend the invitation.",
+    "resendInvite": "Resend invitation",
+    "inviteNotPending": "The user has already signed in; no invitation is needed.",
+    "inviteNoMail": "E-mail is not available in this environment.",
+    "inviteMailFailed": "Sending the e-mail failed. Try again shortly."
   },
   "audit": {
     "actions": {
@@ -737,7 +743,9 @@
       "logistics_deviation_acknowledge": "Deviation acknowledged",
       "logistics_deviation_resolve": "Deviation resolved",
       "logistics_deviation_notify": "Deviation notified",
-      "ai_staffing_accept": "AI staffing suggestion accepted"
+      "ai_staffing_accept": "AI staffing suggestion accepted",
+      "membership_invite_email": "Invitation e-mail sent",
+      "membership_invite_resend": "Invitation resent"
     }
   },
   "errors": {
@@ -1977,7 +1985,10 @@
     "expiryReminderOwnerBody": "Hello,\n\nyour card or qualification \"{name}\" expires on {date}. Please renew it in time and add the new certificate to your personnel card.\n\nPersonnel card: {link}\n\nThis is an automatic reminder from SK Management.",
     "expiryReminderMaintenanceBody": "Hello,\n\nthe card or qualification \"{name}\" of {employee} expires on {date}.\n\nPersonnel card: {link}\n\nThis is an automatic reminder from SK Management.",
     "deviationSubject": "Deviation: {task} – {type}",
-    "deviationBody": "Hello,\n\na deviation was reported for the logistics task \"{task}\": {type}.\n\nTask: {link}\n\nThis is an automatic notification from SK Management."
+    "deviationBody": "Hello,\n\na deviation was reported for the logistics task \"{task}\": {type}.\n\nTask: {link}\n\nThis is an automatic notification from SK Management.",
+    "inviteSubject": "{inviter} invited you: {company} – SK Management",
+    "inviteInternalBody": "Hello {name},\n\n{inviter} has invited you to {company} in SK Management.\n\nSign in at {link} with \"Sign in with Microsoft\" using your work e-mail.\n\nThis is an automatic message from SK Management.",
+    "inviteExternalBody": "Hello {name},\n\n{inviter} has invited you to {company} in SK Management.\n\nHow to sign in:\n1. Open {link}\n2. Press \"Send sign-in link\" (your e-mail address is already filled in).\n3. Open the link sent to your e-mail. It is valid for {minutes} minutes and works once.\n\nNo Microsoft account or password is needed. You can request a new sign-in link the same way at any time.\n\nThis is an automatic message from SK Management."
   },
   "hse": {
     "incidentSeverity": {

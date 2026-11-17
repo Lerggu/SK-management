@@ -353,7 +353,7 @@
     "audit": "Muutosloki",
     "defaultLocale": "Oletuskieli",
     "invite": "Kutsu käyttäjä",
-    "inviteHint": "Käyttäjä pääsee kirjautumaan kutsun jälkeen Microsoft-tilillään. Avointa rekisteröitymistä ei ole.",
+    "inviteHint": "Kutsuttu saa sähköpostin, jossa kerrotaan, miten kirjautua: omat työntekijät Microsoft-tilillä, asiakkaat ja aliurakoitsijat sähköpostiin tulevalla kirjautumislinkillä. Avointa rekisteröitymistä ei ole.",
     "email": "Sähköposti",
     "name": "Nimi",
     "memberRoles": "Roolit",
@@ -462,7 +462,13 @@
       "hr_view": "Näkee työtehtävien kannalta tarpeelliset henkilöstötiedot: osaamismatriisi, julkaistut arviot, koulutukset, kortit, perehdytykset, käyttöluvat ja kielitaito",
       "hr_manage": "Hallitsee kaikkia henkilöstötietoja: osaamisalueet, korttityypit, vaatimukset, arvioinnit, liitteet, työvaatteet ja tavarat"
     },
-    "calendar": "Työkalenteri"
+    "calendar": "Työkalenteri",
+    "inviteSent": "Kutsu lähetetty sähköpostilla.",
+    "inviteSavedNoMail": "Kutsu tallennettu, mutta sähköpostia ei voitu lähettää. Kerro kutsutulle kirjautumisosoite itse tai lähetä kutsu uudelleen.",
+    "resendInvite": "Lähetä kutsu uudelleen",
+    "inviteNotPending": "Käyttäjä on jo kirjautunut, kutsua ei tarvitse lähettää.",
+    "inviteNoMail": "Sähköposti ei ole käytössä tässä ympäristössä.",
+    "inviteMailFailed": "Sähköpostin lähetys epäonnistui. Yritä hetken päästä uudelleen."
   },
   "audit": {
     "actions": {
@@ -737,7 +743,9 @@
       "logistics_deviation_acknowledge": "Poikkeama kuitattu",
       "logistics_deviation_resolve": "Poikkeama ratkaistu",
       "logistics_deviation_notify": "Poikkeamasta ilmoitettu",
-      "ai_staffing_accept": "AI:n resurssiehdotus hyväksytty"
+      "ai_staffing_accept": "AI:n resurssiehdotus hyväksytty",
+      "membership_invite_email": "Kutsusähköposti lähetetty",
+      "membership_invite_resend": "Kutsu lähetetty uudelleen"
     }
   },
   "errors": {
@@ -1977,7 +1985,10 @@
     "expiryReminderOwnerBody": "Hei,\n\nkorttisi tai pätevyytesi \"{name}\" voimassaolo päättyy {date}. Huolehdi sen uusimisesta ajoissa ja toimita uusi todistus henkilöstökortillesi.\n\nHenkilöstökortti: {link}\n\nTämä on SK Managementin automaattinen muistutus.",
     "expiryReminderMaintenanceBody": "Hei,\n\ntyöntekijän {employee} kortin tai pätevyyden \"{name}\" voimassaolo päättyy {date}.\n\nHenkilöstökortti: {link}\n\nTämä on SK Managementin automaattinen muistutus.",
     "deviationSubject": "Poikkeama: {task} – {type}",
-    "deviationBody": "Hei,\n\nlogistiikkatehtävästä \"{task}\" on ilmoitettu poikkeama: {type}.\n\nTehtävä: {link}\n\nTämä on SK Managementin automaattinen ilmoitus."
+    "deviationBody": "Hei,\n\nlogistiikkatehtävästä \"{task}\" on ilmoitettu poikkeama: {type}.\n\nTehtävä: {link}\n\nTämä on SK Managementin automaattinen ilmoitus.",
+    "inviteSubject": "{inviter} kutsui sinut: {company} – SK Management",
+    "inviteInternalBody": "Hei {name},\n\n{inviter} on kutsunut sinut yrityksen {company} SK Management -järjestelmään.\n\nKirjaudu osoitteessa {link} painamalla \"Kirjaudu Microsoft-tilillä\" ja käytä työsähköpostiasi.\n\nTämä on SK Managementin automaattinen viesti.",
+    "inviteExternalBody": "Hei {name},\n\n{inviter} on kutsunut sinut yrityksen {company} SK Management -järjestelmään.\n\nNäin kirjaudut:\n1. Avaa {link}\n2. Paina \"Lähetä kirjautumislinkki\" (sähköpostiosoitteesi on valmiiksi täytetty).\n3. Avaa sähköpostiisi tuleva linkki. Se on voimassa {minutes} minuuttia ja toimii kerran.\n\nMicrosoft-tiliä tai salasanaa ei tarvita. Kirjautumislinkin voit pyytää samalla tavalla aina uudelleen.\n\nTämä on SK Managementin automaattinen viesti."
   },
   "hse": {
     "incidentSeverity": {

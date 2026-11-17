@@ -297,6 +297,7 @@ export function ActionButton({
   variant = "outline",
   hidden,
   className,
+  showSuccess,
 }: {
   action: Action;
   children: React.ReactNode;
@@ -304,6 +305,8 @@ export function ActionButton({
   variant?: React.ComponentProps<typeof Button>["variant"];
   hidden?: Record<string, string>;
   className?: string;
+  /** Show the action's success message next to the button. */
+  showSuccess?: boolean;
 }) {
   const [state, formAction] = useActionState(action, null);
   const t = useTranslations();
@@ -320,6 +323,11 @@ export function ActionButton({
       {state && !state.ok && state.message && (
         <span role="alert" className="text-xs text-destructive">
           {state.fieldErrors?._form?.length ? state.fieldErrors._form.map((e) => t(e)).join(" ") : t(state.message)}
+        </span>
+      )}
+      {showSuccess && state?.ok && state.message && (
+        <span role="status" className="text-xs text-emerald-700">
+          {t(state.message)}
         </span>
       )}
     </form>
