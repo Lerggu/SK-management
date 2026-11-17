@@ -109,3 +109,62 @@ test.describe("deviations", () => {
     await expect(page.getByTestId("deviation-list").locator('[data-deviation="EQUIPMENT_FAULT"]')).toHaveAttribute("data-status", "RESOLVED");
   });
 });
+
+test.describe("AI suggestions and risks (phase 4)", () => {
+  test.use({ storageState: authFile("logistics") });
+
+  test("AI proposes resources for a task and the coordinator accepts them", async ({ page }, testInfo) => {
+    const day = new Date(Date.now() + 5 * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
+    await page.goto("/c/sk-infra-demo/logistics");
+    const title = unique(testInfo, "AI-purku");
+    const form = page.getByTestId("request-form");
+    await form.getByLabel("Otsikko").fill(title);
+    await form.getByLabel("Alkaa").fill(`${day}T13:00`);
+    await form.getByLabel("Päättyy").fill(`${day}T15:00`);
+    await form.getByLabel("Tehtävätyyppi").selectOption({ label: "Kuorman purku" });
+    await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+
+    const ai = page.getByTestId("ai-suggestion");
+    await ai.getByRole("button", { name: "Pyydä AI-ehdotus" }).click();
+    await expect(ai.getByTestId("ai-picks").locator("[data-pick]").first()).toBeVisible();
+    await page.goto(`/c/sk-infra-demo/logistics/calendar?zoom=day&date=${day}`);
+    await expect(page.locator(`[data-task="${title}"] [data-ai-suggested]`)).toBeVisible();
+    await page.locator(`[data-task="${title}"]`).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+    await page.getByTestId("ai-suggestion").getByRole("button", { name: "Hyväksy ehdotus" }).click();
+    await expect(page.getByTestId("staffing-needs").locator('[data-need="Purkaja"]')).toHaveAttribute("data-missing", "0");
+  });
+
+  test("risks tab lists rule-detected risks and runs the AI analysis", async ({ page }, testInfo) => {
+    await page.goto("/c/sk-infra-demo/logistics");
+    const title = unique(testInfo, "Riski");
+    const day = new Date(Date.now() + 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
+    const form = page.getByTestId("request-form");
+    await form.getByLabel("Otsikko").fill(title);
+    await form.getByLabel("Alkaa").fill(`${day}T07:00`);
+    await form.getByLabel("Päättyy").fill(`${day}T09:00`);
+    await form.getByLabel("Tehtävätyyppi").selectOption({ label: "Nosto" });
+    await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+
+    await page.goto("/c/sk-infra-demo/logistics");
+    await page.getByRole("navigation", { name: "Tuotannonohjaus" }).getByRole("link", { name: "Riskit" }).click();
+    await expect(page).toHaveURL(/\/logistics\/risks/);
+    const select = page.getByLabel("Projekti");
+    if (await select.count()) {
+      // Find the project of the task just created.
+      const count = await select.locator("option").count();
+      for (let i = 0; i < count; i++) {
+        await select.selectOption({ index: i });
+        await page.getByRole("button", { name: "Näytä" }).click();
+        if (await page.locator('[data-risk="RESOURCE_SHORTAGE"]', { hasText: title }).count()) break;
+      }
+    }
+    await expect(page.locator('[data-risk="RESOURCE_SHORTAGE"]', { hasText: title })).toHaveAttribute("data-severity", "CRITICAL");
+    const analysis = page.getByTestId("risk-analysis");
+    await analysis.getByRole("button", { name: "Analysoi AI:lla" }).click();
+    await expect(analysis.locator('[data-status="SUCCEEDED"]')).toBeVisible();
+    await expect(analysis.getByTestId("risk-recommendations")).toBeVisible();
+  });
+});

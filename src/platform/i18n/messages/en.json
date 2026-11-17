@@ -736,7 +736,8 @@
       "logistics_deviation_report": "Deviation reported",
       "logistics_deviation_acknowledge": "Deviation acknowledged",
       "logistics_deviation_resolve": "Deviation resolved",
-      "logistics_deviation_notify": "Deviation notified"
+      "logistics_deviation_notify": "Deviation notified",
+      "ai_staffing_accept": "AI staffing suggestion accepted"
     }
   },
   "errors": {
@@ -879,7 +880,9 @@
       "QUALIFICATION_MISSING": "The required card is missing or not valid.",
       "INACTIVE": "The person is not active.",
       "TYPE_MISMATCH": "Wrong equipment type.",
-      "OUT_OF_SERVICE": "The equipment is in maintenance or out of service."
+      "OUT_OF_SERVICE": "The equipment is in maintenance or out of service.",
+      "FULL": "This need is already filled.",
+      "ALREADY_ASSIGNED": "This resource is already assigned to the task."
     }
   },
   "time": {
@@ -2306,7 +2309,9 @@
     },
     "runKinds": {
       "REVIEW": "Project review",
-      "QUESTION": "Question"
+      "QUESTION": "Question",
+      "STAFFING": "Staffing suggestion",
+      "LOGISTICS_RISK": "Logistics risks"
     },
     "runStatuses": {
       "SUCCEEDED": "Done",
@@ -2806,7 +2811,8 @@
       "bookings": "Resource bookings",
       "taskTypes": "Task types",
       "calendar": "Calendar",
-      "deviations": "Deviations"
+      "deviations": "Deviations",
+      "risks": "Risks"
     },
     "taskType": "Task type",
     "taskTypes": {
@@ -2922,7 +2928,8 @@
         "COMPLETE": "Complete",
         "LATE": "Late",
         "DEVIATION": "Deviation"
-      }
+      },
+      "aiSuggested": "AI suggestion awaiting approval on the task page"
     },
     "deviations": {
       "title": "Deviations",
@@ -2956,6 +2963,56 @@
         "OPEN": "Open",
         "ACKNOWLEDGED": "Acknowledged",
         "RESOLVED": "Resolved"
+      }
+    },
+    "ai": {
+      "title": "AI suggestion",
+      "intro": "AI proposes resources for the open needs. Only the needs and anonymous candidates (trade and warnings) are sent, never names.",
+      "suggest": "Ask AI for a suggestion",
+      "again": "Ask for a new suggestion",
+      "accept": "Accept suggestion",
+      "accepted": "Suggestion accepted: {assigned} booked, {skipped} skipped.",
+      "none": "No suggestion yet.",
+      "notApplicable": "No longer applies",
+      "rejected": "{count} model picks were rejected by the rule check.",
+      "testProvider": "Test mode: no AI model connected; the suggestion follows the rule ranking.",
+      "unavailable": "AI is not available in this environment.",
+      "nothingToStaff": "The task has no open resource needs.",
+      "nothingToAccept": "There is no suggestion to accept."
+    },
+    "risks": {
+      "title": "Logistics risks",
+      "intro": "Rules detect the risks of the next {days} days: resource shortages, unapproved tasks, deliveries, deviations, double bookings, idle capacity and takt impact. Nothing is rescheduled automatically.",
+      "project": "Project",
+      "show": "Show",
+      "facts": "Detected risks ({count})",
+      "none": "No risks detected.",
+      "analyse": "Analyse with AI",
+      "analysis": "AI analysis",
+      "noAnalysis": "No AI analysis yet.",
+      "dataNotice": "Only the facts above (task titles, times and counts) are sent to the AI, never people's names.",
+      "noProjects": "No projects whose logistics you can view.",
+      "type": {
+        "RESOURCE_SHORTAGE": "Resource shortage",
+        "NOT_APPROVED": "Not approved",
+        "TASK_LATE": "Task late",
+        "OPEN_DEVIATION": "Open deviation",
+        "DELIVERY_LATE": "Delivery late",
+        "DELIVERY_UNCONFIRMED": "Delivery unconfirmed",
+        "BOOKING_CONFLICT": "Double booking",
+        "IDLE_CAPACITY": "Idle capacity",
+        "TAKT_IMPACT": "Takt impact"
+      },
+      "detail": {
+        "RESOURCE_SHORTAGE": "Missing {missing}: {roles}",
+        "NOT_APPROVED": "Starts soon, status {status}",
+        "TASK_LATE": "End time passed, status {status}",
+        "OPEN_DEVIATION": "{deviation} · {status}",
+        "DELIVERY_LATE": "Slot passed, not arrived",
+        "DELIVERY_UNCONFIRMED": "Within 48 h, not confirmed",
+        "BOOKING_CONFLICT": "The same resource on two tasks at once",
+        "IDLE_CAPACITY": "{people} people and {equipment} equipment unbooked for {days} days",
+        "TAKT_IMPACT": "Logistics at risk serves this takt activity"
       }
     }
   }

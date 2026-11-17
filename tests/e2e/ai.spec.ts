@@ -41,9 +41,9 @@ test.describe("AI project controller", () => {
 });
 
 test.describe("AI project controller access", () => {
-  test.use({ storageState: authFile("siteManager") });
+  test.use({ storageState: authFile("supervisor") });
 
-  test("site manager has no AI controller", async ({ page }) => {
+  test("supervisor has no AI controller (ai.use: management, site manager and logistics only)", async ({ page }) => {
     await page.goto(PROJECTS);
     await page.getByRole("link", { name: /NDC-001/ }).first().click();
     await page.waitForURL(/\/projects\/[0-9a-f-]{36}$/);

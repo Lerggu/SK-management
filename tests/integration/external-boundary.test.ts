@@ -62,6 +62,7 @@ import { hrOverviewService } from "@/modules/hr/overview.service";
 import { staffingService, taskTypeService } from "@/modules/production/service";
 import { productionCalendarService } from "@/modules/production/calendar.service";
 import { deviationService } from "@/modules/production/deviation.service";
+import { logisticsAiService } from "@/modules/production/ai.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Role = "CLIENT" | "CLIENT_APPROVER" | "SUBCONTRACTOR";
@@ -148,6 +149,14 @@ const CALLS: Record<string, Call> = {
   "production.staffing.get": r("staffing", async (c) => {
     const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });
     return staffingService.get(c, req.id);
+  }),
+  "production.ai.risks": r("logisticsAi", async (c) => {
+    const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });
+    return logisticsAiService.risks(c, req.projectId);
+  }),
+  "production.ai.suggest": w("logisticsAi", async (c) => {
+    const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });
+    return logisticsAiService.suggest(c, req.id);
   }),
   // HR (ADR 0025): external parties never get HR access.
   "hr.settings.get": r("hrSettings", (c) => hrSettingsService.get(c)),

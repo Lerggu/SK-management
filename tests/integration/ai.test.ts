@@ -130,8 +130,8 @@ describe("AI project review", () => {
   });
 
   it("requires ai.use", async () => {
-    const sm = await createMember(t, "SITE_MANAGER", [{ projectId }]);
-    await expect(aiProjectControllerService.overview(sm, projectId)).rejects.toBeInstanceOf(ForbiddenError);
+    const sup = await createMember(t, "SUPERVISOR", [{ projectId }]);
+    await expect(aiProjectControllerService.overview(sup, projectId)).rejects.toBeInstanceOf(ForbiddenError);
     await expect(aiProjectControllerService.review(without(t.ownerCtx, "ai.use"), projectId)).rejects.toBeInstanceOf(ForbiddenError);
   });
 });

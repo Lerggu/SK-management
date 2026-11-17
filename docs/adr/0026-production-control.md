@@ -12,7 +12,7 @@
   1. task types and resource rules, rule-based candidates (this ADR);
   2. the calendar;
   3. deviations from the phone;
-  4. AI suggestions and §27 risk detection.
+  4. AI suggestions and §27 risk detection (done).
 
 ## Decision
 
@@ -82,7 +82,41 @@
 - **In the calendar:** open and acknowledged deviations make the task blink red until resolved. With reduced motion it is a steady red.
 - **Visibility:** deviations show on the task page and as an open list on the deviations tab. External members have no access.
 
+### Phase 4: AI suggestions and §27 risks
+- **Run log:** both features use the V8 AI run log (`ai_runs`), with the same provider adapter, the 10 €/month company cap, cost metering and the `ai.run` audit event.
+  - Migration `20261117150000_production_ai` adds two run kinds, `STAFFING` and `LOGISTICS_RISK`, and `ai_runs.logistics_request_id` (composite foreign key).
+  - The provider port now accepts a custom result schema. The deterministic test provider answers with a rule-based answer labelled `[TEST]`.
+- **Permission:** `ai.use` is still required.
+  - The logistics coordinator and site manager templates now get `ai.use` (owner request). The migration grants it to existing companies' roles and audits the grant.
+  - The capability is checked, never the role name.
+- **AI staffing suggestion (task page, "AI-ehdotus"):**
+  - Requires `booking.manage` and `ai.use`.
+  - The model gets a pseudonymised view of the task (`production/ai.ts`):
+    - needs as N1…, with the required card, competence and equipment type by catalogue name;
+    - candidates as C1…, with only their trade and rule warnings;
+    - no names, asset numbers or ids.
+  - Candidates blocked by the rules are never offered, and at most 12 candidates per need are sent.
+  - The answer is validated: picks for unknown needs, candidates not offered for that need, duplicates, or picks over the open quantity are dropped and counted.
+  - The calendar marks tasks with a suggestion ("AI").
+- **Accepting a suggestion:** a person accepts it. Each pick that still applies is booked through `staffingService.assign`, so the hard rules and booking conflicts are checked again, and picks that no longer fit are skipped.
+  - `assign` now also refuses booking a need beyond its quantity, or the same resource twice on one task.
+  - Acceptance is audited (`ai.staffing.accept`).
+- **§27 risks (tab "Riskit"):** rule-detected facts for the next 14 days. All internal members with `logistics.view` see them.
+  - Facts covered:
+    - resource shortage (critical when the task starts within 48 h);
+    - unapproved tasks starting soon;
+    - late tasks;
+    - open deviations;
+    - late or unconfirmed deliveries;
+    - takt activities served by logistics at risk.
+  - With `booking.manage`, also:
+    - double bookings of own resources touching the project;
+    - idle capacity (counted by trade, never named) when there is a shortage.
+  - "Analysoi AI:lla" sends the same facts (task titles, times and counts, no names) to the AI. It returns facts, forecasts and recommendations, and people accept or dismiss each recommendation.
+  - Nothing is rescheduled automatically.
+
 ## Consequences
 - **Visible HR facts.** Candidates show only fit reasons ("Kortti puuttuu", "Osaaminen alle vaatimuksen"), never card details or assessment texts.
 - **Own resources only.** Group-shared resources (V4) are not yet candidates. They can still be booked through the bookings page.
-- **The AI phase builds on this.** Phase 4 sends the same structured needs and fit facts (without personal data) to the AI provider. The rules here remain the safety gate for anything the AI proposes.
+- **The rules stay the safety gate.** Phase 4 sends only structured needs and fit facts (without personal data) to the AI provider. Anything the AI proposes still passes the rules here when a person accepts it.
+- **Production needs a key.** Without `SK_ANTHROPIC_API_KEY`, AI is unavailable in production; the rule-based facts, candidates and calendar work without it.
