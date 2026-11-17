@@ -160,6 +160,16 @@ export const bookingService = {
         siteId = siteId ?? lp.siteId;
         if (lp.siteId !== siteId) throw new ValidationError({ liftPlanId: ["validation.invalidOption"] });
       }
+      if (data.taskRoleId && !data.logisticsRequestId) throw new ValidationError({ taskRoleId: ["validation.invalidOption"] });
+      if (data.logisticsRequestId) {
+        const lr = await repo.findRequest(data.logisticsRequestId);
+        if (!lr || lr.projectId !== project.id || (siteId && lr.siteId !== siteId)) throw new ValidationError({ logisticsRequestId: ["validation.invalidOption"] });
+        siteId = siteId ?? lr.siteId;
+        if (data.taskRoleId) {
+          const role = await repo.findTaskRole(data.taskRoleId);
+          if (!role || role.archivedAt || role.taskTypeId !== lr.taskTypeId) throw new ValidationError({ taskRoleId: ["validation.invalidOption"] });
+        }
+      }
       const created = [];
       for (const ref of [...new Set(data.resources)]) {
         const [kind, id] = ref.split(":") as ["EMPLOYEE" | "EQUIPMENT", string];
@@ -175,6 +185,8 @@ export const bookingService = {
           activityId: data.activityId,
           requirementId: data.requirementId,
           liftPlanId: data.liftPlanId,
+          logisticsRequestId: data.logisticsRequestId,
+          taskRoleId: data.taskRoleId,
           startsAt: data.startsAt,
           endsAt: data.endsAt,
           note: data.note,
@@ -194,6 +206,8 @@ export const bookingService = {
           endsAt: data.endsAt.toISOString(),
           status: autoApprove ? "APPROVED" : "REQUESTED",
           liftPlanId: data.liftPlanId,
+          logisticsRequestId: data.logisticsRequestId,
+          taskRoleId: data.taskRoleId,
           conflicts: conflicts.map((c) => c.code),
         });
         created.push({ id: row.id, status: autoApprove ? "APPROVED" : "REQUESTED", conflicts });

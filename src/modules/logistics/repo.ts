@@ -192,6 +192,14 @@ export class LogisticsRepo {
     return this.tx.logisticsRequest.create({ data: { ...data, ...this.c } });
   }
 
+  findTaskType(id: string) {
+    return this.tx.logisticsTaskType.findFirst({ where: { id, ...this.c } });
+  }
+
+  findTaskRole(id: string) {
+    return this.tx.logisticsTaskRole.findFirst({ where: { id, ...this.c } });
+  }
+
   findRequest(id: string) {
     return this.tx.logisticsRequest.findFirst({ where: { id, ...this.c }, include: this.requestInclude });
   }

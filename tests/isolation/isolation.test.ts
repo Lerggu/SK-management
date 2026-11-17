@@ -57,6 +57,8 @@ import {
 } from "@/modules/hr/card.service";
 import { employeeFileService } from "@/modules/hr/files.service";
 import { hrOverviewService } from "@/modules/hr/overview.service";
+import { staffingService, taskTypeService } from "@/modules/production/service";
+import { productionCalendarService } from "@/modules/production/calendar.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -135,6 +137,7 @@ interface World {
     photo: string;
   };
   bhr: { employee: string; area: string; type: string; profile: string };
+  prod: { type: string; role: string; request: string; bType: string; bRole: string; bRequest: string };
   b3: { plan: string; version: string; activity: string };
   bSite: string;
   bProject: string;
@@ -299,6 +302,13 @@ beforeAll(async () => {
   const pdf = { fileName: "a.pdf", bytes: new TextEncoder().encode("%PDF-1.4 A secret") };
   const hrFile = await employeeFileService.upload(actx, hrWorker.id, { kind: "CERTIFICATE", targetType: "QUALIFICATION", targetId: hrQualification.id }, pdf);
   const hrPhoto = await employeeFileService.uploadPhoto(actx, hrWorker.id, { fileName: "a.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]) });
+  // ── Production control data (ADR 0026) ──
+  const prodType = await taskTypeService.create(actx, { name: "A task type" });
+  const prodRole = await taskTypeService.addRole(actx, prodType.id, { kind: "PERSON", label: "A role" });
+  const prodRequest = await logisticsRequestService.create(actx, { siteId: site.id, serviceType: "LIFT", title: "A secret lift", requestedStart: "2026-11-05T07:00", requestedEnd: "2026-11-05T08:00", taskTypeId: prodType.id, submit: "on" });
+  const bProdType = await taskTypeService.create(b.ownerCtx, { name: "B task type" });
+  const bProdRole = await taskTypeService.addRole(b.ownerCtx, bProdType.id, { kind: "PERSON", label: "B role" });
+  const bProdRequest = await logisticsRequestService.create(b.ownerCtx, { siteId: bSite.id, serviceType: "LIFT", title: "B lift", requestedStart: "2026-11-05T07:00", requestedEnd: "2026-11-05T08:00", taskTypeId: bProdType.id, submit: "on" });
   // ── HR data in company B (for cross-references) ──
   const bOwnEmployee = await db.employee.findFirstOrThrow({ where: { companyId: b.companyId, employeeNumber: "B-OWN" } });
   const bHrArea = await competenceAreaService.create(b.ownerCtx, { category: "B", name: "B area" });
@@ -409,6 +419,7 @@ beforeAll(async () => {
       photo: hrPhoto.id,
     },
     bhr: { employee: bOwnEmployee.id, area: bHrArea.id, type: bHrType.id, profile: bHrProfile.id },
+    prod: { type: prodType.id, role: prodRole.id, request: prodRequest.id, bType: bProdType.id, bRole: bProdRole.id, bRequest: bProdRequest.id },
     b3: { plan: bPlan.id, version: bVersion.id, activity: bActivity.id },
     bSite: bSite.id,
     bProject: bProject.id,
@@ -752,6 +763,8 @@ const cases: Record<string, Case> = {
     await expectNotFound(bookingService.create(w.bCtx, { resources: [`EQUIPMENT:${w.ids.equipment}`], projectId: w.ids.project, startsAt: "2026-11-03T07:00", endsAt: "2026-11-03T15:00" }));
     await expectRejected(bookingService.create(w.bCtx, { resources: [`EQUIPMENT:${w.ids.equipment}`], projectId: w.bProject, startsAt: "2026-11-03T07:00", endsAt: "2026-11-03T15:00" }));
     await expectRejected(bookingService.create(w.bCtx, { resources: [`EMPLOYEE:${w.ids.employee}`], projectId: w.bProject, activityId: w.ids.activity, startsAt: "2026-11-03T07:00", endsAt: "2026-11-03T15:00" }));
+    await expectRejected(bookingService.create(w.bCtx, { resources: [`EMPLOYEE:${w.bhr.employee}`], projectId: w.bProject, logisticsRequestId: w.prod.request, startsAt: "2026-11-03T07:00", endsAt: "2026-11-03T15:00" }));
+    await expectRejected(bookingService.create(w.bCtx, { resources: [`EMPLOYEE:${w.bhr.employee}`], projectId: w.bProject, logisticsRequestId: w.prod.bRequest, taskRoleId: w.prod.role, startsAt: "2026-11-03T07:00", endsAt: "2026-11-03T15:00" }));
   },
   "booking.decide": () => expectNotFound(bookingService.decide(w.bCtx, w.ids.booking, { decision: "REJECT" })),
   "booking.cancel": () => expectNotFound(bookingService.cancel(w.bCtx, w.ids.booking)),
@@ -1198,6 +1211,48 @@ const cases: Record<string, Case> = {
     const r = await hrOverviewService.search(w.bCtx, { language: "fi" });
     expect(r.employees.map((e) => e.id)).not.toContain(w.hr.worker);
     expect(JSON.stringify(await hrOverviewService.search(w.bCtx, { areaId: w.hr.area, minLevel: "1" }))).not.toContain(w.hr.worker);
+  },
+  // ── Production control (ADR 0026) ──
+  "taskType.list": async () => {
+    expect((await taskTypeService.list(w.bCtx, { includeArchived: true })).map((t) => t.id)).not.toContain(w.prod.type);
+  },
+  "taskType.options": async () => {
+    const o = await taskTypeService.options(w.bCtx);
+    expect(JSON.stringify(o)).not.toContain(w.hr.type);
+    expect(JSON.stringify(o)).not.toContain(w.ids.equipmentType);
+  },
+  "taskType.create": async () => {
+    expect((await taskTypeService.create(w.bCtx, { name: "A task type" })).companyId).toBe(w.b.companyId);
+  },
+  "taskType.update": () => expectNotFound(taskTypeService.update(w.bCtx, w.prod.type, { name: "X" })),
+  "taskType.archive": () => expectNotFound(taskTypeService.archive(w.bCtx, w.prod.type)),
+  "taskType.addRole": async () => {
+    await expectNotFound(taskTypeService.addRole(w.bCtx, w.prod.type, { kind: "PERSON", label: "X" }));
+    await expectRejected(taskTypeService.addRole(w.bCtx, w.prod.bType, { kind: "PERSON", label: "X", qualificationTypeId: w.hr.type }));
+    await expectRejected(taskTypeService.addRole(w.bCtx, w.prod.bType, { kind: "PERSON", label: "X", areaId: w.hr.area, minLevel: "2" }));
+    await expectRejected(taskTypeService.addRole(w.bCtx, w.prod.bType, { kind: "EQUIPMENT", label: "X", equipmentTypeId: w.ids.equipmentType }));
+  },
+  "taskType.removeRole": () => expectNotFound(taskTypeService.removeRole(w.bCtx, w.prod.role)),
+  "taskType.addSuggested": async () => {
+    const before = await db.logisticsTaskType.count({ where: { companyId: w.a.companyId } });
+    await taskTypeService.addSuggested(w.bCtx);
+    expect(await db.logisticsTaskType.count({ where: { companyId: w.a.companyId } })).toBe(before);
+  },
+  "staffing.get": () => expectNotFound(staffingService.get(w.bCtx, w.prod.request)),
+  "productionCalendar.view": async () => {
+    const v = await productionCalendarService.view(w.bCtx, { zoom: "month", date: "2026-11-05" });
+    expect(v.tasks.map((t) => t.id)).not.toContain(w.prod.request);
+    expect(JSON.stringify(v.resources)).not.toContain(w.ids.employee);
+    await expectNotFound(productionCalendarService.view(w.bCtx, { siteId: w.ids.site }));
+  },
+  "staffing.setTaskType": async () => {
+    await expectNotFound(staffingService.setTaskType(w.bCtx, w.prod.request, { taskTypeId: w.prod.bType }));
+    await expectRejected(staffingService.setTaskType(w.bCtx, w.prod.bRequest, { taskTypeId: w.prod.type }));
+  },
+  "staffing.assign": async () => {
+    await expectNotFound(staffingService.assign(w.bCtx, w.prod.request, { roleId: w.prod.bRole, resource: `EMPLOYEE:${w.bhr.employee}` }));
+    await expectRejected(staffingService.assign(w.bCtx, w.prod.bRequest, { roleId: w.prod.role, resource: `EMPLOYEE:${w.bhr.employee}` }));
+    await expectRejected(staffingService.assign(w.bCtx, w.prod.bRequest, { roleId: w.prod.bRole, resource: `EMPLOYEE:${w.ids.employee}` }));
   },
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });

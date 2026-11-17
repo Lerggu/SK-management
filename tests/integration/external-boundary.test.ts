@@ -59,6 +59,8 @@ import {
 } from "@/modules/hr/card.service";
 import { employeeFileService } from "@/modules/hr/files.service";
 import { hrOverviewService } from "@/modules/hr/overview.service";
+import { staffingService, taskTypeService } from "@/modules/production/service";
+import { productionCalendarService } from "@/modules/production/calendar.service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Role = "CLIENT" | "CLIENT_APPROVER" | "SUBCONTRACTOR";
@@ -133,6 +135,14 @@ const hr = { area: "", qualification: "", training: "", orientation: "", authori
 const hrPdf = () => ({ fileName: "x.pdf", bytes: new TextEncoder().encode("%PDF-1.4 x") });
 
 const CALLS: Record<string, Call> = {
+  // Production control (ADR 0026): task types and staffing are internal.
+  "production.taskTypes.list": r("taskType", (c) => taskTypeService.list(c)),
+  "production.calendar.view": r("productionCalendar", (c) => productionCalendarService.view(c)),
+  "production.taskTypes.create": w("taskType", (c) => taskTypeService.create(c, { name: uniq("x") })),
+  "production.staffing.get": r("staffing", async (c) => {
+    const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });
+    return staffingService.get(c, req.id);
+  }),
   // HR (ADR 0025): external parties never get HR access.
   "hr.settings.get": r("hrSettings", (c) => hrSettingsService.get(c)),
   "hr.settings.update": w("hrSettings", (c) => hrSettingsService.update(c, { reminderEmail: "x@example.test" })),

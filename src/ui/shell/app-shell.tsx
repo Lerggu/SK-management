@@ -14,6 +14,8 @@ export interface ShellNavItem {
   key: NavKey;
   href: string;
   label: string;
+  /** Other path prefixes that belong to this item (e.g. production control: takt + logistics). */
+  match?: string[];
 }
 
 export interface ShellProps {
@@ -38,8 +40,8 @@ export interface ShellProps {
   children: React.ReactNode;
 }
 
-function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActive(pathname: string, item: { href: string; match?: string[] }) {
+  return [item.href, ...(item.match ?? [])].some((href) => pathname === href || pathname.startsWith(`${href}/`));
 }
 
 function CompanySwitcher({ company, companies, labels, className, dark }: Pick<ShellProps, "company" | "companies" | "labels"> & { className?: string; dark?: boolean }) {
@@ -135,7 +137,7 @@ export function AppShell(props: ShellProps) {
         <nav aria-label={labels.mainNav} className="flex-1 space-y-1 overflow-y-auto px-3">
           {nav.map((item) => {
             const Icon = NAV_ICONS[item.key];
-            const active = isActive(pathname, item.href);
+            const active = isActive(pathname, item);
             return (
               <Link
                 key={item.key}
@@ -179,7 +181,7 @@ export function AppShell(props: ShellProps) {
         <ul className="grid grid-cols-5">
           {primary.map((item) => {
             const Icon = NAV_ICONS[item.key];
-            const active = isActive(pathname, item.href);
+            const active = isActive(pathname, item);
             return (
               <li key={item.key}>
                 <Link

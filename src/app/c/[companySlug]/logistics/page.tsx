@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { CalendarClock, DoorOpen, Warehouse } from "lucide-react";
+import { DoorOpen, Warehouse } from "lucide-react";
 import { logisticsBoardService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { taktPlanService } from "@/modules/takt/plan.service";
 import { PRIORITIES, SERVICE_TYPES } from "@/modules/logistics/schemas";
@@ -15,6 +15,8 @@ import { cn } from "@/ui/lib/utils";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
 import { SiteDayPicker } from "./_components/site-day-picker";
 import { createDeliveryAction, createRequestAction } from "./actions";
+import { taskTypeService } from "@/modules/production/service";
+import { ProductionTabs } from "@/app/c/[companySlug]/_components/production-tabs";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("logistics"))("board") };
@@ -37,12 +39,13 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
   const { companySlug } = await params;
   const sp = await searchParams;
   const ctx = await requireCompanyContext(companySlug);
-  const [sites, t, tc] = await Promise.all([logisticsBoardService.sites(ctx), getTranslations("logistics"), getTranslations("common")]);
+  const [sites, t, tc, tp] = await Promise.all([logisticsBoardService.sites(ctx), getTranslations("logistics"), getTranslations("common"), getTranslations("production")]);
   const base = `/c/${companySlug}/logistics`;
   if (sites.length === 0) {
     return (
       <>
         <PageHeader title={t("title")} />
+        <ProductionTabs ctx={ctx} active="logistics" />
         <EmptyState>{t("noSites")}</EmptyState>
       </>
     );
@@ -50,6 +53,7 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
   const siteId = sites.some((s) => s.id === sp.site) ? sp.site! : sites[0].id;
   const date = sp.date || todayInDisplayZone();
   const board = await loadOr404(logisticsBoardService.day(ctx, { siteId, date }));
+  const taskTypes = await taskTypeService.list(ctx).catch(() => []);
   const format = await getFormatter();
   const perms = board.permissions;
   const plans = (await taktPlanService.list(ctx)).filter((p) => p.siteId === siteId);
@@ -73,11 +77,6 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
               </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={`${base}/bookings`}>
-                <CalendarClock aria-hidden /> {t("bookings")}
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
               <Link href={`${base}/setup?site=${siteId}`}>
                 <Warehouse aria-hidden /> {t("setup")}
               </Link>
@@ -85,6 +84,7 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
           </>
         }
       />
+      <ProductionTabs ctx={ctx} active="logistics" />
       <div className="space-y-4">
         <Section title={t("deliveries")}>
           <SiteDayPicker sites={sites} siteId={siteId} date={date} />
@@ -202,6 +202,7 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
               <TextField name="loadDescription" label={t("loadDescription")} className="sm:col-span-2" />
               <TextField name="dimensions" label={t("dimensions")} />
               <SelectField name="equipmentTypeId" label={t("equipmentType")} placeholder="–" options={board.equipmentTypes.map((e) => ({ value: e.id, label: e.name }))} />
+              <SelectField name="taskTypeId" label={tp("taskType")} placeholder="–" options={taskTypes.map((x) => ({ value: x.id, label: x.name }))} />
               <TextField name="pickup" label={t("pickup")} />
               <TextField name="destination" label={t("destination")} />
               <SelectField name="activityId" label={t("activity")} placeholder="–" options={activityOptions} className="sm:col-span-2" />

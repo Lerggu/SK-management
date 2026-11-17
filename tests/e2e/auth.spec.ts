@@ -31,5 +31,5 @@ test("sign in, see the dashboard and navigation, sign out", async ({ page }, tes
 
 test("uninvited e-mail cannot sign in", async ({ page }) => {
   await page.goto("/sign-in?error=not_invited");
-  await expect(page.getByRole("alert")).toContainText("kutsuttu");
+  await expect(page.getByRole("alert").filter({ hasText: "kutsuttu" })).toBeVisible();
 });

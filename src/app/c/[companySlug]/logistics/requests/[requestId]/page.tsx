@@ -8,6 +8,8 @@ import { StatusBadge } from "@/ui/components/status-badge";
 import { fmtDateTime } from "@/ui/format";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
 import { transitionRequestAction } from "../../actions";
+import { staffingService, taskTypeService } from "@/modules/production/service";
+import { StaffingSection } from "../../_components/staffing";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("logistics"))("request") };
@@ -17,7 +19,7 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
   const { companySlug, requestId } = await params;
   const ctx = await requireCompanyContext(companySlug);
   const r = await loadOr404(logisticsRequestService.get(ctx, requestId));
-  const [t, format] = await Promise.all([getTranslations("logistics"), getFormatter()]);
+  const [t, format, staffing, taskTypes] = await Promise.all([getTranslations("logistics"), getFormatter(), staffingService.get(ctx, requestId), taskTypeService.list(ctx).catch(() => [])]);
   const base = `/c/${companySlug}/logistics`;
   const user = (id: string | null) => r.users.find((u) => u.id === id)?.name ?? "–";
   return (
@@ -89,6 +91,7 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
             </div>
           )}
         </Section>
+        <StaffingSection slug={companySlug} s={staffing} taskTypes={taskTypes.map((x) => ({ id: x.id, name: x.name }))} />
         {r.deliveries.length > 0 && (
           <Section title={t("linkedDeliveries")}>
             <ul className="divide-y text-sm">

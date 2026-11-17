@@ -208,6 +208,7 @@ model Company {
   qualificationTypes QualificationType[]
   jobProfiles        JobProfile[]
   expiryReminders    ExpiryReminder[]
+  logisticsTaskTypes LogisticsTaskType[]
 
   @@index([organizationId])
   @@map("companies")
@@ -661,6 +662,7 @@ model EquipmentType {
   requirements      ResourceRequirement[]
   logisticsRequests LogisticsRequest[]
   authorizations    EquipmentAuthorization[]
+  taskRoles         LogisticsTaskRole[]
 
   @@unique([companyId, id])
   @@unique([companyId, name])
@@ -1533,41 +1535,46 @@ enum BookingStatus {
 }
 
 model ResourceBooking {
-  id                String              @id @default(uuid(7)) @db.Uuid
-  companyId         String              @map("company_id") @db.Uuid
-  ownerCompanyId    String              @map("owner_company_id") @db.Uuid
-  resourceKind      BookingResourceKind @map("resource_kind")
-  employeeId        String?             @map("employee_id") @db.Uuid
-  equipmentId       String?             @map("equipment_id") @db.Uuid
-  projectId         String              @map("project_id") @db.Uuid
-  siteId            String?             @map("site_id") @db.Uuid
-  activityId        String?             @map("activity_id") @db.Uuid
-  requirementId     String?             @map("requirement_id") @db.Uuid
+  id                 String              @id @default(uuid(7)) @db.Uuid
+  companyId          String              @map("company_id") @db.Uuid
+  ownerCompanyId     String              @map("owner_company_id") @db.Uuid
+  resourceKind       BookingResourceKind @map("resource_kind")
+  employeeId         String?             @map("employee_id") @db.Uuid
+  equipmentId        String?             @map("equipment_id") @db.Uuid
+  projectId          String              @map("project_id") @db.Uuid
+  siteId             String?             @map("site_id") @db.Uuid
+  activityId         String?             @map("activity_id") @db.Uuid
+  requirementId      String?             @map("requirement_id") @db.Uuid
   /// V5: crew (riggers, crane operators) booked for a lift plan.
-  liftPlanId        String?             @map("lift_plan_id") @db.Uuid
-  startsAt          DateTime            @map("starts_at") @db.Timestamptz(6)
-  endsAt            DateTime            @map("ends_at") @db.Timestamptz(6)
-  status            BookingStatus       @default(REQUESTED)
-  note              String?
-  conflictsAccepted Boolean             @default(false) @map("conflicts_accepted")
-  requestedById     String?             @map("requested_by") @db.Uuid
-  decidedAt         DateTime?           @map("decided_at") @db.Timestamptz(6)
-  decidedById       String?             @map("decided_by") @db.Uuid
-  decisionNote      String?             @map("decision_note")
-  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdById       String?             @map("created_by") @db.Uuid
-  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
-  updatedById       String?             @map("updated_by") @db.Uuid
+  liftPlanId         String?             @map("lift_plan_id") @db.Uuid
+  /// Production control: the logistics task and resource need this booking staffs.
+  logisticsRequestId String?             @map("logistics_request_id") @db.Uuid
+  taskRoleId         String?             @map("task_role_id") @db.Uuid
+  startsAt           DateTime            @map("starts_at") @db.Timestamptz(6)
+  endsAt             DateTime            @map("ends_at") @db.Timestamptz(6)
+  status             BookingStatus       @default(REQUESTED)
+  note               String?
+  conflictsAccepted  Boolean             @default(false) @map("conflicts_accepted")
+  requestedById      String?             @map("requested_by") @db.Uuid
+  decidedAt          DateTime?           @map("decided_at") @db.Timestamptz(6)
+  decidedById        String?             @map("decided_by") @db.Uuid
+  decisionNote       String?             @map("decision_note")
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById        String?             @map("created_by") @db.Uuid
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById        String?             @map("updated_by") @db.Uuid
 
-  company      Company              @relation("BookingCompany", fields: [companyId], references: [id], onDelete: Restrict)
-  ownerCompany Company              @relation("BookingOwner", fields: [ownerCompanyId], references: [id], onDelete: Restrict)
-  employee     Employee?            @relation(fields: [ownerCompanyId, employeeId], references: [companyId, id], onDelete: Restrict)
-  equipment    Equipment?           @relation(fields: [ownerCompanyId, equipmentId], references: [companyId, id], onDelete: Restrict)
-  project      Project              @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
-  site         Site?                @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
-  activity     TaktActivity?        @relation(fields: [companyId, activityId], references: [companyId, id], onDelete: Restrict)
-  requirement  ResourceRequirement? @relation(fields: [companyId, requirementId], references: [companyId, id], onDelete: Restrict)
-  liftPlan     LiftPlan?            @relation(fields: [companyId, liftPlanId], references: [companyId, id], onDelete: Restrict)
+  company          Company              @relation("BookingCompany", fields: [companyId], references: [id], onDelete: Restrict)
+  ownerCompany     Company              @relation("BookingOwner", fields: [ownerCompanyId], references: [id], onDelete: Restrict)
+  employee         Employee?            @relation(fields: [ownerCompanyId, employeeId], references: [companyId, id], onDelete: Restrict)
+  equipment        Equipment?           @relation(fields: [ownerCompanyId, equipmentId], references: [companyId, id], onDelete: Restrict)
+  project          Project              @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  site             Site?                @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  activity         TaktActivity?        @relation(fields: [companyId, activityId], references: [companyId, id], onDelete: Restrict)
+  requirement      ResourceRequirement? @relation(fields: [companyId, requirementId], references: [companyId, id], onDelete: Restrict)
+  liftPlan         LiftPlan?            @relation(fields: [companyId, liftPlanId], references: [companyId, id], onDelete: Restrict)
+  logisticsRequest LogisticsRequest?    @relation(fields: [companyId, logisticsRequestId], references: [companyId, id], onDelete: Restrict)
+  taskRole         LogisticsTaskRole?   @relation(fields: [companyId, taskRoleId], references: [companyId, id], onDelete: Restrict)
 
   @@unique([companyId, id])
   @@index([companyId, projectId, startsAt])
@@ -1658,6 +1665,8 @@ model LogisticsRequest {
   pickup          String?
   destination     String?
   equipmentTypeId String?                @map("equipment_type_id") @db.Uuid
+  /// Production control: task type that defines the resource needs (ADR 0026).
+  taskTypeId      String?                @map("task_type_id") @db.Uuid
   priority        LogisticsPriority      @default(NORMAL)
   status          LogisticsRequestStatus @default(DRAFT)
   note            String?
@@ -1671,10 +1680,12 @@ model LogisticsRequest {
   updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById     String?                @map("updated_by") @db.Uuid
 
-  company       Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  site          Site           @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
-  activity      TaktActivity?  @relation(fields: [companyId, siteId, activityId], references: [companyId, siteId, id], onDelete: Restrict)
-  equipmentType EquipmentType? @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  company       Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site          Site               @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  activity      TaktActivity?      @relation(fields: [companyId, siteId, activityId], references: [companyId, siteId, id], onDelete: Restrict)
+  equipmentType EquipmentType?     @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  taskType      LogisticsTaskType? @relation(fields: [companyId, taskTypeId], references: [companyId, id], onDelete: Restrict)
+  bookings      ResourceBooking[]
   deliveries    Delivery[]
   liftPlans     LiftPlan[]
 
@@ -3125,6 +3136,7 @@ model CompetenceArea {
   company      Company                @relation(fields: [companyId], references: [id], onDelete: Restrict)
   assessments  CompetenceAssessment[]
   requirements JobRequirement[]
+  taskRoles    LogisticsTaskRole[]
 
   @@unique([companyId, id])
   @@unique([companyId, category, name])
@@ -3214,6 +3226,7 @@ model QualificationType {
   company        Company                 @relation(fields: [companyId], references: [id], onDelete: Restrict)
   qualifications EmployeeQualification[]
   requirements   JobRequirement[]
+  taskRoles      LogisticsTaskRole[]
 
   @@unique([companyId, id])
   @@unique([companyId, name])
@@ -3484,4 +3497,70 @@ model ExpiryReminder {
   @@unique([sourceType, sourceId, expiresOn, recipientKind])
   @@index([companyId, status])
   @@map("expiry_reminders")
+}
+
+// ───────────────────── Production control: logistics task types (ADR 0026)
+
+enum TaskResourceKind {
+  PERSON
+  EQUIPMENT
+}
+
+/// Logistics task type ("Nosto", "Kuorman purku", "Asennustyö"…) with the
+/// resources it needs. Maintained per company by logistics approvers.
+model LogisticsTaskType {
+  id          String               @id @default(uuid(7)) @db.Uuid
+  companyId   String               @map("company_id") @db.Uuid
+  name        String
+  serviceType LogisticsServiceType @default(OTHER) @map("service_type")
+  description String?
+  /// Calendar colour key (one of the fixed palette keys).
+  color       String               @default("slate")
+  sortOrder   Int                  @default(0) @map("sort_order")
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?              @map("created_by") @db.Uuid
+  updatedAt   DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?              @map("updated_by") @db.Uuid
+  archivedAt  DateTime?            @map("archived_at") @db.Timestamptz(6)
+
+  company  Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  roles    LogisticsTaskRole[]
+  requests LogisticsRequest[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, name])
+  @@map("logistics_task_types")
+}
+
+/// One resource need of a task type: a person in a role (with a required
+/// card, competence level or trade) or a piece of equipment of a type. A
+/// weight range makes the need apply only to loads in that range.
+model LogisticsTaskRole {
+  id                  String           @id @default(uuid(7)) @db.Uuid
+  companyId           String           @map("company_id") @db.Uuid
+  taskTypeId          String           @map("task_type_id") @db.Uuid
+  kind                TaskResourceKind
+  label               String
+  quantity            Int              @default(1)
+  qualificationTypeId String?          @map("qualification_type_id") @db.Uuid
+  areaId              String?          @map("area_id") @db.Uuid
+  minLevel            Int?             @map("min_level") @db.SmallInt
+  trade               String?
+  equipmentTypeId     String?          @map("equipment_type_id") @db.Uuid
+  minWeightKg         Decimal?         @map("min_weight_kg") @db.Decimal(10, 1)
+  maxWeightKg         Decimal?         @map("max_weight_kg") @db.Decimal(10, 1)
+  sortOrder           Int              @default(0) @map("sort_order")
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById         String?          @map("created_by") @db.Uuid
+  archivedAt          DateTime?        @map("archived_at") @db.Timestamptz(6)
+
+  taskType          LogisticsTaskType  @relation(fields: [companyId, taskTypeId], references: [companyId, id], onDelete: Restrict)
+  qualificationType QualificationType? @relation(fields: [companyId, qualificationTypeId], references: [companyId, id], onDelete: Restrict)
+  area              CompetenceArea?    @relation(fields: [companyId, areaId], references: [companyId, id], onDelete: Restrict)
+  equipmentType     EquipmentType?     @relation(fields: [companyId, equipmentTypeId], references: [companyId, id], onDelete: Restrict)
+  bookings          ResourceBooking[]
+
+  @@unique([companyId, id])
+  @@index([companyId, taskTypeId])
+  @@map("logistics_task_roles")
 }

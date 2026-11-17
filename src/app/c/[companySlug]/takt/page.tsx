@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { CalendarRange } from "lucide-react";
 import { taktPlanService } from "@/modules/takt/plan.service";
-import { Button } from "@/ui/components/button";
 import { EmptyState, PageHeader, RowLink, RowList, Section } from "@/ui/components/page";
 import { StatusBadge } from "@/ui/components/status-badge";
 import { fmtDate } from "@/ui/format";
 import { requireCompanyContext } from "@/app/_lib/context";
+import { ProductionTabs } from "@/app/c/[companySlug]/_components/production-tabs";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("takt"))("title") };
@@ -20,16 +18,8 @@ export default async function TaktPage({ params }: { params: Promise<{ companySl
   const base = `/c/${companySlug}/takt`;
   return (
     <>
-      <PageHeader
-        title={t("title")}
-        actions={
-          <Button asChild variant="outline">
-            <Link href={`${base}/lookahead`}>
-              <CalendarRange aria-hidden /> {t("lookahead")}
-            </Link>
-          </Button>
-        }
-      />
+      <PageHeader title={t("title")} />
+      <ProductionTabs ctx={ctx} active="takt" />
       <Section title={t("plans")}>
         {plans.length === 0 ? (
           <EmptyState>{t("noPlans")}</EmptyState>
