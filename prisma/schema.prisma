@@ -212,6 +212,11 @@ model Company {
   rotationEntries        RotationEntry[]
   teams                  Team[]
   assistantConversations AssistantConversation[]
+  marketingSettings      MarketingSettings?
+  marketingLeads         MarketingLead[]
+  marketingRuns          MarketingRun[]
+  marketingSuppressions  MarketingSuppression[]
+  marketingMessages      MarketingMessage[]
 
   @@index([organizationId])
   @@map("companies")
@@ -2144,8 +2149,9 @@ model Opportunity {
   updatedById       String?          @map("updated_by") @db.Uuid
   archivedAt        DateTime?        @map("archived_at") @db.Timestamptz(6)
 
-  customer Customer @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
-  quotes   Quote[]
+  customer       Customer        @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  quotes         Quote[]
+  marketingLeads MarketingLead[]
 
   @@unique([companyId, id])
   @@index([companyId, stage])
@@ -3794,4 +3800,277 @@ model AssistantAction {
   @@unique([companyId, id])
   @@index([companyId, conversationId, position])
   @@map("assistant_actions")
+}
+
+// ── Marketing automation (docs/adr/0032-marketing-automation.md) ─────────
+
+/// Per-company settings of the marketing agents.
+model MarketingSettings {
+  companyId          String    @id @map("company_id") @db.Uuid
+  /// Discovery runs on schedule only when enabled.
+  enabled            Boolean   @default(false)
+  /// Owner decision 2026-11-17: letters are approved by a person first; automatic sending can be switched on later.
+  autoSend           Boolean   @default(false) @map("auto_send")
+  /// ISO 3166-1 alpha-2 countries searched.
+  countries          String[]  @default(["FI", "SE", "NO", "DK", "EE", "LV", "LT", "DE", "PL", "NL"])
+  /// Leads at or above this fit score (0–100) get a letter drafted.
+  minScore           Int       @default(60) @map("min_score")
+  dailySendLimit     Int       @default(20) @map("daily_send_limit")
+  intervalHours      Int       @default(24) @map("interval_hours")
+  /// Separate monthly AI budget of the marketing agents (web search is billed per search).
+  aiMonthlyBudgetEur Decimal   @default(40) @map("ai_monthly_budget_eur") @db.Decimal(14, 2)
+  /// Members who receive the replies (Reply-To) and see the call list.
+  replyToUserIds     String[]  @default([]) @map("reply_to_user_ids") @db.Uuid
+  senderName         String?   @map("sender_name")
+  /// Short description of what the company sells, used in letters.
+  pitch              String?
+  lastRunAt          DateTime? @map("last_run_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById        String?   @map("updated_by") @db.Uuid
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@map("marketing_settings")
+}
+
+enum MarketingCategory {
+  DATA_CENTER
+  INDUSTRIAL
+  GRID
+  ENERGY
+  INFRASTRUCTURE
+  OTHER
+}
+
+enum MarketingStage {
+  PLANNING
+  PERMITTING
+  TENDERING
+  CONSTRUCTION
+  OPERATION
+  UNKNOWN
+}
+
+enum MarketingLeadStatus {
+  NEW
+  QUALIFIED
+  CONTACTED
+  REPLIED
+  INTERESTED
+  NOT_INTERESTED
+  CONVERTED
+  DISCARDED
+}
+
+/// One project found by the discovery agent (the marketing register).
+model MarketingLead {
+  id             String              @id @default(uuid(7)) @db.Uuid
+  companyId      String              @map("company_id") @db.Uuid
+  /// Normalised identity used to merge the same project from several sources.
+  dedupeKey      String              @map("dedupe_key")
+  title          String
+  summary        String?
+  category       MarketingCategory   @default(OTHER)
+  stage          MarketingStage      @default(UNKNOWN)
+  status         MarketingLeadStatus @default(NEW)
+  /// ISO 3166-1 alpha-2.
+  country        String?             @db.Char(2)
+  location       String?
+  /// Client / developer organisation.
+  ownerOrg       String?             @map("owner_org")
+  timing         String?
+  startDate      DateTime?           @map("start_date") @db.Date
+  tenderDeadline DateTime?           @map("tender_deadline") @db.Date
+  budget         Decimal?            @db.Decimal(14, 2)
+  currency       String?             @db.Char(3)
+  budgetText     String?             @map("budget_text")
+  /// Grid connection voltage when known (e.g. 110 kV).
+  voltageKv      Int?                @map("voltage_kv")
+  fitScore       Int                 @default(0) @map("fit_score")
+  /// Services of ours that fit: ELECTRICAL, INFRA, LOGISTICS, STAFFING, EQUIPMENT, TURNKEY.
+  services       String[]            @default([])
+  fitReason      String?             @map("fit_reason")
+  opportunityId  String?             @map("opportunity_id") @db.Uuid
+  firstSeenAt    DateTime            @default(now()) @map("first_seen_at") @db.Timestamptz(6)
+  lastSeenAt     DateTime            @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById    String?             @map("created_by") @db.Uuid
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById    String?             @map("updated_by") @db.Uuid
+  archivedAt     DateTime?           @map("archived_at") @db.Timestamptz(6)
+
+  company     Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  opportunity Opportunity?          @relation(fields: [companyId, opportunityId], references: [companyId, id], onDelete: Restrict)
+  sources     MarketingLeadSource[]
+  contacts    MarketingContact[]
+  messages    MarketingMessage[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, dedupeKey])
+  @@index([companyId, status, fitScore])
+  @@map("marketing_leads")
+}
+
+enum MarketingSourceKind {
+  TED
+  HILMA
+  GRID
+  WEB
+  MANUAL
+}
+
+/// Where a lead was found; every fact in the register can be traced to a source.
+model MarketingLeadSource {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  companyId   String              @map("company_id") @db.Uuid
+  leadId      String              @map("lead_id") @db.Uuid
+  kind        MarketingSourceKind
+  /// Source-specific identity (TED publication number, URL).
+  externalId  String              @map("external_id")
+  url         String?
+  title       String?
+  publishedAt DateTime?           @map("published_at") @db.Date
+  retrievedAt DateTime            @default(now()) @map("retrieved_at") @db.Timestamptz(6)
+
+  lead MarketingLead @relation(fields: [companyId, leadId], references: [companyId, id], onDelete: Cascade)
+
+  @@unique([companyId, id])
+  @@unique([companyId, kind, externalId])
+  @@index([companyId, leadId])
+  @@map("marketing_lead_sources")
+}
+
+/// A business contact of a lead, from a public source (or added by hand).
+model MarketingContact {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  companyId      String    @map("company_id") @db.Uuid
+  leadId         String    @map("lead_id") @db.Uuid
+  name           String?
+  role           String?
+  organization   String?
+  /// What the person is responsible for in the project.
+  responsibility String?
+  email          String?
+  phone          String?
+  /// Public page where the contact was found (GDPR: source of the data).
+  sourceUrl      String?   @map("source_url")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById    String?   @map("created_by") @db.Uuid
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById    String?   @map("updated_by") @db.Uuid
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  lead     MarketingLead      @relation(fields: [companyId, leadId], references: [companyId, id], onDelete: Restrict)
+  messages MarketingMessage[]
+
+  @@unique([companyId, id])
+  @@index([companyId, leadId])
+  @@map("marketing_contacts")
+}
+
+enum MarketingMessageStatus {
+  DRAFT
+  APPROVED
+  SENDING
+  SENT
+  FAILED
+  REJECTED
+}
+
+enum MarketingCallStatus {
+  TODO
+  CALLED
+  NO_ANSWER
+  NOT_INTERESTED
+  MEETING
+}
+
+/// A targeted letter (and call script) for one contact of a lead.
+model MarketingMessage {
+  id               String                 @id @default(uuid(7)) @db.Uuid
+  companyId        String                 @map("company_id") @db.Uuid
+  leadId           String                 @map("lead_id") @db.Uuid
+  contactId        String                 @map("contact_id") @db.Uuid
+  language         String                 @default("en")
+  subject          String
+  body             String
+  callScript       String?                @map("call_script")
+  status           MarketingMessageStatus @default(DRAFT)
+  callStatus       MarketingCallStatus?   @map("call_status")
+  callNote         String?                @map("call_note")
+  calledAt         DateTime?              @map("called_at") @db.Timestamptz(6)
+  calledById       String?                @map("called_by") @db.Uuid
+  /// Random token of the unsubscribe link.
+  unsubscribeToken String                 @unique @map("unsubscribe_token")
+  approvedAt       DateTime?              @map("approved_at") @db.Timestamptz(6)
+  approvedById     String?                @map("approved_by") @db.Uuid
+  sentAt           DateTime?              @map("sent_at") @db.Timestamptz(6)
+  sentTo           String?                @map("sent_to")
+  attempts         Int                    @default(0)
+  error            String?
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById      String?                @map("created_by") @db.Uuid
+  updatedAt        DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById      String?                @map("updated_by") @db.Uuid
+
+  company Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  lead    MarketingLead    @relation(fields: [companyId, leadId], references: [companyId, id], onDelete: Restrict)
+  contact MarketingContact @relation(fields: [companyId, contactId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, status])
+  @@index([companyId, leadId])
+  @@map("marketing_messages")
+}
+
+/// Addresses that asked not to be contacted; never sent to again.
+model MarketingSuppression {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  email     String
+  reason    String   @default("UNSUBSCRIBE")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@unique([companyId, email])
+  @@map("marketing_suppressions")
+}
+
+enum MarketingRunKind {
+  DISCOVERY
+  DRAFT
+  SEND
+}
+
+enum MarketingRunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  BLOCKED_BUDGET
+}
+
+/// One agent run (discovery source, drafting, sending) with its AI cost.
+model MarketingRun {
+  id          String             @id @default(uuid(7)) @db.Uuid
+  companyId   String             @map("company_id") @db.Uuid
+  kind        MarketingRunKind
+  source      String?
+  status      MarketingRunStatus @default(RUNNING)
+  found       Int                @default(0)
+  created     Int                @default(0)
+  updated     Int                @default(0)
+  costUsd     Decimal            @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  error       String?
+  startedAt   DateTime           @default(now()) @map("started_at") @db.Timestamptz(6)
+  finishedAt  DateTime?          @map("finished_at") @db.Timestamptz(6)
+  startedById String?            @map("started_by") @db.Uuid
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, startedAt])
+  @@map("marketing_runs")
 }

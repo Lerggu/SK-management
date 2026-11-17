@@ -6,6 +6,10 @@ export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  /** Replies go to these addresses (marketing letters, ADR 0032). */
+  replyTo?: string[];
+  /** Extra headers, e.g. List-Unsubscribe. */
+  headers?: Record<string, string>;
 }
 
 /** Outbound e-mail adapter (V7). Domain modules use this interface only. */
@@ -18,7 +22,7 @@ class SmtpMailer implements Mailer {
   readonly kind = "smtp" as const;
   private readonly transport = nodemailer.createTransport(env().SMTP_URL!);
   async send(m: MailMessage) {
-    await this.transport.sendMail({ from: env().MAIL_FROM, to: m.to, subject: m.subject, text: m.text });
+    await this.transport.sendMail({ from: env().MAIL_FROM, to: m.to, subject: m.subject, text: m.text, replyTo: m.replyTo?.length ? m.replyTo : undefined, headers: m.headers });
   }
 }
 
@@ -29,7 +33,8 @@ class SmtpMailer implements Mailer {
 class DevOutboxMailer implements Mailer {
   readonly kind = "dev-outbox" as const;
   async send(m: MailMessage) {
-    await db.devMailOutbox.create({ data: { to: m.to.toLowerCase(), subject: m.subject, bodyText: m.text } });
+    const head = m.replyTo?.length ? `Reply-To: ${m.replyTo.join(", ")}\n\n` : "";
+    await db.devMailOutbox.create({ data: { to: m.to.toLowerCase(), subject: m.subject, bodyText: head + m.text } });
   }
 }
 

@@ -29,6 +29,8 @@ const SUBMIT_TOOL = "submit_result";
 const MAX_TOKENS = 16_000;
 /** Truncate tool output so one tool cannot blow the context or the budget. */
 const MAX_TOOL_RESULT_CHARS = 40_000;
+/** Web search list price: $10 per 1,000 searches. */
+const WEB_SEARCH_USD = 0.01;
 
 /** USD per million tokens. Unknown (fallback) models are priced as Opus — conservative. */
 const PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
@@ -65,6 +67,16 @@ export class AnthropicProvider implements AiProvider {
         input_schema: t.inputSchema as BetaToolUnion extends { input_schema: infer S } ? S : never,
         strict: true,
       })),
+      ...(request.webSearch
+        ? [
+            {
+              type: "web_search_20260209",
+              name: "web_search",
+              max_uses: request.webSearch.maxUses,
+              ...(request.webSearch.allowedDomains?.length ? { allowed_domains: request.webSearch.allowedDomains } : {}),
+            },
+          ]
+        : []),
       {
         name: SUBMIT_TOOL,
         description: "Deliver the final structured answer. Call exactly once, after gathering data.",
@@ -113,7 +125,7 @@ export class AnthropicProvider implements AiProvider {
       totals.outputTokens += u.outputTokens;
       totals.cacheReadTokens += u.cacheReadTokens;
       totals.cacheWriteTokens += u.cacheWriteTokens;
-      costUsd += estimateCostUsd(response.model, u);
+      costUsd += estimateCostUsd(response.model, u) + (response.usage.server_tool_use?.web_search_requests ?? 0) * WEB_SEARCH_USD;
       const usage = (): AiUsage => ({ ...totals, costUsd });
 
       if (response.stop_reason === "refusal") throw new AiProviderError("The model declined the request");

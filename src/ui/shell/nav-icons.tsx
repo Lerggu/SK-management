@@ -1,4 +1,4 @@
-import { Workflow, IdCard, Boxes, HardHat, DoorOpen, ChartGantt, Construction, Handshake, Receipt, Clock, FileText, PackageCheck, FolderKanban, LayoutDashboard, Settings, Truck, Users } from "lucide-react";
+import { Megaphone, Workflow, IdCard, Boxes, HardHat, DoorOpen, ChartGantt, Construction, Handshake, Receipt, Clock, FileText, PackageCheck, FolderKanban, LayoutDashboard, Settings, Truck, Users } from "lucide-react";
 
 export const NAV_ICONS = {
   dashboard: LayoutDashboard,
@@ -12,6 +12,7 @@ export const NAV_ICONS = {
   materials: Boxes,
   hse: HardHat,
   sales: Handshake,
+  marketing: Megaphone,
   billing: Receipt,
   workforce: Users,
   myCard: IdCard,

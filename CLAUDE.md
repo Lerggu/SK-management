@@ -18,6 +18,8 @@ Teams (owner request 2026-11-18): `teams` with leader, one team per person (`emp
 Member access (owner request 2026-11-18): personal extra permissions per member (externals never sensitive/company-wide), registration form on first sign-in — `docs/adr/0030-member-access-and-registration.md`.
 Assistant (owner approval 2026-11-18): voice/text assistant proposes actions, a person confirms, executed through the normal services; names may go to the AI for the assistant only (never identity codes or rates); speech via Azure AI Speech — `docs/adr/0031-assistant.md`. WhatsApp is a later phase needing its own approval. Never put API keys in files or commits; `SK_ANTHROPIC_API_KEY`/`ANTHROPIC_API_KEY` come from the environment only.
 
+Marketing automation (owner request and decisions 2026-11-17): discovery agent (TED API, AI web search, TSOs, Hilma) fills the marketing register; letter agent drafts targeted letters and call scripts; a person approves before sending (`auto_send` off by default); Reply-To goes to the chosen salespeople; unsubscribe link and do-not-contact list; no AI robocalls (call list instead); separate monthly marketing AI budget — `docs/adr/0032-marketing-automation.md`, user guide `docs/MARKETING_GUIDE.md`.
+
 ## Owner requirements (binding)
 1. Finnish is the default UI language; English is available from V1 (i18n from day one, no hard-coded UI strings).
 2. SK Infra and Purent are separate companies on the same platform. The multi-company architecture exists from day one.

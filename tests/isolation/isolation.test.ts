@@ -65,6 +65,8 @@ import { personalIdService } from "@/modules/workforce/personal-id.service";
 import { teamService } from "@/modules/workforce/team.service";
 import { assistantService } from "@/modules/assistant/service";
 import { deviationService } from "@/modules/production/deviation.service";
+import { marketingService } from "@/modules/marketing/service";
+import { setTedFetchForTests } from "@/platform/integrations/ted";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
 interface World {
@@ -148,6 +150,7 @@ interface World {
   bSite: string;
   teams: { a: string; b: string };
   assistant: { conversation: string; action: string };
+  mk: { lead: string; contact: string; draft: string; sent: string };
   bProject: string;
   bDocument: string;
   bEquipmentType: string;
@@ -297,6 +300,14 @@ beforeAll(async () => {
   const bTeam = await teamService.create(b.ownerCtx, { name: "B team" });
   const aConv = await assistantService.converse(actx, { message: "uusi projekti Assistentti" }); // deterministic provider
   const aAction = aConv.actions[0];
+  // ── Marketing register in company A (ADR 0032) ──
+  const mkLead = await marketingService.createLead(actx, { title: "A secret data centre", country: "FI", ownerOrg: "A client" });
+  const mkContact = await marketingService.addContact(actx, mkLead.id, { name: "A contact", email: "a.contact@example.test", phone: "+358 40 1" });
+  const mkContact2 = await marketingService.addContact(actx, mkLead.id, { name: "A contact 2", email: "a.contact2@example.test", phone: "+358 40 2" });
+  const mkDraft = await db.marketingMessage.create({ data: { companyId: a.companyId, leadId: mkLead.id, contactId: mkContact.id, subject: "A draft", body: "A body", unsubscribeToken: "a-iso-draft-token-xxxxxxxxxx" } });
+  const mkSent = await db.marketingMessage.create({
+    data: { companyId: a.companyId, leadId: mkLead.id, contactId: mkContact2.id, subject: "A sent", body: "A body", unsubscribeToken: "a-iso-sent-token-xxxxxxxxxxx", status: "SENT", approvedAt: new Date(), sentAt: new Date(), sentTo: "a.contact2@example.test", callStatus: "TODO" },
+  });
   await hrSettingsService.update(actx, { reminderEmail: "a.hr.maintenance@example.test" });
   const hrArea = await competenceAreaService.create(actx, { category: "A", name: "A area", isKey: true });
   const hrType = await qualificationTypeService.create(actx, { name: "A card" });
@@ -439,6 +450,7 @@ beforeAll(async () => {
     bSite: bSite.id,
     teams: { a: aTeam.id, b: bTeam.id },
     assistant: { conversation: aConv.conversationId!, action: aAction.id },
+    mk: { lead: mkLead.id, contact: mkContact.id, draft: mkDraft.id, sent: mkSent.id },
     bProject: bProject.id,
     bDocument: bDocument.id,
     bEquipmentType: bType.id,
@@ -1365,6 +1377,64 @@ const cases: Record<string, Case> = {
     // Company-neutral: needs a speech service; B gets no data of A either way.
     await expectRejected(assistantService.transcribe(w.bCtx, { bytes: new Uint8Array(10) }));
   },
+  "marketing.overview": async () => {
+    expect((await marketingService.overview(w.bCtx)).pendingApprovals).toBe(0);
+  },
+  "marketing.listLeads": async () => {
+    expect((await marketingService.listLeads(w.bCtx, { includeClosed: "on" })).map((l) => l.id)).not.toContain(w.mk.lead);
+  },
+  "marketing.getLead": () => expectNotFound(marketingService.getLead(w.bCtx, w.mk.lead)),
+  "marketing.createLead": async () => {
+    // Same title in B is its own lead; A's register is untouched.
+    const l = await marketingService.createLead(w.bCtx, { title: "A secret data centre", country: "FI" });
+    expect(l.companyId).toBe(w.b.companyId);
+  },
+  "marketing.updateLead": () => expectNotFound(marketingService.updateLead(w.bCtx, w.mk.lead, { title: "Hijacked", category: "OTHER", stage: "UNKNOWN", status: "DISCARDED", fitScore: "0" })),
+  "marketing.convertToOpportunity": () => expectNotFound(marketingService.convertToOpportunity(w.bCtx, w.mk.lead)),
+  "marketing.addContact": () => expectNotFound(marketingService.addContact(w.bCtx, w.mk.lead, { name: "Intruder" })),
+  "marketing.updateContact": () => expectNotFound(marketingService.updateContact(w.bCtx, w.mk.contact, { name: "Hijacked" })),
+  "marketing.archiveContact": () => expectNotFound(marketingService.archiveContact(w.bCtx, w.mk.contact)),
+  "marketing.startDiscovery": async () => {
+    setTedFetchForTests(async () => []);
+    try {
+      await marketingService.startDiscovery(w.bCtx, { wait: true });
+    } finally {
+      setTedFetchForTests(undefined);
+    }
+    expect(await db.marketingRun.count({ where: { companyId: w.a.companyId } })).toBe(0);
+  },
+  "marketing.draftForLead": () => expectNotFound(marketingService.draftForLead(w.bCtx, w.mk.lead)),
+  "marketing.listMessages": async () => {
+    expect((await marketingService.listMessages(w.bCtx)).map((m) => m.id)).not.toContain(w.mk.draft);
+  },
+  "marketing.getMessage": () => expectNotFound(marketingService.getMessage(w.bCtx, w.mk.draft)),
+  "marketing.updateMessage": () => expectNotFound(marketingService.updateMessage(w.bCtx, w.mk.draft, { subject: "Hijacked", body: "x" })),
+  "marketing.approveMessage": () => expectNotFound(marketingService.approveMessage(w.bCtx, w.mk.draft)),
+  "marketing.rejectMessage": () => expectNotFound(marketingService.rejectMessage(w.bCtx, w.mk.draft)),
+  "marketing.callList": async () => {
+    expect((await marketingService.callList(w.bCtx)).map((m) => m.id)).not.toContain(w.mk.sent);
+  },
+  "marketing.recordCall": () => expectNotFound(marketingService.recordCall(w.bCtx, w.mk.sent, { callStatus: "MEETING" })),
+  "marketing.getSettings": async () => {
+    const s = await marketingService.getSettings(w.bCtx);
+    expect(s.settings.companyId).toBe(w.b.companyId);
+    expect(s.members.map((m) => m.id)).not.toContain(w.a.owner.user.id);
+  },
+  "marketing.updateSettings": async () => {
+    // A's members cannot be chosen as B's reply recipients.
+    await expectRejected(marketingService.updateSettings(w.bCtx, { enabled: "", countries: ["FI"], minScore: "60", dailySendLimit: "20", intervalHours: "24", aiMonthlyBudgetEur: "40", replyToUserIds: [w.a.owner.user.id] }));
+    expect(await db.marketingSettings.count({ where: { companyId: w.a.companyId } })).toBe(0);
+  },
+  "marketing.listSuppressions": async () => {
+    await marketingService.addSuppression(w.bCtx, { email: "a.contact@example.test" });
+    expect((await marketingService.listSuppressions(w.bCtx)).every((s) => s.companyId === w.b.companyId)).toBe(true);
+  },
+  "marketing.addSuppression": async () => {
+    await marketingService.addSuppression(w.bCtx, { email: "a.contact@example.test" });
+    // B's do-not-contact list never touches A's letters.
+    expect((await db.marketingMessage.findUniqueOrThrow({ where: { id: w.mk.draft } })).status).toBe("DRAFT");
+    expect(await db.marketingSuppression.count({ where: { companyId: w.a.companyId } })).toBe(0);
+  },
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -1446,5 +1516,9 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect((await db.companyItem.findUniqueOrThrow({ where: { id: w.hr.item } })).acknowledgedAt).toBeNull();
     expect((await db.employee.findUniqueOrThrow({ where: { id: w.hr.worker } })).team).toBe("A team");
     expect((await db.logisticsDeviation.findUniqueOrThrow({ where: { id: w.prod.deviation } })).status).toBe("OPEN");
+    expect(await db.marketingLead.findUniqueOrThrow({ where: { id: w.mk.lead } })).toMatchObject({ title: "A secret data centre", status: "NEW", opportunityId: null });
+    expect(await db.marketingContact.findUniqueOrThrow({ where: { id: w.mk.contact } })).toMatchObject({ name: "A contact", archivedAt: null });
+    expect(await db.marketingMessage.findUniqueOrThrow({ where: { id: w.mk.draft } })).toMatchObject({ status: "DRAFT", subject: "A draft" });
+    expect((await db.marketingMessage.findUniqueOrThrow({ where: { id: w.mk.sent } })).callStatus).toBe("TODO");
   });
 });

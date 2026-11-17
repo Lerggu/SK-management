@@ -71,6 +71,10 @@ export const PERMISSIONS = {
   // V6 — commercial (prices, margins and billing are sensitive)
   "crm.view": { category: "commercial", sensitive: false, description: "View customers, contacts and the sales pipeline" },
   "crm.manage": { category: "commercial", sensitive: false, description: "Manage customers, contacts and opportunities" },
+  // Marketing automation (ADR 0032)
+  "marketing.view": { category: "commercial", sensitive: false, description: "View the marketing register, letters and call list" },
+  "marketing.manage": { category: "commercial", sensitive: false, description: "Manage marketing settings, run the agents and edit the register and contacts" },
+  "marketing.approve": { category: "commercial", sensitive: false, description: "Approve and send marketing letters" },
   "commercial.view": { category: "commercial", sensitive: true, description: "View quotes, contracts, variations and project forecasts" },
   "commercial.manage": { category: "commercial", sensitive: true, description: "Prepare quotes, contracts, variations and forecasts" },
   "commercial.approve": { category: "commercial", sensitive: true, description: "Approve quotes and variations" },
@@ -135,6 +139,9 @@ export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "timesheet.export",
   "crm.view",
   "crm.manage",
+  "marketing.view",
+  "marketing.manage",
+  "marketing.approve",
 ]);
 
 export type RoleTemplateKey =
@@ -225,6 +232,9 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
       "material.manage",
       "crm.view",
       "crm.manage",
+      "marketing.view",
+      "marketing.manage",
+      "marketing.approve",
       "commercial.view",
       "commercial.manage",
       "commercial.approve",

@@ -210,12 +210,15 @@ export function SelectField({
 }
 
 /** Single checkbox with its field error (e.g. an acknowledgement). */
-export function CheckboxField({ name, label, className }: { name: string; label: string; className?: string }) {
+export function CheckboxField({ name, label, className, defaultChecked }: { name: string; label: string; className?: string; defaultChecked?: boolean }) {
   const f = useField(name);
+  const submitted = React.useContext(FormStateContext)?.values;
+  // After a submit the echoed values win (an unchecked box is absent from them).
+  const checked = submitted ? f.value === "on" : !!defaultChecked;
   return (
     <div className={cn("space-y-1", className)}>
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm md:min-h-9">
-        <input type="checkbox" name={name} defaultChecked={f.value === "on"} aria-invalid={f.errors.length > 0 || undefined} className="size-5 accent-primary md:size-4" />
+        <input key={f.key} type="checkbox" name={name} defaultChecked={checked} aria-invalid={f.errors.length > 0 || undefined} className="size-5 accent-primary md:size-4" />
         {label}
       </label>
       {f.errors.map((e) => (
