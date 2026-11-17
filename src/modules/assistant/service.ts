@@ -201,7 +201,7 @@ export const assistantService = {
     const conv = input.conversationId ? await conversationOr404(ctx, input.conversationId) : await db.assistantConversation.create({ data: { companyId: ctx.company.id, userId: ctx.user.id, messages: [] } });
     const history = ((conv.messages as Message[]) ?? []).slice(-HISTORY);
 
-    const base = { projectId: null, requestedById: ctx.user.id, kind: "ASSISTANT" as const, question: clip(message, 1000), locale: ctx.locale, promptVersion: ASSISTANT_PROMPT_VERSION };
+    const base = { projectId: null, requestedById: ctx.user.id, kind: "ASSISTANT" as const, question: null, locale: ctx.locale, promptVersion: ASSISTANT_PROMPT_VERSION };
     const budget = await budgetStatus(new AiRepo(db, ctx.company.id));
     if (budget.exhausted) {
       await recordAiRun(ctx, { ...base, provider: provider.name, model: provider.model, status: "BLOCKED_BUDGET", error: "ai.errors.budgetExhausted" }, null, []);

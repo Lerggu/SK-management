@@ -59,6 +59,9 @@ param enableAi bool = false
 @description('Set to true once the Key Vault secret field-key (32 random bytes, base64) exists: encrypts personal identity codes (ADR 0028).')
 param enableFieldKey bool = false
 
+@description('Azure AI Speech region (e.g. swedencentral) once the Key Vault secret speech-key exists: microphone in the assistant (ADR 0031). Empty = no speech.')
+param speechRegion string = ''
+
 @description('One-time bootstrap: group organization and first owner (see docs/DEPLOY_AZURE.md). Leave empty to skip.')
 param bootstrapOwnerEmail string = ''
 param bootstrapOwnerName string = ''
@@ -230,6 +233,7 @@ var baseSettings = [
 var smtpSettings = enableSmtp ? [{ name: 'SMTP_URL', value: '@Microsoft.KeyVault(${kvRef}smtp-url)' }] : []
 var aiSettings = enableAi ? [{ name: 'SK_ANTHROPIC_API_KEY', value: '@Microsoft.KeyVault(${kvRef}anthropic-api-key)' }] : []
 var fieldKeySettings = enableFieldKey ? [{ name: 'SK_FIELD_KEY', value: '@Microsoft.KeyVault(${kvRef}field-key)' }] : []
+var speechSettings = empty(speechRegion) ? [] : [{ name: 'SK_SPEECH_KEY', value: '@Microsoft.KeyVault(${kvRef}speech-key)' }, { name: 'SK_SPEECH_REGION', value: speechRegion }]
 
 resource web 'Microsoft.Web/sites@2023-12-01' = {
   name: webAppName
@@ -248,7 +252,7 @@ resource web 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
-      appSettings: concat(baseSettings, smtpSettings, aiSettings, fieldKeySettings)
+      appSettings: concat(baseSettings, smtpSettings, aiSettings, fieldKeySettings, speechSettings)
     }
   }
 }

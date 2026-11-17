@@ -56,7 +56,9 @@ export function AssistantChat({
   const [pending, start] = useTransition();
   const rec = useRef<WavRecorder | null>(null);
   const end = useRef<HTMLDivElement | null>(null);
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [messages.length, actions.length]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" });
+  }, [messages.length, actions.length]);
 
   const fail = (r: Result) => setError(tAll(r.fieldErrors ? (Object.values(r.fieldErrors).flat()[0] ?? r.message ?? "errors.generic") : (r.message ?? "errors.generic")));
 

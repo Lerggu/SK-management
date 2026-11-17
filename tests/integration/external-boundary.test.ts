@@ -66,6 +66,7 @@ import { logisticsAiService } from "@/modules/production/ai.service";
 import { rotationService } from "@/modules/workforce/rotation.service";
 import { personalIdService } from "@/modules/workforce/personal-id.service";
 import { teamService } from "@/modules/workforce/team.service";
+import { assistantService } from "@/modules/assistant/service";
 import { createMember, createTenant, textFile, uniq, type Tenant } from "../helpers/fixtures";
 
 type Role = "CLIENT" | "CLIENT_APPROVER" | "SUBCONTRACTOR";
@@ -167,6 +168,8 @@ const CALLS: Record<string, Call> = {
   "personalId.set": w("personalId", (c) => personalIdService.set(c, f.employee, { personalId: "131052-308T" })),
   "team.list": r("team", (c) => teamService.list(c)),
   "team.create": w("team", (c) => teamService.create(c, { name: uniq("t") })),
+  "assistant.current": r("assistant", (c) => assistantService.current(c)),
+  "assistant.converse": w("assistant", (c) => assistantService.converse(c, { message: "uusi projekti Ulkoinen" })),
   // HR (ADR 0025): external parties never get HR access.
   "hr.settings.get": r("hrSettings", (c) => hrSettingsService.get(c)),
   "hr.settings.update": w("hrSettings", (c) => hrSettingsService.update(c, { reminderEmail: "x@example.test" })),

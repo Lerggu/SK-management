@@ -15,7 +15,8 @@ Production control (owner approval 2026-11-17, starts the AI Logistics Controlle
 Workforce rotation (owner request 2026-11-18): rotation calendar with sites and statuses (work/site, off, vacation, sick, training, other), work/off rhythm, sick leave visible only with `rotation.manage` — `docs/adr/0027-workforce-rotation.md`.
 Personal identity code (owner request 2026-11-18): encrypted at the application layer (`SK_FIELD_KEY` from Key Vault `field-key`), only `employee.pid.manage`, every view audited, never in lists/exports/AI — `docs/adr/0028-personal-identity-code.md`.
 Teams (owner request 2026-11-18): `teams` with leader, one team per person (`employees.team_id`, `employees.team` is the cached name), rotation can place a whole team — `docs/adr/0029-teams.md`.
-Member access (owner request 2026-11-18): personal extra permissions per member (externals never sensitive/company-wide), registration form on first sign-in — `docs/adr/0030-member-access-and-registration.md`. Never put API keys in files or commits; `SK_ANTHROPIC_API_KEY`/`ANTHROPIC_API_KEY` come from the environment only.
+Member access (owner request 2026-11-18): personal extra permissions per member (externals never sensitive/company-wide), registration form on first sign-in — `docs/adr/0030-member-access-and-registration.md`.
+Assistant (owner approval 2026-11-18): voice/text assistant proposes actions, a person confirms, executed through the normal services; names may go to the AI for the assistant only (never identity codes or rates); speech via Azure AI Speech — `docs/adr/0031-assistant.md`. WhatsApp is a later phase needing its own approval. Never put API keys in files or commits; `SK_ANTHROPIC_API_KEY`/`ANTHROPIC_API_KEY` come from the environment only.
 
 ## Owner requirements (binding)
 1. Finnish is the default UI language; English is available from V1 (i18n from day one, no hard-coded UI strings).
