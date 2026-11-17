@@ -209,6 +209,7 @@ model Company {
   jobProfiles        JobProfile[]
   expiryReminders    ExpiryReminder[]
   logisticsTaskTypes LogisticsTaskType[]
+  rotationEntries    RotationEntry[]
 
   @@index([organizationId])
   @@map("companies")
@@ -538,6 +539,8 @@ model Site {
   workPermits        WorkPermit[]
   hseInspections     HseInspection[]
 
+  rotationEntries RotationEntry[]
+
   @@unique([companyId, id])
   @@unique([companyId, projectId, id])
   @@index([companyId, projectId])
@@ -608,6 +611,7 @@ model Employee {
   clothingIssues  ClothingIssue[]
   companyItems    CompanyItem[]
   files           EmployeeFile[]
+  rotationEntries RotationEntry[]
   expiryReminders ExpiryReminder[]
 
   @@unique([companyId, id])
@@ -3638,4 +3642,41 @@ model LogisticsDeviationPhoto {
   @@unique([companyId, id])
   @@index([companyId, deviationId])
   @@map("logistics_deviation_photos")
+}
+
+/// Workforce rotation plan (docs/adr/0027-workforce-rotation.md): one entry
+/// per employee per day. WORK may name the site; absences never do. SICK and
+/// OTHER (and notes) are shown only to members with rotation.manage.
+enum RotationStatus {
+  WORK
+  OFF
+  VACATION
+  SICK
+  TRAINING
+  OTHER
+}
+
+model RotationEntry {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  companyId   String         @map("company_id") @db.Uuid
+  employeeId  String         @map("employee_id") @db.Uuid
+  day         DateTime       @db.Date
+  status      RotationStatus
+  projectId   String?        @map("project_id") @db.Uuid
+  siteId      String?        @map("site_id") @db.Uuid
+  note        String?
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?        @map("created_by") @db.Uuid
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?        @map("updated_by") @db.Uuid
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict)
+  site     Site?    @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+
+  @@unique([companyId, employeeId, day])
+  @@unique([companyId, id])
+  @@index([companyId, day])
+  @@index([companyId, siteId, day])
+  @@map("rotation_entries")
 }

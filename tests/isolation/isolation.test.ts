@@ -60,6 +60,7 @@ import { hrOverviewService } from "@/modules/hr/overview.service";
 import { staffingService, taskTypeService } from "@/modules/production/service";
 import { productionCalendarService } from "@/modules/production/calendar.service";
 import { logisticsAiService } from "@/modules/production/ai.service";
+import { rotationService } from "@/modules/workforce/rotation.service";
 import { deviationService } from "@/modules/production/deviation.service";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
@@ -1280,6 +1281,22 @@ const cases: Record<string, Case> = {
     expect(JSON.stringify(await logisticsAiService.risks(w.bCtx, w.bProject))).not.toContain("A secret");
   },
   "logisticsAi.analyseRisks": () => expectNotFound(logisticsAiService.analyseRisks(w.bCtx, w.ids.project)),
+  "rotation.board": async () => {
+    const b = await rotationService.board(w.bCtx, { date: "2026-11-02", weeks: 4 });
+    expect(b.people.map((p) => p.id)).not.toContain(w.ids.employee);
+    expect(b.sites.map((x) => x.id)).not.toContain(w.ids.site);
+  },
+  "rotation.setRange": async () => {
+    await expectNotFound(rotationService.setRange(w.bCtx, { employeeId: w.ids.employee, from: "2026-11-02", until: "2026-11-02", status: "OFF" }));
+    await expectRejected(rotationService.setRange(w.bCtx, { employeeId: w.bhr.employee, from: "2026-11-02", until: "2026-11-02", status: "WORK", siteId: w.ids.site }));
+    expect(await db.rotationEntry.count({ where: { siteId: w.ids.site } })).toBe(0);
+  },
+  "rotation.clearRange": () => expectNotFound(rotationService.clearRange(w.bCtx, { employeeId: w.ids.employee, from: "2026-11-02", until: "2026-11-02" })),
+  "rotation.applyPattern": async () => {
+    await expectRejected(rotationService.applyPattern(w.bCtx, { employeeIds: [w.ids.employee], from: "2026-11-02", until: "2026-11-03", workDays: "1", offDays: "1" }));
+    await expectRejected(rotationService.applyPattern(w.bCtx, { employeeIds: [w.bhr.employee], from: "2026-11-02", until: "2026-11-03", workDays: "1", offDays: "1", siteId: w.ids.site }));
+    expect(await db.rotationEntry.count({ where: { companyId: w.a.companyId } })).toBe(0);
+  },
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();

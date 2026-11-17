@@ -51,11 +51,6 @@ export default async function MembersPage({ params }: { params: Promise<{ compan
                       <CheckboxGroupField name="roleIds" label={t("memberRoles")} options={roleOptions} defaultValues={m.roles.map((r) => r.role.id)} />
                       <SubmitButton variant="outline">{t("saveRoles")}</SubmitButton>
                     </ActionForm>
-                    {m.status === "INVITED" && (
-                      <ActionButton action={resendInviteAction.bind(null, companySlug, m.id)} className="mr-2" showSuccess>
-                        {t("resendInvite")}
-                      </ActionButton>
-                    )}
                     {m.user.id !== ctx.user.id && m.status !== "INVITED" && (
                       <ActionButton action={setMemberStatusAction.bind(null, companySlug, m.id, m.status === "DISABLED" ? "ACTIVE" : "DISABLED")} variant={m.status === "DISABLED" ? "outline" : "destructive"}>
                         {m.status === "DISABLED" ? t("enable") : t("disable")}
@@ -63,6 +58,13 @@ export default async function MembersPage({ params }: { params: Promise<{ compan
                     )}
                   </div>
                 </details>
+                {m.status === "INVITED" && (
+                  <div className="mt-2" data-testid="resend-invite">
+                    <ActionButton action={resendInviteAction.bind(null, companySlug, m.id)} showSuccess>
+                      {t("resendInvite")}
+                    </ActionButton>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

@@ -18,7 +18,13 @@ test.describe("invitation e-mail", () => {
     await page.getByRole("button", { name: "Kutsu käyttäjä" }).click();
     await expect(page.getByText("Kutsu lähetetty sähköpostilla.")).toBeVisible();
 
+    // The pending invitation can be resent straight from its row.
+    const row = page.locator("li").filter({ hasText: email });
+    await row.getByTestId("resend-invite").getByRole("button", { name: "Lähetä kutsu uudelleen" }).click();
+    await expect(row.getByText("Kutsu lähetetty sähköpostilla.")).toBeVisible();
+
     await page.goto("/dev/mailbox");
+    await expect(page.locator(`[data-testid="dev-mail"][data-to="${email}"]`).filter({ hasText: "kutsui sinut" })).toHaveCount(2);
     const mail = page.locator(`[data-testid="dev-mail"][data-to="${email}"]`).first();
     await expect(mail).toContainText("kutsui sinut");
     const link = /https?:\/\/\S+\/sign-in\?email=\S+/.exec((await mail.textContent()) ?? "")![0];

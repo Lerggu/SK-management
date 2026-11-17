@@ -64,6 +64,23 @@ Komento ottaa käyttöön Azure Communication Services -sähköpostin ja asettaa
 
 **Henkilöt**-välilehden *Haku ja suodatus* rajaa henkilöt tehtävän, tiimin, toimipisteen, osaamisen ja tason, kielen ja kielitaidon tai voimassa olevan kortin mukaan.
 
+## Rotaatio
+**Henkilöstö → Rotaatio** on henkilöstön rotaatiosuunnitelma kalenterina ([ADR 0027](adr/0027-workforce-rotation.md)).
+- **Tilat:** töissä (työmaa), vapaalla, lomalla, sairaana, koulutuksessa ja muu syy.
+- **Merkitseminen:**
+  - raahaa henkilö sivupaneelista oikean rivin päivään, tai napauta henkilöä ja sitten päivää (puhelimella);
+  - valitse avautuvassa ikkunassa tila, työmaa ja jakso (alkaen–asti);
+  - nimen napautus kalenterissa muuttaa tai tyhjentää merkinnän.
+- **Näkymät:**
+  - *Työmaat* näyttää, ketkä ovat millä työmaalla, sekä päivittäisen henkilömäärän;
+  - *Henkilöt* näyttää jokaisen henkilön tilan päiväkohtaisesti ja työpäivät jaksolla.
+- **Rotaatiorytmi:** merkitsee valituille henkilöille toistuvan rytmin, esim. 10 päivää töissä ja 4 vapaalla. Lomia, sairauspoissaoloja ja muita poissaoloja ei korvata.
+- **Kuka näkee mitä:**
+  - suunnittelevat toimitusjohtaja, projektijohtaja, projektipäällikkö, työmaapäällikkö ja henkilöstöhallinto;
+  - työnjohtaja ja logistiikkakoordinaattori katsovat;
+  - sairauspoissaolo ja muu syy näkyvät katsojille vain merkinnällä "Poissa".
+- **Yhteys logistiikkaan:** logistiikan resursoinnissa poissa oleva henkilö saa varoituksen "Poissa rotaation mukaan".
+
 ## Liitteet
 - **Tiedostot.** Sallitut tiedostot ovat JPG, PNG, WEBP ja PDF, enintään 20 Mt. Tiedoston sisältö tarkistetaan.
 - **Säilytys.** Liitteet säilytetään suojatussa tallennustilassa.
