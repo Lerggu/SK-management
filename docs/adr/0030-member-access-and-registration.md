@@ -39,6 +39,11 @@
 - **Audit:** `user.register`, with the phone masked.
 - **Existing users:** people who had already signed in, or had an active membership, were marked registered by the migration, so the form is only for new invitees. Seeded demo users are registered.
 
+### Addendum 2026-11-18: invitation with projects, portal guard
+- **Projects in the invitation:** the invite form can choose projects (optional). The person is added to them in the same transaction, with an external role if one was chosen (otherwise the first role); each assignment is audited as `project_member.assign`. Only open projects of the company in which the inviter has `project.members.manage` are offered and accepted.
+- **No projects flag:** an external member with no projects gets a "Ei projekteja" badge on the members page, and the empty portal tells the person to ask the inviter for access.
+- **Portal guard:** external members are kept in the portal by a client-side guard on the browser's real path, plus a page-level redirect on the dashboard. The earlier layout `redirect()` relied on the request path header, which is stale during a redirect chain (registration → `/` → dashboard → portal) and is not re-run on client-side navigation; that left new external users on a blank page. Services still enforce access on the server.
+
 ## Consequences
 - **The data notice is a short summary.** A full privacy notice document from the company can be linked from it later.
 - **The profile cannot yet be edited afterwards.** A "my profile" page would reuse the same service.

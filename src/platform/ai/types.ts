@@ -83,6 +83,12 @@ export interface AiRunRequest {
   /** Executes a tool for the requesting user; errors come back as results. */
   executeTool(name: string, input: unknown): Promise<unknown>;
   maxToolRounds: number;
+  /**
+   * Lets the model search the public web (server-side tool, billed per
+   * search). Used by the marketing discovery agent (ADR 0032) only; the
+   * request must never contain internal personal data.
+   */
+  webSearch?: { maxUses: number; allowedDomains?: string[] };
   /** Schema of the final answer; defaults to `AI_INSIGHT_SCHEMA`. */
   resultSchema?: JsonSchema;
   /**

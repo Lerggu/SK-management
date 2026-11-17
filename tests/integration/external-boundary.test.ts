@@ -16,6 +16,7 @@ import { ForbiddenError, NotFoundError, ValidationError } from "@/platform/error
 import type { RequestContext } from "@/platform/authz";
 import { SERVICE_REGISTRY } from "@/modules/registry";
 import { companyAdminService } from "@/modules/companies/service";
+import { marketingService } from "@/modules/marketing/service";
 import { dashboardService } from "@/modules/companies/dashboard";
 import { projectService, siteService } from "@/modules/projects/service";
 import { employeeService } from "@/modules/workforce/service";
@@ -168,6 +169,10 @@ const CALLS: Record<string, Call> = {
   "personalId.set": w("personalId", (c) => personalIdService.set(c, f.employee, { personalId: "131052-308T" })),
   "team.list": r("team", (c) => teamService.list(c)),
   "team.create": w("team", (c) => teamService.create(c, { name: uniq("t") })),
+  "marketing.listLeads": r("marketing", (c) => marketingService.listLeads(c)),
+  "marketing.overview": r("marketing", (c) => marketingService.overview(c)),
+  "marketing.callList": r("marketing", (c) => marketingService.callList(c)),
+  "marketing.createLead": w("marketing", (c) => marketingService.createLead(c, { title: `Ulkoinen ${uniq("l")}` })),
   "assistant.current": r("assistant", (c) => assistantService.current(c)),
   "assistant.converse": w("assistant", (c) => assistantService.converse(c, { message: "uusi projekti Ulkoinen" })),
   // HR (ADR 0025): external parties never get HR access.
@@ -209,6 +214,7 @@ const CALLS: Record<string, Call> = {
   "company.listMembers": r("companyAdmin", (c) => companyAdminService.listMembers(c)),
   "company.listRoles": r("companyAdmin", (c) => companyAdminService.listRoles(c)),
   "company.audit": r("companyAdmin", (c) => companyAdminService.listAuditEvents(c, {})),
+  "company.invitableProjects": r("companyAdmin", (c) => companyAdminService.invitableProjects(c)),
   "company.rememberCompany": w("companyAdmin", (c) => companyAdminService.rememberCompany(c)),
   "company.invite": w("companyAdmin", (c) => companyAdminService.inviteMember(c, { email: `${uniq("x")}@example.test`, roleIds: [] })),
   "dashboard.summary": r("dashboard", (c) => dashboardService.summary(c)),

@@ -71,6 +71,10 @@ export const PERMISSIONS = {
   // V6 — commercial (prices, margins and billing are sensitive)
   "crm.view": { category: "commercial", sensitive: false, description: "View customers, contacts and the sales pipeline" },
   "crm.manage": { category: "commercial", sensitive: false, description: "Manage customers, contacts and opportunities" },
+  // Marketing automation (ADR 0032)
+  "marketing.view": { category: "commercial", sensitive: false, description: "View the marketing register, letters and call list" },
+  "marketing.manage": { category: "commercial", sensitive: false, description: "Manage marketing settings, run the agents and edit the register and contacts" },
+  "marketing.approve": { category: "commercial", sensitive: false, description: "Approve and send marketing letters" },
   "commercial.view": { category: "commercial", sensitive: true, description: "View quotes, contracts, variations and project forecasts" },
   "commercial.manage": { category: "commercial", sensitive: true, description: "Prepare quotes, contracts, variations and forecasts" },
   "commercial.approve": { category: "commercial", sensitive: true, description: "Approve quotes and variations" },
@@ -113,6 +117,16 @@ export function isPermissionKey(value: string): value is PermissionKey {
  */
 export const EXTERNAL_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set(["portal.client", "portal.subcontractor", "variation.client_approve"]);
 
+/** Marketing automation (ADR 0032). */
+export const MARKETING_PERMISSIONS: ReadonlySet<PermissionKey> = new Set(["marketing.view", "marketing.manage", "marketing.approve"]);
+
+/**
+ * Owner decision 2026-11-18: marketing is only for the CEO and project
+ * manager roles. These permissions can be granted to roles from those
+ * templates only, never as a personal extra permission.
+ */
+export const MARKETING_ROLE_TEMPLATES: ReadonlySet<string> = new Set(["CEO", "PROJECT_MANAGER"]);
+
 /** Permissions that only make sense company-wide (never granted via a project role). */
 export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "company.manage",
@@ -135,6 +149,9 @@ export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "timesheet.export",
   "crm.view",
   "crm.manage",
+  "marketing.view",
+  "marketing.manage",
+  "marketing.approve",
 ]);
 
 export type RoleTemplateKey =
@@ -246,6 +263,9 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     projectAccess: "ASSIGNED",
     external: false,
     permissions: P(
+      "marketing.view",
+      "marketing.manage",
+      "marketing.approve",
       "project.view",
       "project.manage",
       "project.members.manage",

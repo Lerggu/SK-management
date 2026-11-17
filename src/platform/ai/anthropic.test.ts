@@ -105,6 +105,18 @@ describe("AnthropicProvider", () => {
     expect(messages[2].content).toEqual([{ type: "tool_result", tool_use_id: "toolu_1", content: JSON.stringify({ code: "P-1" }), is_error: false }]);
   });
 
+  it("offers the web search server tool only when requested, with its limits (ADR 0032)", async () => {
+    const { fetchFn, bodies } = stubFetch([sse([{ type: "tool_use", id: "toolu_1", name: "submit_result", input: answer }], "tool_use")]);
+    await new AnthropicProvider("test-key", { fetch: fetchFn, maxRetries: 0 }).run({ ...request([]), tools: [], webSearch: { maxUses: 4, allowedDomains: ["fingrid.fi"] } });
+    const tools = bodies[0].tools as Record<string, unknown>[];
+    expect(tools[0]).toEqual({ type: "web_search_20260209", name: "web_search", max_uses: 4, allowed_domains: ["fingrid.fi"] });
+    expect(tools.map((t) => t.name)).toEqual(["web_search", "submit_result"]);
+
+    const plain = stubFetch([sse([{ type: "tool_use", id: "toolu_1", name: "submit_result", input: answer }], "tool_use")]);
+    await new AnthropicProvider("test-key", { fetch: plain.fetchFn, maxRetries: 0 }).run(request([]));
+    expect((plain.bodies[0].tools as { name: string }[]).some((t) => t.name === "web_search")).toBe(false);
+  });
+
   it("returns tool errors to the model instead of failing", async () => {
     const { fetchFn, bodies } = stubFetch([
       sse([{ type: "tool_use", id: "toolu_1", name: "project_overview", input: {} }], "tool_use"),

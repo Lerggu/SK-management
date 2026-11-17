@@ -1,6 +1,6 @@
 import type { RequestContext } from "@/platform/authz";
 
-export type NavKey = "dashboard" | "portal" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "hse" | "sales" | "billing" | "workforce" | "myCard" | "production" | "equipment" | "documents" | "settings";
+export type NavKey = "dashboard" | "portal" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "hse" | "sales" | "marketing" | "billing" | "workforce" | "myCard" | "production" | "equipment" | "documents" | "settings";
 
 export interface NavItem {
   key: NavKey;
@@ -14,8 +14,8 @@ export interface NavItem {
  */
 export const EXTERNAL_PATHS = ["portal", "hse", "documents"] as const;
 
-export function externalPathAllowed(ctx: RequestContext, pathname: string | null): boolean {
-  if (!ctx.external) return true;
+/** True when `/c/<slug>/<section>/…` is a section external members may use. */
+export function isExternalPath(pathname: string | null): boolean {
   const rest = (pathname ?? "").split("/").slice(3);
   return rest.length > 0 && (EXTERNAL_PATHS as readonly string[]).includes(rest[0]);
 }
@@ -40,6 +40,7 @@ export function navItems(ctx: RequestContext, opts: { myEmployeeId?: string | nu
   if (hasMaterialAccess(ctx)) items.push({ key: "materials", href: `${base}/materials` });
   if (hasHseAccess(ctx)) items.push({ key: "hse", href: `${base}/hse` });
   if (has("crm.view")) items.push({ key: "sales", href: `${base}/sales` });
+  if (has("marketing.view")) items.push({ key: "marketing", href: `${base}/marketing` });
   if (has("invoice.manage") || [...ctx.projectGrants.values()].some((g) => g.has("invoice.manage"))) items.push({ key: "billing", href: `${base}/billing` });
   if (has("employee.view")) items.push({ key: "workforce", href: `${base}/workforce` });
   if (opts.myEmployeeId) items.push({ key: "myCard", href: `${base}/workforce/${opts.myEmployeeId}` });

@@ -33,6 +33,9 @@ const envSchema = z.object({
   // Default: on in production, off elsewhere ("on"/"off" overrides).
   HR_REMINDERS: z.enum(["on", "off", ""]).optional(),
   HR_REMINDER_INTERVAL_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
+  // Marketing agents (ADR 0032): hourly check inside the app process; each
+  // company runs only when enabled in its settings. Default: on in production.
+  MARKETING_AGENTS: z.enum(["on", "off", ""]).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -87,6 +90,14 @@ export function isSmtpConfigured(): boolean {
 /** Public base URL for links in e-mails (AUTH_URL), without a trailing slash. */
 export function appBaseUrl(): string {
   return (env().AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+/** Whether the in-process marketing scheduler runs (ADR 0032). */
+export function isMarketingSchedulerEnabled(): boolean {
+  const v = env().MARKETING_AGENTS;
+  if (v === "on") return true;
+  if (v === "off") return false;
+  return isProduction();
 }
 
 /** Whether the in-process expiry-reminder scheduler runs (ADR 0025). */

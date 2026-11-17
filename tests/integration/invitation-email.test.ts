@@ -9,7 +9,9 @@ import { db } from "@/platform/db";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/platform/errors";
 import { MemoryMailer, setMailerForTests, type Mailer } from "@/platform/mail";
 import { companyAdminService } from "@/modules/companies/service";
-import { createMember, createTenant, uniq, type Tenant } from "../helpers/fixtures";
+import { projectService } from "@/modules/projects/service";
+import { portalService } from "@/modules/portal/service";
+import { contextFor, createMember, createTenant, uniq, type Tenant } from "../helpers/fixtures";
 
 let t: Tenant;
 let mailer: MemoryMailer;
@@ -73,5 +75,33 @@ describe("invitation e-mail", () => {
     const pm = await createMember(t, "PROJECT_MANAGER");
     await expect(companyAdminService.resendInvite(pm, m.id)).rejects.toBeInstanceOf(ForbiddenError);
     await expect(companyAdminService.resendInvite(t.ownerCtx, "01900000-0000-7000-8000-000000000000")).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("adds the invited person to the chosen projects so the portal is not empty", async () => {
+    useMailer();
+    const p1 = await projectService.create(t.ownerCtx, { code: uniq("P"), name: "Mikkeli" });
+    const p2 = await projectService.create(t.ownerCtx, { code: uniq("P"), name: "Kouvola" });
+    expect((await companyAdminService.invitableProjects(t.ownerCtx)).map((p) => p.id)).toEqual(expect.arrayContaining([p1.id, p2.id]));
+    const roleIds = [await t.roleId("SITE_MANAGER"), await t.roleId("SUBCONTRACTOR")];
+    const m = await companyAdminService.inviteMember(t.ownerCtx, { email: `${uniq("sub")}@example.test`, roleIds, projectIds: [p1.id] });
+    const pms = await db.projectMembership.findMany({ where: { companyId: t.companyId, userId: m.userId }, include: { role: true } });
+    expect(pms.map((x) => [x.projectId, x.role.templateKey])).toEqual([[p1.id, "SUBCONTRACTOR"]]);
+    expect(await db.auditEvent.count({ where: { companyId: t.companyId, action: "project_member.assign", entityId: pms[0].id } })).toBe(1);
+
+    await db.companyMembership.update({ where: { id: m.id }, data: { status: "ACTIVE" } }); // first sign-in
+    const sub = await contextFor(t, m.userId);
+    expect((await portalService.projects(sub)).map((p) => p.id)).toEqual([p1.id]);
+    const listed = (await companyAdminService.listMembers(t.ownerCtx)).find((x) => x.id === m.id);
+    expect(listed?.projectCount).toBe(1);
+  });
+
+  it("rejects unknown or archived projects and rolls the whole invitation back", async () => {
+    const p = await projectService.create(t.ownerCtx, { code: uniq("P"), name: "Arkisto" });
+    await projectService.archive(t.ownerCtx, p.id);
+    const email = `${uniq("x")}@example.test`;
+    for (const projectIds of [[p.id], ["01900000-0000-7000-8000-000000000000"]]) {
+      await expect(companyAdminService.inviteMember(t.ownerCtx, { email, roleIds: [await t.roleId("CLIENT")], projectIds })).rejects.toBeInstanceOf(ValidationError);
+    }
+    expect(await db.user.count({ where: { email } })).toBe(0);
   });
 });

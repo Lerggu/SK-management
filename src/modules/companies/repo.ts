@@ -31,8 +31,22 @@ export class CompanyScopedRepo {
         user: { select: { id: true, email: true, name: true, lastSignInAt: true, phone: true, organization: true, jobTitle: true, registeredAt: true } },
         roles: { select: { role: { select: { id: true, key: true, name: true, templateKey: true } } } },
         extraPermissions: { select: { permissionKey: true }, orderBy: { permissionKey: "asc" } },
+        _count: { select: { projectMemberships: { where: { archivedAt: null } } } },
       },
     });
+  }
+
+  /** Active projects of this company among `ids` (invitation project picker). */
+  findOpenProjects(ids: string[]) {
+    return this.tx.project.findMany({ where: { companyId: this.companyId, id: { in: ids }, archivedAt: null }, select: { id: true, code: true, name: true } });
+  }
+
+  listOpenProjects() {
+    return this.tx.project.findMany({ where: { companyId: this.companyId, archivedAt: null }, select: { id: true, code: true, name: true }, orderBy: { code: "asc" } });
+  }
+
+  createProjectMembership(projectId: string, userId: string, roleId: string, actorId: string) {
+    return this.tx.projectMembership.create({ data: { companyId: this.companyId, projectId, userId, roleId, createdById: actorId, updatedById: actorId } });
   }
 
   replaceMemberPermissions(membershipId: string, keys: string[], userId: string) {

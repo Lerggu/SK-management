@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { hasPermission, PERMISSIONS, ALL_PERMISSIONS, SENSITIVE_PERMISSIONS } from "@/platform/authz";
+import { hasPermission, PERMISSIONS, ALL_PERMISSIONS, MARKETING_PERMISSIONS, SENSITIVE_PERMISSIONS } from "@/platform/authz";
 import { companyAdminService } from "@/modules/companies/service";
 import { ActionForm, SubmitButton } from "@/ui/components/form";
 import { PageHeader, Section } from "@/ui/components/page";
@@ -39,7 +39,7 @@ export default async function RolesPage({ params }: { params: Promise<{ companyS
                     <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t(`permissionCategories.${cat}`)}</legend>
                     {ALL_PERMISSIONS.filter((p) => PERMISSIONS[p].category === cat).map((p) => {
                       const sensitive = SENSITIVE_PERMISSIONS.has(p);
-                      const locked = !canEdit || (role.external && sensitive);
+                      const locked = !canEdit || (role.external && sensitive) || (MARKETING_PERMISSIONS.has(p) && !role.marketingAllowed);
                       return (
                         <label key={p} className="flex min-h-11 items-center gap-3 rounded-md px-1 text-sm md:min-h-8">
                           <input type="checkbox" name="permissionKeys" value={p} defaultChecked={role.permissions.includes(p)} disabled={locked} className="size-5 accent-primary md:size-4" />

@@ -392,7 +392,10 @@ async function main() {
   await taktActivityService.clearConstraint(supervisorCtx, drawings.id);
   await taktActivityService.addConstraint(supervisorCtx, byKey("KA", "A5").id, { type: "MATERIAL", description: "Kaapelirummut (4 kpl) toimitus myöhässä", dueDate: isoDateString(addDays(today, 3)) });
   await taktActivityService.addConstraint(supervisorCtx, byKey("TS", "A2").id, { type: "PERMIT", description: "Jännitetyölupa haettava" });
-  await taktActivityService.setBlocked(supervisorCtx, byKey("KH", "A6").id, { blocked: true, delayReason: "Kurottaja huollossa", recoveryAction: "Vuokrakurottaja tilattu, saapuu huomenna" });
+  // Block an unfinished activity (the plan starts on last Monday, so which ones are done depends on the weekday).
+  const unfinished = baselineBoard.activities.filter((a) => a.plannedEnd && a.plannedEnd >= todayIso).sort((x, y) => (x.plannedStart ?? "").localeCompare(y.plannedStart ?? ""));
+  const toBlock = unfinished.find((a) => a.workPackage.code === "KH") ?? unfinished[0];
+  await taktActivityService.setBlocked(supervisorCtx, toBlock.id, { blocked: true, delayReason: "Kurottaja huollossa", recoveryAction: "Vuokrakurottaja tilattu, saapuu huomenna" });
 
   // A change in progress: cable delivery late → new draft version, cabling and later wagons shifted by 2 days.
   const v2 = await taktPlanService.createDraft(pmCtx, taktPlan.id, { reason: "Kaapelitoimitus myöhässä 2 työpäivää" });

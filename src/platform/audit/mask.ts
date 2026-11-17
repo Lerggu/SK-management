@@ -27,6 +27,9 @@ export const SENSITIVE_FIELDS: Readonly<Record<string, readonly string[]>> = {
   employee_rate: ["amount"],
   equipment_rate: ["amount"],
   user: ["phone"],
+  // Marketing (ADR 0032): business contacts found in public sources.
+  marketing_contact: ["email", "phone"],
+  marketing_settings: ["email"],
   // V7: injured-person data is personal (health) data.
   incident_person: ["personName", "employeeId", "employerName", "injuryDescription", "bodyPart", "absenceDays"],
 };
