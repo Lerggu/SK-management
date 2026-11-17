@@ -460,6 +460,7 @@ const cases: Record<string, Case> = {
     expect(members.map((m) => m.id)).not.toContain(w.ids.membership);
   },
   "companyAdmin.inviteMember": () => expectRejected(companyAdminService.inviteMember(w.bCtx, { email: `x${Date.now()}@example.test`, roleIds: [w.ids.role] })),
+  "companyAdmin.resendInvite": () => expectNotFound(companyAdminService.resendInvite(w.bCtx, w.ids.membership)),
   "companyAdmin.updateMemberRoles": () => expectNotFound(companyAdminService.updateMemberRoles(w.bCtx, w.ids.membership, { roleIds: [w.ids.role] })),
   "companyAdmin.setMemberStatus": () => expectNotFound(companyAdminService.setMemberStatus(w.bCtx, w.ids.membership, { status: "DISABLED" })),
   "companyAdmin.listRoles": async () => {

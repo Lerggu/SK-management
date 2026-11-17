@@ -15,6 +15,7 @@ import {
   type RequestContext,
   type UserContext,
 } from "@/platform/authz";
+import { sendInvitationEmail } from "./invitation";
 import { CompanyScopedRepo } from "./repo";
 import {
   auditFilterSchema,
@@ -176,7 +177,7 @@ export const companyAdminService = {
   async inviteMember(ctx: RequestContext, input: InviteMemberInput) {
     requirePermission(ctx, "company.members.manage");
     const data = parseInput(inviteMemberSchema, input);
-    return runInTransaction(async (tx) => {
+    const membership = await runInTransaction(async (tx) => {
       const repo = new CompanyScopedRepo(tx, ctx.company.id);
       const roles = await repo.findRolesByIds(data.roleIds);
       if (roles.length !== new Set(data.roleIds).size) throw new ValidationError({ roleIds: ["validation.invalidOption"] });
@@ -212,6 +213,20 @@ export const companyAdminService = {
       });
       return membership;
     });
+    // After the commit: the e-mail tells the person how to sign in; a failure never undoes the invite.
+    const email = await sendInvitationEmail(ctx, membership.id, "membership.invite_email");
+    return { ...membership, email };
+  },
+
+  /** Sends the invitation e-mail again to a member who has not signed in yet. */
+  async resendInvite(ctx: RequestContext, membershipId: string) {
+    requirePermission(ctx, "company.members.manage");
+    const membership = await new CompanyScopedRepo(readClient(), ctx.company.id).findMembership(membershipId);
+    if (!membership) throw new NotFoundError();
+    if (membership.status !== "INVITED") throw new ValidationError({ _form: ["settings.inviteNotPending"] });
+    const email = await sendInvitationEmail(ctx, membership.id, "membership.invite_resend");
+    if (!email.sent) throw new ValidationError({ _form: [email.channel === "none" ? "settings.inviteNoMail" : "settings.inviteMailFailed"] });
+    return email;
   },
 
   async updateMemberRoles(ctx: RequestContext, membershipId: string, input: { roleIds: string[] }) {

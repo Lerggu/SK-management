@@ -15,11 +15,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const ERRORS: Record<string, string> = { not_invited: "errorNotInvited", rate_limited: "errorRateLimited", link_invalid: "errorLinkInvalid" };
 
-export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string }> }) {
+export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string; sent?: string; email?: string }> }) {
   if (await getSessionUserId()) redirect("/");
   const t = await getTranslations("auth");
   const tc = await getTranslations("common");
-  const { error, sent } = await searchParams;
+  const { error, sent, email } = await searchParams;
+  // Invitation e-mails link here with the address prefilled (no token in the mail).
+  const prefill = typeof email === "string" && email.length <= 254 ? email : undefined;
   const emailAvailable = isEmailSignInAvailable();
   const devEnabled = isDevLoginEnabled();
   const devUsers = devEnabled ? await listDevLoginUsers() : [];
@@ -60,7 +62,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
               <label htmlFor="email-link" className="sr-only">
                 {t("email")}
               </label>
-              <input id="email-link" name="email" type="email" autoComplete="email" inputMode="email" required placeholder={t("email")} className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm" />
+              <input id="email-link" name="email" type="email" autoComplete="email" inputMode="email" required defaultValue={prefill} placeholder={t("email")} className="h-11 w-full rounded-lg border bg-background px-3 text-base md:text-sm" />
               <Button type="submit" size="lg" variant="outline" className="w-full">
                 {t("sendLink")}
               </Button>
