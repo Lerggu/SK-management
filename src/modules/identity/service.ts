@@ -4,6 +4,7 @@ import { writeAudit } from "@/platform/audit";
 import { parseInput } from "@/platform/http/validation";
 import type { Locale, RequestMeta, UserContext } from "@/platform/authz";
 import { z } from "zod";
+import { findExternalSignInUser } from "./external-user";
 
 export const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
 /** V7: external users (e-mail link) get a shorter session. */
@@ -121,11 +122,47 @@ export async function listDevLoginUsers() {
 
 const localeSchema = z.object({ locale: z.enum(["fi", "en"]) });
 
+const registrationSchema = z.object({
+  name: z.string().trim().min(2, "validation.tooShort").max(120),
+  phone: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().trim().max(40).regex(/^[+0-9 ()-]{5,40}$/, "validation.invalidFormat").nullable()).default(null),
+  organization: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().trim().max(120).nullable()).default(null),
+  jobTitle: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), z.string().trim().max(120).nullable()).default(null),
+  locale: z.enum(["fi", "en"]).default("fi"),
+  acceptPrivacy: z.preprocess((v) => v === true || v === "on" || v === "true", z.boolean()).refine((v) => v, "validation.required"),
+});
+export type RegistrationInput = z.input<typeof registrationSchema>;
+
 export const profileService = {
   async getProfile(uctx: UserContext) {
     return readClient().user.findUniqueOrThrow({
       where: { id: uctx.user.id },
-      select: { id: true, email: true, name: true, locale: true, lastCompanyId: true },
+      select: { id: true, email: true, name: true, locale: true, lastCompanyId: true, phone: true, organization: true, jobTitle: true, registeredAt: true },
+    });
+  },
+
+  /**
+   * Registration form on first sign-in (ADR 0030): the invited person
+   * confirms their name and gives contact details; external users name the
+   * organisation they represent. Accepting the privacy notice is required.
+   */
+  async register(uctx: UserContext, input: RegistrationInput) {
+    // External users must name the organisation they represent; all errors are reported together.
+    const external = Boolean(await findExternalSignInUser(uctx.user.email));
+    const data = parseInput(
+      registrationSchema.superRefine((d, c) => {
+        if (external && !d.organization) c.addIssue({ code: "custom", path: ["organization"], message: "validation.required" });
+      }),
+      input,
+    );
+    const now = new Date();
+    return runInTransaction(async (tx) => {
+      const before = await tx.user.findUniqueOrThrow({ where: { id: uctx.user.id }, select: { registeredAt: true } });
+      await tx.user.update({
+        where: { id: uctx.user.id },
+        data: { name: data.name, phone: data.phone, organization: data.organization, jobTitle: data.jobTitle, locale: data.locale, privacyAcceptedAt: now, ...(before.registeredAt ? {} : { registeredAt: now }), updatedById: uctx.user.id },
+      });
+      await writeAudit(tx, uctx, { action: "user.register", entityType: "user", entityId: uctx.user.id, after: { organization: data.organization, jobTitle: data.jobTitle, phone: data.phone, firstTime: !before.registeredAt } });
+      return { registered: true };
     });
   },
 

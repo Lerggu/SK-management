@@ -217,20 +217,26 @@ model Company {
 }
 
 model User {
-  id            String     @id @default(uuid(7)) @db.Uuid
-  email         String     @unique
-  name          String?
-  emailVerified DateTime?  @map("email_verified") @db.Timestamptz(6)
-  image         String?
-  locale        String?
-  status        UserStatus @default(ACTIVE)
-  lastCompanyId String?    @map("last_company_id") @db.Uuid
-  lastSignInAt  DateTime?  @map("last_sign_in_at") @db.Timestamptz(6)
-  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdById   String?    @map("created_by") @db.Uuid
-  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
-  updatedById   String?    @map("updated_by") @db.Uuid
-  archivedAt    DateTime?  @map("archived_at") @db.Timestamptz(6)
+  id                String     @id @default(uuid(7)) @db.Uuid
+  email             String     @unique
+  name              String?
+  emailVerified     DateTime?  @map("email_verified") @db.Timestamptz(6)
+  image             String?
+  locale            String?
+  status            UserStatus @default(ACTIVE)
+  lastCompanyId     String?    @map("last_company_id") @db.Uuid
+  lastSignInAt      DateTime?  @map("last_sign_in_at") @db.Timestamptz(6)
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById       String?    @map("created_by") @db.Uuid
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById       String?    @map("updated_by") @db.Uuid
+  archivedAt        DateTime?  @map("archived_at") @db.Timestamptz(6)
+  /// Registration form on first sign-in (ADR 0030); the user's own profile data.
+  phone             String?
+  organization      String?
+  jobTitle          String?    @map("job_title")
+  registeredAt      DateTime?  @map("registered_at") @db.Timestamptz(6)
+  privacyAcceptedAt DateTime?  @map("privacy_accepted_at") @db.Timestamptz(6)
 
   identities              UserIdentity[]
   accounts                Account[]
@@ -336,11 +342,12 @@ model CompanyMembership {
   updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById String?          @map("updated_by") @db.Uuid
 
-  company            Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  user               User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  company            Company                @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
   roles              MembershipRole[]
   projectMemberships ProjectMembership[]
   hseActions         HseAction[]
+  extraPermissions   MembershipPermission[]
 
   @@unique([companyId, id])
   @@unique([companyId, userId])
@@ -382,7 +389,8 @@ model Permission {
   description String
   isSensitive Boolean @default(false) @map("is_sensitive")
 
-  rolePermissions RolePermission[]
+  rolePermissions       RolePermission[]
+  membershipPermissions MembershipPermission[]
 
   @@map("permissions")
 }
@@ -3714,4 +3722,21 @@ model Team {
   @@unique([companyId, id])
   @@index([companyId, archivedAt])
   @@map("teams")
+}
+
+/// Extra capabilities granted to one member on top of their roles (ADR 0030).
+/// External members never receive sensitive or company-wide capabilities.
+model MembershipPermission {
+  companyId     String   @map("company_id") @db.Uuid
+  membershipId  String   @map("membership_id") @db.Uuid
+  permissionKey String   @map("permission_key")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById   String?  @map("created_by") @db.Uuid
+
+  membership CompanyMembership @relation(fields: [companyId, membershipId], references: [companyId, id], onDelete: Cascade)
+  permission Permission        @relation(fields: [permissionKey], references: [key], onDelete: Restrict)
+
+  @@id([membershipId, permissionKey])
+  @@index([companyId])
+  @@map("membership_permissions")
 }

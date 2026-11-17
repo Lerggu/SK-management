@@ -153,6 +153,7 @@ export class HseRepo {
         user: { select: { email: true, name: true, locale: true } },
         roles: { where: { role: { archivedAt: null } }, select: { role: { select: roleSelect } } },
         projectMemberships: { where: { projectId, archivedAt: null, role: { archivedAt: null } }, select: { projectId: true, role: { select: roleSelect } } },
+        extraPermissions: { select: { permissionKey: true } },
       },
     });
   }

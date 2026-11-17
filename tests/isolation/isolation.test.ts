@@ -468,6 +468,10 @@ const cases: Record<string, Case> = {
   },
   "companyAdmin.inviteMember": () => expectRejected(companyAdminService.inviteMember(w.bCtx, { email: `x${Date.now()}@example.test`, roleIds: [w.ids.role] })),
   "companyAdmin.resendInvite": () => expectNotFound(companyAdminService.resendInvite(w.bCtx, w.ids.membership)),
+  "companyAdmin.setMemberPermissions": async () => {
+    await expectNotFound(companyAdminService.setMemberPermissions(w.bCtx, w.ids.membership, { permissionKeys: ["project.view"] }));
+    expect(await db.membershipPermission.count({ where: { membershipId: w.ids.membership } })).toBe(0);
+  },
   "companyAdmin.updateMemberRoles": () => expectNotFound(companyAdminService.updateMemberRoles(w.bCtx, w.ids.membership, { roleIds: [w.ids.role] })),
   "companyAdmin.setMemberStatus": () => expectNotFound(companyAdminService.setMemberStatus(w.bCtx, w.ids.membership, { status: "DISABLED" })),
   "companyAdmin.listRoles": async () => {
@@ -1328,6 +1332,12 @@ const cases: Record<string, Case> = {
     await expectRejected(teamService.addMembers(w.bCtx, w.teams.b, { employeeIds: [w.ids.employee] }));
   },
   "team.removeMember": () => expectNotFound(teamService.removeMember(w.bCtx, w.teams.a, w.ids.employee)),
+  "profile.register": async () => {
+    const before = await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } });
+    await profileService.register(w.bUser, { name: "B owner", acceptPrivacy: "on", organization: "B Oy" });
+    const after = await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } });
+    expect([after.name, after.organization, after.registeredAt]).toEqual([before.name, before.organization, before.registeredAt]);
+  },
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();

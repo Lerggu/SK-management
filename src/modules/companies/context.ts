@@ -46,6 +46,7 @@ export async function resolveRequestContext(params: {
           role: { select: { templateKey: true, projectAccess: true, permissions: { select: { permissionKey: true } } } },
         },
       },
+      extraPermissions: { select: { permissionKey: true } },
     },
   });
   if (!membership) throw new NotFoundError();
@@ -67,6 +68,7 @@ export async function resolveRequestContext(params: {
   const resolved = resolvePermissions(
     membership.roles.map((mr) => toGrant(mr.role)),
     projectMemberships.map((pm) => ({ projectId: pm.projectId, role: toGrant(pm.role) })),
+    membership.extraPermissions.map((x) => x.permissionKey),
   );
 
   return {

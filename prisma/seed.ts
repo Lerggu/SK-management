@@ -76,7 +76,10 @@ function textFile(name: string, body: string) {
 }
 
 async function ensureUser(email: string, name: string) {
-  return db.user.upsert({ where: { email }, create: { email, name }, update: {} });
+  // Demo users have filled in the registration form (ADR 0030).
+  const registered = { registeredAt: new Date(), privacyAcceptedAt: new Date() };
+  const user = await db.user.upsert({ where: { email }, create: { email, name, ...registered }, update: {} });
+  return user.registeredAt ? user : db.user.update({ where: { id: user.id }, data: registered });
 }
 
 async function activateAll(companyId: string, organizationId: string) {
@@ -712,6 +715,8 @@ async function main() {
     await staffingService.setTaskType(logisticsCtx, r.id, { taskTypeId: liftType.id });
   }
 
+  // All demo users (also those created through invitations) have filled in the registration form (ADR 0030).
+  await db.user.updateMany({ where: { registeredAt: null }, data: { registeredAt: new Date(), privacyAcceptedAt: new Date() } });
   console.log("✔ Seed complete (fictional data).");
   console.log("  Dev login users: group.admin@example.com (both companies), ceo@skinfra.example.com, pm@skinfra.example.com, lifting@skinfra.example.com, pd@skinfra.example.com, hse@skinfra.example.com, hr@skinfra.example.com (HR admin), client@example.com (client approver), subcontractor@example.com, ceo@purent.example.com …");
 }

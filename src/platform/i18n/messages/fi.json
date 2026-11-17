@@ -416,7 +416,8 @@
       "material": "Materiaalit ja kaapelikelat",
       "commercial": "Myynti ja laskutus",
       "hse": "Työturvallisuus (HSE)",
-      "portal": "Portaalit"
+      "portal": "Portaalit",
+      "ai": "Tekoäly"
     },
     "permissions": {
       "company_manage": "Muokkaa yrityksen asetuksia",
@@ -490,7 +491,14 @@
     "resendInvite": "Lähetä kutsu uudelleen",
     "inviteNotPending": "Käyttäjä on jo kirjautunut, kutsua ei tarvitse lähettää.",
     "inviteNoMail": "Sähköposti ei ole käytössä tässä ympäristössä.",
-    "inviteMailFailed": "Sähköpostin lähetys epäonnistui. Yritä hetken päästä uudelleen."
+    "inviteMailFailed": "Sähköpostin lähetys epäonnistui. Yritä hetken päästä uudelleen.",
+    "extraPermissions": "Lisäoikeudet",
+    "extraPermissionsN": "{count, plural, one {+# lisäoikeus} other {+# lisäoikeutta}}",
+    "extraPermissionsHint": "Lisäoikeudet annetaan tälle henkilölle roolien lisäksi. Ne näkyvät muutoslokissa.",
+    "extraPermissionsExternalHint": "Ulkoinen käyttäjä: valittavissa ovat vain projektikohtaiset, ei-arkaluonteiset oikeudet. Hinnat, kustannukset ja henkilöstötiedot eivät koskaan näy ulkoisille.",
+    "saveExtraPermissions": "Tallenna lisäoikeudet",
+    "notRegistered": "Ei rekisteröitynyt",
+    "registeredAt": "Rekisteröitynyt"
   },
   "audit": {
     "actions": {
@@ -778,7 +786,9 @@
       "team_update": "Tiimiä muutettu",
       "team_archive": "Tiimi arkistoitu",
       "team_members_add": "Tiimiin lisätty jäseniä",
-      "team_members_remove": "Jäsen poistettu tiimistä"
+      "team_members_remove": "Jäsen poistettu tiimistä",
+      "membership_permissions_update": "Käyttäjän lisäoikeuksia muutettu",
+      "user_register": "Käyttäjä rekisteröityi"
     }
   },
   "errors": {
@@ -3189,5 +3199,20 @@
     "archive": "Arkistoi tiimi",
     "confirmArchive": "Arkistoidaanko tiimi {name}? Jäsenet jäävät ilman tiimiä.",
     "dragTeam": "Raahaa koko tiimi"
+  },
+  "welcome": {
+    "title": "Tervetuloa SK Managementiin",
+    "intro": "Täydennä tietosi ennen aloittamista. Kirjauduit osoitteella {email}.",
+    "name": "Nimi",
+    "phone": "Puhelin",
+    "phoneHint": "Työmaalla tavoitettava numero (valinnainen)",
+    "organization": "Yritys",
+    "organizationExternal": "Yritys, jota edustat",
+    "jobTitle": "Tehtävänimike",
+    "language": "Kieli",
+    "privacyTitle": "Tietojesi käsittely",
+    "privacyText": "Tallennamme nimesi, sähköpostisi, puhelinnumerosi, yrityksesi ja tehtävänimikkeesi käyttäjätiliisi. Tietoja käytetään vain järjestelmän käyttöön: kirjautumiseen, yhteydenpitoon ja siihen, että työmaalla tiedetään, kuka teki mitäkin. Kirjautumiset ja muutokset tallentuvat muutoslokiin. Rekisterinpitäjä on sinut kutsunut yritys, jolta voit pyytää tietojesi tarkastamista tai korjaamista.",
+    "acceptPrivacy": "Olen lukenut tietojeni käsittelyä koskevat tiedot ja hyväksyn ne.",
+    "submit": "Tallenna ja jatka"
   }
 }
