@@ -3365,7 +3365,9 @@
       "GRID": "Grid / 110 kV",
       "ENERGY": "Energy",
       "INFRASTRUCTURE": "Infrastructure",
-      "OTHER": "Other"
+      "OTHER": "Other",
+      "HYDROGEN": "Hydrogen / Power-to-X",
+      "BIO": "Bio (refineries, biogas, bioenergy)"
     },
     "stages": {
       "PLANNING": "Planning",
@@ -3520,7 +3522,10 @@
       "FI_GRID_PERMITS": "Finland: 110 kV, substations and EIA",
       "SE_INVESTMENTS": "Sweden: data centres and industry",
       "SE_GRID_PERMITS": "Sweden: 130 kV, substations and permits",
-      "WATCHLIST": "Followed companies"
+      "WATCHLIST": "Followed companies",
+      "FI_HYDROGEN_BIO": "Finland: hydrogen and bio",
+      "SE_HYDROGEN_BIO": "Sweden: hydrogen and bio",
+      "HYDROGEN_BIO": "Europe: hydrogen and bio"
     },
     "watchCompanies": "Followed companies",
     "watchCompaniesHint": "One company per line. Every run searches these companies' latest project news (data centres, plants, substations).",

@@ -12,7 +12,7 @@ import { MarketingNav } from "./_components/marketing-nav";
 import { LEAD_TONE } from "./_components/tone";
 import { createLeadAction, startDiscoveryAction } from "./actions";
 
-const RUN_SOURCES = new Set(["TED", "FI_INVESTMENTS", "FI_GRID_PERMITS", "SE_INVESTMENTS", "SE_GRID_PERMITS", "WATCHLIST", "DATA_CENTERS", "INDUSTRY", "GRID", "FI_PROCUREMENT"]);
+const RUN_SOURCES = new Set(["TED", "FI_INVESTMENTS", "FI_GRID_PERMITS", "FI_HYDROGEN_BIO", "SE_INVESTMENTS", "SE_GRID_PERMITS", "SE_HYDROGEN_BIO", "WATCHLIST", "HYDROGEN_BIO", "DATA_CENTERS", "INDUSTRY", "GRID", "FI_PROCUREMENT"]);
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("marketing"))("title") };
