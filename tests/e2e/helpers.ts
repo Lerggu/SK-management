@@ -47,7 +47,9 @@ export async function navigate(page: Page, testInfo: TestInfo, label: string) {
   } else {
     // Areas are collapsible groups in the sidebar: open them so every page link is visible.
     const aside = page.locator("aside");
-    for (const group of await aside.locator('[data-nav-group][aria-expanded="false"]').all()) await group.click();
+    // The set of collapsed groups shrinks as they open, so always open the first remaining one.
+    const collapsed = aside.locator('[data-nav-group][aria-expanded="false"]');
+    for (let i = 0; i < 20 && (await collapsed.count()) > 0; i++) await collapsed.first().click();
     await aside.getByRole("link", { name: label, exact: true }).click();
   }
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
