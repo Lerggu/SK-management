@@ -10,7 +10,14 @@ import { CALL_STATUSES, MARKETING_CATEGORIES, MARKETING_SERVICES, MARKETING_STAG
 
 export const MARKETING_PROMPT_VERSION = "marketing-v1";
 
-/** Nullable field (anyOf, supported by strict tool schemas). */
+/**
+ * Optional text: an empty string means unknown. Strict tool schemas allow at
+ * most 16 union-typed (nullable) parameters, so text fields are not nullable;
+ * only the numbers below are.
+ */
+const optText = (description?: string) => ({ type: "string", description: `${description ? `${description} ` : ""}Empty string when unknown.` });
+
+/** Nullable field (anyOf, supported by strict tool schemas). Keep the total under 16 per schema. */
 const nullable = (type: string, extra: Record<string, unknown> = {}) => ({ anyOf: [{ type }, { type: "null" }], ...extra });
 const str = (max: number) => z.string().trim().max(max);
 const nstr = (max: number) =>
@@ -145,12 +152,12 @@ const contactJson = {
   additionalProperties: false,
   required: ["name", "role", "organization", "responsibility", "email", "phone", "sourceUrl"],
   properties: {
-    name: nullable("string"),
-    role: nullable("string"),
-    organization: nullable("string"),
-    responsibility: nullable("string", { description: "What the person is responsible for in this project." }),
-    email: nullable("string", { description: "Only a business address published in the source." }),
-    phone: nullable("string", { description: "Only a business number published in the source." }),
+    name: optText(),
+    role: optText(),
+    organization: optText(),
+    responsibility: optText("What the person is responsible for in this project."),
+    email: optText("Only a business address published in the source."),
+    phone: optText("Only a business number published in the source."),
     sourceUrl: { type: "string", description: "The page where this contact is published." },
   },
 };
@@ -172,15 +179,15 @@ export const DISCOVERY_SCHEMA: JsonSchema = {
           summary: { type: "string", description: "2–3 sentences in English." },
           category: { type: "string", enum: [...MARKETING_CATEGORIES] },
           stage: { type: "string", enum: [...MARKETING_STAGES] },
-          country: nullable("string", { description: "ISO 3166-1 alpha-2" }),
-          location: nullable("string"),
-          ownerOrg: nullable("string", { description: "Developer or client organisation." }),
-          timing: nullable("string", { description: "Schedule as stated, e.g. 'construction 2027–2028'." }),
-          startDate: nullable("string", { description: "YYYY-MM-DD when a start date is stated." }),
-          tenderDeadline: nullable("string", { description: "YYYY-MM-DD" }),
+          country: optText("ISO 3166-1 alpha-2"),
+          location: optText(),
+          ownerOrg: optText("Developer or client organisation."),
+          timing: optText("Schedule as stated, e.g. 'construction 2027–2028'."),
+          startDate: optText("YYYY-MM-DD when a start date is stated."),
+          tenderDeadline: optText("YYYY-MM-DD"),
           budget: nullable("number", { description: "Investment or contract value as a number." }),
-          currency: nullable("string", { description: "ISO 4217" }),
-          budgetText: nullable("string", { description: "Budget as stated in the source." }),
+          currency: optText("ISO 4217"),
+          budgetText: optText("Budget as stated in the source."),
           voltageKv: nullable("integer"),
           fitScore: { type: "integer" },
           services: { type: "array", items: { type: "string", enum: [...MARKETING_SERVICES] } },
@@ -191,7 +198,7 @@ export const DISCOVERY_SCHEMA: JsonSchema = {
               type: "object",
               additionalProperties: false,
               required: ["url", "title", "publishedAt"],
-              properties: { url: { type: "string" }, title: nullable("string"), publishedAt: nullable("string", { description: "YYYY-MM-DD" }) },
+              properties: { url: { type: "string" }, title: optText(), publishedAt: optText("YYYY-MM-DD") },
             },
           },
           contacts: { type: "array", items: contactJson },
