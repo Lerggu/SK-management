@@ -110,7 +110,7 @@ export function heuristicTedScores(notices: (TedNotice & { ref: string })[]) {
 // ── Web discovery ───────────────────────────────────────────────────
 
 export interface DiscoveryFocus {
-  key: "FI_INVESTMENTS" | "FI_GRID_PERMITS" | "DATA_CENTERS" | "INDUSTRY" | "GRID" | "FI_PROCUREMENT";
+  key: "FI_INVESTMENTS" | "FI_GRID_PERMITS" | "SE_INVESTMENTS" | "SE_GRID_PERMITS" | "WATCHLIST" | "DATA_CENTERS" | "INDUSTRY" | "GRID" | "FI_PROCUREMENT";
   sourceKind: "WEB" | "GRID" | "HILMA";
   maxSearches: number;
   allowedDomains?: string[];
@@ -118,6 +118,8 @@ export interface DiscoveryFocus {
   country?: string;
   /** Local-language search terms the model should use. */
   searchTerms?: string[];
+  /** Language of the local search (ISO 639-1). */
+  language?: string;
   brief: string;
 }
 
@@ -129,6 +131,7 @@ export const DISCOVERY_FOCUSES: DiscoveryFocus[] = [
     sourceKind: "WEB",
     maxSearches: 12,
     country: "FI",
+    language: "fi",
     searchTerms: ["datakeskus", "datakeskushanke", "teollisuusinvestointi", "tehdasinvestointi", "akkutehdas", "vetylaitos", "elektrolyysilaitos", "sähkökattila", "investointipäätös", "rakentaminen alkaa", "kaavoitus datakeskus", "kunta tiedote teollisuushanke"],
     brief: "Data centre and large industrial projects in Finland (announced, zoning, permitting, investment decision or construction starting in the next 24 months). Use Finnish news (Yle, Kauppalehti, Talouselämä, Rakennuslehti, Tekniikka&Talous, regional papers), company press releases and websites, Business Finland and municipal releases.",
   },
@@ -137,8 +140,35 @@ export const DISCOVERY_FOCUSES: DiscoveryFocus[] = [
     sourceKind: "GRID",
     maxSearches: 10,
     country: "FI",
+    language: "fi",
     searchTerms: ["110 kV", "sähköasema", "voimajohto", "liittymä Fingrid", "kantaverkkoliittymä", "sähköaseman rakentaminen", "YVA-menettely", "ympäristölupa teollisuus", "tuulivoimapuisto sähköasema", "aurinkopuisto liittymä", "akkuvarasto"],
     brief: "Grid-related projects in Finland: 110 kV and higher connections, substations and power lines (Fingrid and distribution operators), plus projects in environmental impact assessment (YVA, ymparisto.fi) or environmental permitting that will need grid connections: data centres, industry, wind and solar parks, battery storage.",
+  },
+  // Sweden in Swedish.
+  {
+    key: "SE_INVESTMENTS",
+    sourceKind: "WEB",
+    maxSearches: 10,
+    country: "SE",
+    language: "sv",
+    searchTerms: ["datacenter", "nytt datacenter", "datacenter bygglov", "detaljplan datacenter", "industrietablering", "batterifabrik", "vätgasanläggning", "elektrolysör", "investeringsbeslut", "byggstart"],
+    brief: "Data centre and large industrial projects in Sweden (announced, detailed plan (detaljplan), permitting, investment decision or construction starting in the next 24 months). Use Swedish news (Dagens industri, Ny Teknik, Byggvärlden, regional papers, SVT), company releases and websites and municipal releases.",
+  },
+  {
+    key: "SE_GRID_PERMITS",
+    sourceKind: "GRID",
+    maxSearches: 8,
+    country: "SE",
+    language: "sv",
+    searchTerms: ["130 kV", "ställverk", "transformatorstation", "kraftledning", "nätanslutning Svenska kraftnät", "regionnät anslutning", "miljötillstånd", "vindkraftpark anslutning", "batterilager"],
+    brief: "Grid-related projects in Sweden: 130 kV and higher connections, substations (ställverk, transformatorstationer) and power lines by Svenska kraftnät and regional network owners (Vattenfall Eldistribution, Ellevio, E.ON), and projects in environmental permitting that need grid connections.",
+  },
+  // Developers and operators the company follows (editable list in the settings).
+  {
+    key: "WATCHLIST",
+    sourceKind: "WEB",
+    maxSearches: 12,
+    brief: "Recent news (last 12 months) on new or expanding sites of the followed companies listed below: data centres, campuses, industrial plants, substations and grid connections, with location, capacity, schedule and investment.",
   },
   {
     key: "DATA_CENTERS",
@@ -269,7 +299,7 @@ export const discoverySchema = z.object({
 export type DiscoveredProject = z.infer<typeof discoverySchema>["projects"][number];
 export type DiscoveredContact = z.infer<typeof contactSchema>;
 
-export function discoveryPrompt(focus: DiscoveryFocus, input: { countries: string[]; today: string; known: string[] }) {
+export function discoveryPrompt(focus: DiscoveryFocus, input: { countries: string[]; today: string; known: string[]; watchCompanies?: string[]; googleSearch?: boolean }) {
   return {
     system: [
       `You are a market researcher for a construction company. ${COMPANY_PROFILE}`,
@@ -285,6 +315,10 @@ export function discoveryPrompt(focus: DiscoveryFocus, input: { countries: strin
       focus.country
         ? `Country: ${focus.country} only. Search in the local language${focus.searchTerms?.length ? `, e.g. with these terms: ${focus.searchTerms.join(", ")}` : ""}. Today is ${input.today}.`
         : `Countries (ISO): ${input.countries.join(", ")}. Search in each country's own language as well as English. Today is ${input.today}.`,
+      focus.key === "WATCHLIST" && input.watchCompanies?.length ? `Followed companies (search each by name together with the countries above): ${input.watchCompanies.join(", ")}.` : "",
+      input.googleSearch
+        ? "Use the google_search tool first, with several different queries (local language and English, news and general results); then use web_search to read the most promising pages. Prefer primary sources (company releases, municipal decisions, operator announcements) over aggregators."
+        : "",
       input.known.length ? `Already in the register (skip these unless there is important new information): ${input.known.slice(0, 60).join("; ")}` : "",
       "Return up to 12 of the best-fitting projects (most relevant first).",
     ]
@@ -300,9 +334,9 @@ export function sampleDiscovery(focus: DiscoveryFocus) {
       {
         title: `[TEST] Sample ${focus.key.toLowerCase().replace("_", " ")} project`,
         summary: "[TEST] Sample project produced without an AI model or web search.",
-        category: focus.key === "DATA_CENTERS" ? "DATA_CENTER" : focus.key === "GRID" || focus.key === "FI_GRID_PERMITS" ? "GRID" : "INDUSTRIAL",
+        category: focus.key === "DATA_CENTERS" ? "DATA_CENTER" : focus.key === "GRID" || focus.key.endsWith("_GRID_PERMITS") ? "GRID" : "INDUSTRIAL",
         stage: "PLANNING",
-        country: "FI",
+        country: focus.country ?? "FI",
         location: "Testikylä",
         ownerOrg: "Test Developer Oy",
         timing: "2027–2028",
@@ -311,7 +345,7 @@ export function sampleDiscovery(focus: DiscoveryFocus) {
         budget: 50_000_000,
         currency: "EUR",
         budgetText: "50 M€",
-        voltageKv: focus.key === "GRID" || focus.key === "FI_GRID_PERMITS" ? 110 : null,
+        voltageKv: focus.key === "GRID" || focus.key.endsWith("_GRID_PERMITS") ? 110 : null,
         fitScore: 80,
         services: ["ELECTRICAL", "INFRA", "LOGISTICS"],
         fitReason: "[TEST] Sample fit reason.",
@@ -331,6 +365,31 @@ export function sampleDiscovery(focus: DiscoveryFocus) {
     ],
   };
 }
+
+// ── Google search tool (client tool executed by the app) ───────────
+
+export const GOOGLE_SEARCH_TOOL = {
+  name: "google_search",
+  description: "Search Google for current web pages or news. Returns up to 10 results with title, url, snippet and date. Use several specific queries.",
+  inputSchema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["query", "news", "country", "language"],
+    properties: {
+      query: { type: "string", description: "The search query (use the local language for local projects)." },
+      news: { type: "boolean", description: "true for recent news articles, false for general web results." },
+      country: { type: "string", description: "ISO 3166-1 alpha-2 country to search from, e.g. FI or SE; empty string for any." },
+      language: { type: "string", description: "ISO 639-1 language, e.g. fi, sv, en; empty string for any." },
+    },
+  },
+};
+
+export const googleSearchInput = z.object({
+  query: z.string().trim().min(2).max(300),
+  news: z.boolean(),
+  country: z.string().trim().max(2),
+  language: z.string().trim().max(5),
+});
 
 // ── Letter and call script ──────────────────────────────────────────
 

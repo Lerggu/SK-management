@@ -8,6 +8,7 @@ import { ForbiddenError, NotFoundError, ValidationError } from "@/platform/error
 import { writeAudit } from "@/platform/audit";
 import { parseInput } from "@/platform/http/validation";
 import { hasPermission, type PermissionKey, type RequestContext } from "@/platform/authz";
+import { getWebSearch } from "@/platform/integrations/web-search";
 import { MarketingRepo } from "./repo";
 import { draftLetters, marketingBudget, runDiscovery, sendApproved, type MarketingScope } from "./agents";
 import { dedupeKey, normaliseEmail, safeUrl } from "./rules";
@@ -58,6 +59,12 @@ function inBackground(p: Promise<unknown>) {
 /** Waits for background runs (tests). */
 export async function settleMarketingRuns() {
   await Promise.all([...background]);
+}
+
+/** Which external search is configured ("Google (Serper)", "Brave Search") or null. Not tenant data. */
+export function searchProviderName(): string | null {
+  const p = getWebSearch();
+  return p ? (p.name === "serper" ? "Google (Serper)" : p.name === "brave" ? "Brave Search" : p.name) : null;
 }
 
 export const marketingService = {
@@ -314,8 +321,9 @@ export const marketingService = {
       if (active.length !== new Set(data.replyToUserIds).size) throw new ValidationError({ replyToUserIds: ["validation.invalidOption"] });
       if (data.enabled && !data.replyToUserIds.length) throw new ValidationError({ replyToUserIds: ["marketing.errors.noReplyTo"] });
       const before = await repo.getSettings();
-      const after = await repo.upsertSettings({ ...data, aiMonthlyBudgetEur: data.aiMonthlyBudgetEur.toFixed(2), updatedById: ctx.user.id });
-      const view = (s: typeof after | null) => (s ? { enabled: s.enabled, autoSend: s.autoSend, countries: s.countries.join(","), minScore: s.minScore, dailySendLimit: s.dailySendLimit, intervalHours: s.intervalHours, aiMonthlyBudgetEur: String(s.aiMonthlyBudgetEur), replyTo: s.replyToUserIds.length } : null);
+      const { watchCompanies, ...rest } = data;
+      const after = await repo.upsertSettings({ ...rest, ...(watchCompanies ? { watchCompanies } : {}), aiMonthlyBudgetEur: data.aiMonthlyBudgetEur.toFixed(2), updatedById: ctx.user.id });
+      const view = (s: typeof after | null) => (s ? { enabled: s.enabled, autoSend: s.autoSend, countries: s.countries.join(","), minScore: s.minScore, dailySendLimit: s.dailySendLimit, intervalHours: s.intervalHours, aiMonthlyBudgetEur: String(s.aiMonthlyBudgetEur), replyTo: s.replyToUserIds.length, watchCompanies: s.watchCompanies.length } : null);
       await writeAudit(tx, ctx, { action: "marketing.settings_update", entityType: "marketing_settings", entityId: ctx.company.id, before: view(before), after: view(after), diff: !!before });
       return after;
     });
