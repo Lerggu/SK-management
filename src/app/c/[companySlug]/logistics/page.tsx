@@ -72,7 +72,7 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
         actions={
           <>
             <Button asChild variant="outline">
-              <Link href={`${base}/gate?site=${siteId}`}>
+              <Link href={`${base}/gate?site=${siteId}&date=${date}`}>
                 <DoorOpen aria-hidden /> {t("gateView")}
               </Link>
             </Button>

@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /** Mobile gate view: today's arrivals with large status buttons. */
-export default async function GatePage({ params, searchParams }: { params: Promise<{ companySlug: string }>; searchParams: Promise<{ site?: string }> }) {
+export default async function GatePage({ params, searchParams }: { params: Promise<{ companySlug: string }>; searchParams: Promise<{ site?: string; date?: string }> }) {
   const { companySlug } = await params;
   const sp = await searchParams;
   const ctx = await requireCompanyContext(companySlug);
@@ -23,11 +23,13 @@ export default async function GatePage({ params, searchParams }: { params: Promi
   const base = `/c/${companySlug}/logistics`;
   if (sites.length === 0) return <EmptyState>{t("noSites")}</EmptyState>;
   const siteId = sites.some((s) => s.id === sp.site) ? sp.site! : sites[0].id;
-  const board = await loadOr404(logisticsBoardService.day(ctx, { siteId, date: todayInDisplayZone() }));
+  // Today by default; the board links with its chosen day (the service validates the date).
+  const date = sp.date && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : todayInDisplayZone();
+  const board = await loadOr404(logisticsBoardService.day(ctx, { siteId, date }));
   const active = board.deliveries.filter((d) => d.status !== "CANCELLED");
   return (
     <>
-      <PageHeader title={t("gateView")} description={`${board.site.project.code} · ${board.site.name} · ${board.date}`} backHref={`${base}?site=${siteId}`} backLabel={t("board")} />
+      <PageHeader title={t("gateView")} description={`${board.site.project.code} · ${board.site.name} · ${board.date}`} backHref={`${base}?site=${siteId}&date=${board.date}`} backLabel={t("board")} />
       <div className="space-y-4">
         <SiteDayPicker sites={sites} siteId={siteId} showDate={false} />
         <Section title={t("deliveries")}>

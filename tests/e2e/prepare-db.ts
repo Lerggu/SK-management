@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 
 /**
@@ -20,7 +21,12 @@ async function prepare() {
   }
   const env = { ...process.env, DATABASE_URL: url };
   execSync("npx prisma migrate deploy", { env, stdio: "pipe" });
+  // The seed places demo data on "today" (Helsinki). Tests read this date so a
+  // run that crosses midnight still opens the seeded day (tests/e2e/helpers.ts).
+  const seedDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Helsinki" }).format(new Date());
   execSync("npx tsx prisma/seed.ts", { env, stdio: "pipe" });
+  mkdirSync("tests/e2e/.auth", { recursive: true });
+  writeFileSync("tests/e2e/.auth/seed-date.txt", seedDay);
 }
 
 prepare().catch((e) => {
