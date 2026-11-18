@@ -20,6 +20,12 @@ export const settingsSchema = z.object({
   replyToUserIds: list(uuid()).pipe(z.array(z.string()).max(10)),
   senderName: optionalText(120),
   pitch: optionalText(1500),
+  /** One company per line (or comma separated). */
+  watchCompanies: z
+    .preprocess((v) => (typeof v === "string" ? v.split(/[\n,]/) : (v ?? [])), z.array(z.string().trim().max(80)))
+    .transform((a) => [...new Set(a.filter(Boolean))])
+    .pipe(z.array(z.string()).max(60))
+    .optional(),
 });
 export type SettingsInput = z.input<typeof settingsSchema>;
 

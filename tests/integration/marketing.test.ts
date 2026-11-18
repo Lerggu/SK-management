@@ -8,9 +8,10 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/platform/db";
 import { ForbiddenError, ValidationError } from "@/platform/errors";
-import { FakeAiProvider, setAiProviderForTests } from "@/platform/ai";
+import { FakeAiProvider, setAiProviderForTests, type AiProvider } from "@/platform/ai";
 import { MemoryMailer, setMailerForTests } from "@/platform/mail";
 import { setTedFetchForTests, type TedNotice } from "@/platform/integrations/ted";
+import { setWebSearchForTests, type SearchQuery } from "@/platform/integrations/web-search";
 import { marketingService } from "@/modules/marketing/service";
 import { companyAdminService } from "@/modules/companies/service";
 import { draftLetters, runDiscovery, runMarketingCycle, sendApproved, unsubscribeByToken, unsubscribeInfo } from "@/modules/marketing/agents";
@@ -71,7 +72,7 @@ describe("marketing agents", () => {
       return s.countries.includes("FI") ? [notice(1, "Datakeskuksen 110 kV sähköasema"), notice(2, "Koulun valaistus")] : [];
     });
     const r = await runDiscovery(scope(), { userId: t.owner.user.id });
-    expect(r.sources.map((s) => s.source)).toEqual(["TED", "FI_INVESTMENTS", "FI_GRID_PERMITS", "DATA_CENTERS", "INDUSTRY", "GRID", "FI_PROCUREMENT"]);
+    expect(r.sources.map((s) => s.source)).toEqual(["TED", "FI_INVESTMENTS", "FI_GRID_PERMITS", "SE_INVESTMENTS", "SE_GRID_PERMITS", "WATCHLIST", "DATA_CENTERS", "INDUSTRY", "GRID", "FI_PROCUREMENT"]);
     // Finland is queried on its own so that large countries do not crowd it out.
     expect(tedQueries).toEqual([["FI"], ["SE"]]);
     // The Finnish focuses search Finland only, in Finnish.
@@ -81,7 +82,7 @@ describe("marketing agents", () => {
     expect(r.sources[0]).toMatchObject({ found: 2, created: 2 });
 
     const leads = await marketingService.listLeads(t.ownerCtx);
-    expect(leads).toHaveLength(8);
+    expect(leads).toHaveLength(11);
     const dc = leads.find((l) => l.title === "Datakeskuksen 110 kV sähköasema")!;
     expect(dc).toMatchObject({ category: "DATA_CENTER", fitScore: 85, ownerOrg: "Kaupunki Oy", country: "FI" });
     const detail = await marketingService.getLead(t.ownerCtx, dc.id);
@@ -97,9 +98,39 @@ describe("marketing agents", () => {
     // Run again: same findings merge, nothing duplicated.
     const again = await runDiscovery(scope(), { userId: t.owner.user.id });
     expect(again.sources.reduce((n, s) => n + s.created, 0)).toBe(0);
-    expect(await marketingService.listLeads(t.ownerCtx)).toHaveLength(8);
-    // Known TED notices are not scored again: 1 + 6 runs first, 6 web runs second.
-    expect(await db.marketingRun.count({ where: { companyId: t.companyId, kind: "DISCOVERY", status: "SUCCEEDED" } })).toBe(13);
+    expect(await marketingService.listLeads(t.ownerCtx)).toHaveLength(11);
+    // Known TED notices are not scored again: 1 + 9 runs first, 9 web runs second.
+    expect(await db.marketingRun.count({ where: { companyId: t.companyId, kind: "DISCOVERY", status: "SUCCEEDED" } })).toBe(19);
+  });
+
+  it("uses Google search (when a key is configured) with the focus country and language", async () => {
+    const t6 = await createTenant("Google");
+    await marketingService.updateSettings(t6.ownerCtx, { enabled: "", countries: ["FI", "SE"], minScore: "60", dailySendLimit: "20", intervalHours: "24", aiMonthlyBudgetEur: "40", replyToUserIds: [], watchCompanies: "Google\nEcoDataCenter\nGoogle" });
+    expect((await marketingService.getSettings(t6.ownerCtx)).settings.watchCompanies).toEqual(["Google", "EcoDataCenter"]);
+    setTedFetchForTests(async () => []);
+    const queries: SearchQuery[] = [];
+    setWebSearchForTests({ name: "test", search: async (q) => (queries.push(q), [{ title: "Hamina data center expansion", url: "https://news.example/hamina", snippet: "s", date: null, source: null }]) });
+    const prompts: string[] = [];
+    const provider: AiProvider = {
+      name: "test",
+      model: "test",
+      async run(req) {
+        prompts.push(req.prompt);
+        if (req.tools.length) await req.executeTool("google_search", { query: "datakeskus", news: true, country: "", language: "" });
+        return { provider: "test", model: "test", result: { projects: [] }, toolCalls: [], usage: { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, costUsd: 0.001 } };
+      },
+    };
+    setAiProviderForTests(provider);
+    try {
+      await runDiscovery({ companyId: t6.companyId, organizationId: t6.organizationId });
+    } finally {
+      setWebSearchForTests(undefined);
+    }
+    // Finnish focuses search Finland in Finnish, Swedish ones Sweden in Swedish; others are open.
+    expect(queries.slice(0, 4).map((q) => [q.country, q.language])).toEqual([["FI", "fi"], ["FI", "fi"], ["SE", "sv"], ["SE", "sv"]]);
+    expect(queries.length).toBe(9);
+    expect(prompts.find((p) => p.includes("Followed companies"))).toContain("EcoDataCenter");
+    expect(prompts.every((p) => p.includes("google_search"))).toBe(true);
   });
 
   it("drops projects without a source URL and contacts without the page they were published on", async () => {
@@ -150,9 +181,9 @@ describe("marketing agents", () => {
   it("drafts letters, a person approves, the letter is sent with Reply-To and an unsubscribe link", async () => {
     setAiProviderForTests(new FakeAiProvider());
     const d = await draftLetters(scope());
-    expect(d.drafted).toBe(6); // the six web leads have an e-mail contact; TED leads only a phone
+    expect(d.drafted).toBe(9); // the nine web leads have an e-mail contact; TED leads only a phone
     const drafts = await marketingService.listMessages(t.ownerCtx, { status: "DRAFT" });
-    expect(drafts).toHaveLength(6);
+    expect(drafts).toHaveLength(9);
     const m = drafts[0];
     expect(m.language).toBe("fi");
     await marketingService.updateMessage(t.ownerCtx, m.id, { subject: "Sähköurakointi hankkeeseenne", body: m.body, callScript: m.callScript });
@@ -208,8 +239,8 @@ describe("marketing agents", () => {
     const mailer = new MemoryMailer();
     setMailerForTests(mailer);
     const cycle = (await runMarketingCycle()).find((r) => r.companyId === t3.companyId)!;
-    expect(cycle).toMatchObject({ drafted: 6, sent: 2 });
-    expect(await db.marketingMessage.count({ where: { companyId: t3.companyId, status: "APPROVED", approvedById: null } })).toBe(4);
+    expect(cycle).toMatchObject({ drafted: 7, sent: 2 });
+    expect(await db.marketingMessage.count({ where: { companyId: t3.companyId, status: "APPROVED", approvedById: null } })).toBe(5);
     expect((await sendApproved(s3)).error).toBe("marketing.errors.dailyLimit");
     // Not due again within the interval: no new discovery.
     const second = (await runMarketingCycle()).find((r) => r.companyId === t3.companyId)!;
@@ -224,10 +255,10 @@ describe("marketing agents", () => {
     const mailer = new MemoryMailer();
     setMailerForTests(mailer);
     const cycle = (await runMarketingCycle()).find((r) => r.companyId === t5.companyId)!;
-    expect(cycle).toMatchObject({ drafted: 6, sent: 0 });
+    expect(cycle).toMatchObject({ drafted: 7, sent: 0 });
     const notice = mailer.sent.filter((m) => m.to === t5.owner.user.email);
     expect(notice).toHaveLength(1);
-    expect(notice[0].subject).toContain("6 uutta markkinointikirjettä");
+    expect(notice[0].subject).toContain("7 uutta markkinointikirjettä");
     expect(notice[0].text).toContain(`/c/${t5.slug}/marketing/approvals`);
   });
 
@@ -239,7 +270,7 @@ describe("marketing agents", () => {
     const r = await runDiscovery({ companyId: t4.companyId, organizationId: t4.organizationId });
     expect(r.sources[0].created).toBe(1); // first call within budget
     expect(r.sources.slice(1).every((s) => s.error === "marketing.errors.budgetExhausted")).toBe(true);
-    expect(await db.marketingRun.count({ where: { companyId: t4.companyId, status: "BLOCKED_BUDGET" } })).toBe(6);
+    expect(await db.marketingRun.count({ where: { companyId: t4.companyId, status: "BLOCKED_BUDGET" } })).toBe(7);
   });
 
   it("call list, call outcome and conversion to a CRM opportunity", async () => {

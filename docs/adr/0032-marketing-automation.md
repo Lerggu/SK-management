@@ -89,3 +89,17 @@ The owner wants an automatic marketing and sales system for SK Infra.
   - the other focuses also search in each country's own language;
   - up to 12 projects per focus.
 - **Cost:** a full run now has up to 51 web searches plus tokens. With a daily interval this can exceed the default 40 €/month budget. Runs stop at the budget, and the owner can raise it or lengthen the interval in the settings.
+
+## Addendum 2026-11-18 (2): Google search, Sweden, followed companies
+- **Owner feedback:** Finnish results were still weak (no Google data centre news), there were few results from Sweden, and the agent should use Google search.
+- **Google search:**
+  - Google's own Custom Search JSON API is closed to new customers and ends on 2027-01-01, so it cannot be used.
+  - Google results come through Serper (`SK_SERPER_API_KEY`). Brave Search (`SK_BRAVE_API_KEY`, its own index) is the alternative. Keys come from Key Vault only.
+  - When a key is configured, every web focus gets a `google_search` client tool, executed by the app: at most 12 queries per focus, in the focus country and language.
+  - The model searches first and then reads the most promising pages with its own web search.
+  - Without a key, the agent works as before.
+- **Sweden:** two Swedish focuses (data centres and industry; 130 kV, substations and permits), in Swedish.
+- **Followed companies:**
+  - Every run searches the latest project news of a list of developers and operators. The default list includes Google, Microsoft, AWS, Meta, Equinix, atNorth, EcoDataCenter, Fingrid and Svenska kraftnät.
+  - The list is editable in the settings; the names are search hints only.
+- **Cost:** search API calls are billed by the search provider, outside the AI budget.

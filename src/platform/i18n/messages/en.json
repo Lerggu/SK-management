@@ -3516,7 +3516,14 @@
       "DRAFT": "Letter draft",
       "OTHER": "Other",
       "FI_INVESTMENTS": "Finland: data centres and industry",
-      "FI_GRID_PERMITS": "Finland: 110 kV, substations and EIA"
-    }
+      "FI_GRID_PERMITS": "Finland: 110 kV, substations and EIA",
+      "SE_INVESTMENTS": "Sweden: data centres and industry",
+      "SE_GRID_PERMITS": "Sweden: 130 kV, substations and permits",
+      "WATCHLIST": "Followed companies"
+    },
+    "watchCompanies": "Followed companies",
+    "watchCompaniesHint": "One company per line. Every run searches these companies' latest project news (data centres, plants, substations).",
+    "sourceGoogleOn": "Google search enabled: {provider}.",
+    "sourceGoogleOff": "Google search is not enabled – add a search API key (Serper or Brave) and the agent also searches Google."
   }
 }

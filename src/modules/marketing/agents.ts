@@ -20,10 +20,13 @@ import { getAiProvider, usdToEur, type AiProvider } from "@/platform/ai";
 import { getMailer, type Mailer } from "@/platform/mail";
 import { appBaseUrl } from "@/platform/config/env";
 import { getTedFetch, type TedNotice } from "@/platform/integrations/ted";
+import { getWebSearch } from "@/platform/integrations/web-search";
 import { MarketingRepo } from "./repo";
 import {
   DISCOVERY_FOCUSES,
   DISCOVERY_SCHEMA,
+  GOOGLE_SEARCH_TOOL,
+  googleSearchInput,
   LETTER_SCHEMA,
   TED_SCORE_SCHEMA,
   discoveryPrompt,
@@ -56,6 +59,8 @@ export interface AgentOptions {
 const META = { requestId: "marketing-agent", ip: null, userAgent: "marketing-agent" };
 const TED_BATCH = 40;
 const DRAFTS_PER_RUN = 15;
+/** Google (Serper/Brave) queries per discovery focus. */
+const GOOGLE_SEARCHES_PER_RUN = 12;
 /** Below this many euros left, no new AI call starts. */
 const MIN_REMAINING_EUR = 0.5;
 
@@ -262,7 +267,18 @@ function toFinding(p: DiscoveredProject, focus: DiscoveryFocus): Finding | null 
 async function discoverWeb(scope: MarketingScope, opts: AgentOptions, focus: DiscoveryFocus, countries: string[]) {
   const repo = new MarketingRepo(readClient(), scope.companyId);
   const today = (opts.now ?? new Date()).toISOString().slice(0, 10);
-  const { system, prompt } = discoveryPrompt(focus, { countries, today, known: await repo.knownTitles() });
+  const settings = await settingsOf(repo);
+  const search = getWebSearch();
+  const { system, prompt } = discoveryPrompt(focus, { countries, today, known: await repo.knownTitles(), watchCompanies: settings.watchCompanies, googleSearch: !!search });
+  // Google results (Serper) or Brave, when a key is configured: a client tool the app executes.
+  let searches = 0;
+  const executeTool = async (name: string, input: unknown) => {
+    if (name !== GOOGLE_SEARCH_TOOL.name || !search) throw new Error(`Unknown tool ${name}`);
+    if (++searches > GOOGLE_SEARCHES_PER_RUN) throw new Error("Search limit for this run reached; deliver the result now.");
+    const q = googleSearchInput.parse(input);
+    const hits = await search.search({ query: q.query, news: q.news, country: q.country || focus.country || null, language: q.language || focus.language || null, num: 10 });
+    return hits.map((h) => ({ title: h.title, url: h.url, snippet: h.snippet, date: h.date, source: h.source }));
+  };
   const res = await aiRun(
     scope,
     opts,
@@ -271,9 +287,9 @@ async function discoverWeb(scope: MarketingScope, opts: AgentOptions, focus: Dis
       const out = await p.run({
         system,
         prompt,
-        tools: [],
-        executeTool: async () => null,
-        maxToolRounds: 0,
+        tools: search ? [GOOGLE_SEARCH_TOOL] : [],
+        executeTool,
+        maxToolRounds: search ? 10 : 0,
         resultSchema: DISCOVERY_SCHEMA,
         webSearch: { maxUses: focus.maxSearches, allowedDomains: focus.allowedDomains },
         deterministicAnswer: () => sampleDiscovery(focus),

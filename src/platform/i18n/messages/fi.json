@@ -3516,7 +3516,14 @@
       "DRAFT": "Kirjeluonnos",
       "OTHER": "Muu",
       "FI_INVESTMENTS": "Suomi: datakeskukset ja teollisuus",
-      "FI_GRID_PERMITS": "Suomi: 110 kV, sähköasemat ja YVA"
-    }
+      "FI_GRID_PERMITS": "Suomi: 110 kV, sähköasemat ja YVA",
+      "SE_INVESTMENTS": "Ruotsi: datakeskukset ja teollisuus",
+      "SE_GRID_PERMITS": "Ruotsi: 130 kV, sähköasemat ja luvat",
+      "WATCHLIST": "Seurattavat yritykset"
+    },
+    "watchCompanies": "Seurattavat yritykset",
+    "watchCompaniesHint": "Yksi yritys per rivi. Agentti hakee joka kerta näiden yritysten uusimmat hanke-uutiset (datakeskukset, tehtaat, sähköasemat).",
+    "sourceGoogleOn": "Googlen haku käytössä: {provider}.",
+    "sourceGoogleOff": "Googlen haku ei ole käytössä – lisää hakupalvelun avain (Serper tai Brave), niin agentti hakee myös Googlesta."
   }
 }

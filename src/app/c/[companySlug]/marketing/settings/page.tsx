@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { ISO2_TO_ISO3 } from "@/platform/integrations/ted";
-import { marketingAccess, marketingService } from "@/modules/marketing/service";
+import { marketingAccess, marketingService, searchProviderName } from "@/modules/marketing/service";
 import { ActionForm, CheckboxField, CheckboxGroupField, SubmitButton, TextareaField, TextField } from "@/ui/components/form";
 import { PageHeader, Section } from "@/ui/components/page";
 import { fmtDateTime } from "@/ui/format";
@@ -25,6 +25,7 @@ export default async function MarketingSettingsPage({ params }: { params: Promis
     getTranslations("marketing"),
     getFormatter(),
   ]);
+  const searchProvider = searchProviderName();
   const countryNames = new Intl.DisplayNames([ctx.locale], { type: "region" });
   return (
     <>
@@ -48,6 +49,7 @@ export default async function MarketingSettingsPage({ params }: { params: Promis
             <TextField name="intervalHours" label={t("intervalHours")} type="number" min={1} max={168} inputMode="numeric" defaultValue={settings.intervalHours} />
             <TextField name="aiMonthlyBudgetEur" label={t("aiMonthlyBudget")} inputMode="decimal" defaultValue={String(settings.aiMonthlyBudgetEur)} hint={t("budgetUsed", { used: budget.usedEur.toFixed(2), limit: budget.limitEur.toFixed(2) })} />
             <TextareaField name="pitch" label={t("pitch")} defaultValue={settings.pitch} rows={4} hint={t("pitchHint")} className="sm:col-span-2" />
+            <TextareaField name="watchCompanies" label={t("watchCompanies")} defaultValue={settings.watchCompanies.join("\n")} rows={6} hint={t("watchCompaniesHint")} className="sm:col-span-2" />
             <div className="sm:col-span-2">
               <CheckboxGroupField name="countries" label={t("countries")} options={Object.keys(ISO2_TO_ISO3).map((c) => ({ value: c, label: `${countryNames.of(c) ?? c} (${c})` }))} defaultValues={settings.countries} />
             </div>
@@ -63,6 +65,7 @@ export default async function MarketingSettingsPage({ params }: { params: Promis
             <li>{t("sourceWeb")}</li>
             <li>{t("sourceGrid")}</li>
             <li>{t("sourceHilma")}</li>
+            <li>{searchProvider ? t("sourceGoogleOn", { provider: searchProvider }) : t("sourceGoogleOff")}</li>
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">{t("gdprHint")}</p>
         </Section>
