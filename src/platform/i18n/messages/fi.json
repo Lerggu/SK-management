@@ -3307,7 +3307,7 @@
     "aiBudget": "Tekoälykulut tässä kuussa",
     "aiBudgetHint": "Verkkohaku ja kirjeet; raja asetuksissa",
     "agents": "Agentit",
-    "agentsHint": "Haku käy läpi EU-hankinnat (TED), verkon uutiset ja tiedotteet, kantaverkkoyhtiöt sekä Hilman. Löydetyistä hankkeista laaditaan kirjeluonnokset hyväksyttäviksi. Haku kestää muutaman minuutin.",
+    "agentsHint": "Haku käy läpi EU-hankinnat (TED, Suomi erikseen), suomalaiset uutiset, yritysten sivut, kuntien tiedotteet sekä lupa- ja YVA-päätökset, Euroopan datakeskus- ja teollisuushankkeet, verkkoyhtiöt sekä Hilman. Löydetyistä hankkeista laaditaan kirjeluonnokset hyväksyttäviksi. Haku kestää muutaman minuutin.",
     "runNow": "Hae nyt",
     "runStarted": "Haku käynnistyi. Uudet hankkeet ja kirjeluonnokset ilmestyvät muutaman minuutin kuluessa.",
     "runStatuses": {
@@ -3467,7 +3467,7 @@
     "countries": "Haettavat maat",
     "sourcesTitle": "Lähteet",
     "sourceTed": "EU:n julkiset hankinnat (TED) – virallinen rajapinta.",
-    "sourceWeb": "Tekoälyn verkkohaku: datakeskus- ja teollisuushankkeet uutisista, tiedotteista ja lupapäätöksistä.",
+    "sourceWeb": "Tekoälyn verkkohaku suomeksi ja muilla kielillä: uutiset, yritysten sivut ja tiedotteet, kuntien tiedotteet, kaavoitus-, lupa- ja YVA-päätökset.",
     "sourceGrid": "Kantaverkko- ja verkkoyhtiöt (Fingrid, Svenska kraftnät, Statnett, Energinet, Elering, …): 110 kV liittymät ja sähköasemat.",
     "sourceHilma": "Hilma (hankintailmoitukset.fi).",
     "gdprHint": "Yhteyshenkilöt kerätään vain julkisista lähteistä (lähdelinkki tallennetaan). Jokaisessa kirjeessä on peruutuslinkki; peruneisiin ei oteta enää yhteyttä.",
@@ -3492,12 +3492,14 @@
     "recentRuns": "Viimeisimmät ajot",
     "runSources": {
       "TED": "EU-hankinnat (TED)",
-      "DATA_CENTERS": "Datakeskukset (verkkohaku)",
-      "INDUSTRY": "Teollisuus (verkkohaku)",
-      "GRID": "Verkkoyhtiöt / 110 kV",
+      "DATA_CENTERS": "Eurooppa: datakeskukset",
+      "INDUSTRY": "Eurooppa: teollisuus",
+      "GRID": "Eurooppa: verkkoyhtiöt / 110 kV",
       "FI_PROCUREMENT": "Hilma",
       "DRAFT": "Kirjeluonnos",
-      "OTHER": "Muu"
+      "OTHER": "Muu",
+      "FI_INVESTMENTS": "Suomi: datakeskukset ja teollisuus",
+      "FI_GRID_PERMITS": "Suomi: 110 kV, sähköasemat ja YVA"
     }
   }
 }
