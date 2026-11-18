@@ -1,11 +1,44 @@
 import type { RequestContext } from "@/platform/authz";
 
-export type NavKey = "dashboard" | "portal" | "projects" | "time" | "takt" | "logistics" | "lifting" | "materials" | "hse" | "sales" | "marketing" | "billing" | "workforce" | "myCard" | "production" | "equipment" | "documents" | "settings";
+export type NavKey =
+  | "dashboard"
+  | "portal"
+  | "projects"
+  | "time"
+  | "documents"
+  | "takt"
+  | "logistics"
+  | "lifting"
+  | "materials"
+  | "hse"
+  | "workforce"
+  | "myCard"
+  | "teams"
+  | "rotation"
+  | "matrix"
+  | "qualifications"
+  | "hrOverview"
+  | "hrSettings"
+  | "equipment"
+  | "sales"
+  | "quotes"
+  | "marketing"
+  | "billing"
+  | "settings";
+
+export type NavGroupKey = "home" | "projectsGroup" | "productionGroup" | "hseGroup" | "peopleGroup" | "equipmentGroup" | "salesGroup" | "settingsGroup" | "portalGroup";
 
 export interface NavItem {
   key: NavKey;
   href: string;
+  /** Other path prefixes that belong to this item. */
   match?: string[];
+}
+
+/** A top-level menu entry; with one visible item it is shown as a plain link. */
+export interface NavGroup {
+  key: NavGroupKey;
+  items: NavItem[];
 }
 
 /**
@@ -21,35 +54,63 @@ export function isExternalPath(pathname: string | null): boolean {
 }
 
 /**
- * Navigation filtered by capability. `myEmployeeId` (HR, ADR 0025) adds the
- * own personnel card for users whose account is linked to an employee.
+ * Navigation grouped by area and filtered by capability: related pages sit
+ * under one heading (e.g. everything about people under "Henkilöstö").
+ * `myEmployeeId` (HR, ADR 0025) adds the own personnel card for users whose
+ * account is linked to an employee. Services still enforce access.
  */
-export function navItems(ctx: RequestContext, opts: { myEmployeeId?: string | null } = {}): NavItem[] {
+export function navGroups(ctx: RequestContext, opts: { myEmployeeId?: string | null } = {}): NavGroup[] {
   const base = `/c/${ctx.company.slug}`;
-  if (ctx.external) return [{ key: "portal", href: `${base}/portal` }];
+  if (ctx.external) return [{ key: "portalGroup", items: [{ key: "portal", href: `${base}/portal` }] }];
   const has = (p: Parameters<RequestContext["permissions"]["has"]>[0]) => ctx.permissions.has(p);
-  const anyProjectGrant = ctx.projectGrants.size > 0;
-  const items: NavItem[] = [{ key: "dashboard", href: `${base}/dashboard` }];
-  if (has("project.view") || anyProjectGrant) items.push({ key: "projects", href: `${base}/projects` });
-  if (hasTimeAccess(ctx)) items.push({ key: "time", href: `${base}/time` });
-  // Production control ("Tuotannonohjaus"): takt schedule and logistics in one place.
-  const takt = hasTaktAccess(ctx);
+  const grants = [...ctx.projectGrants.values()];
+  const anyProjectGrant = grants.length > 0;
+  const groups: NavGroup[] = [];
+  const add = (key: NavGroupKey, items: (NavItem | false)[]) => {
+    const visible = items.filter((i): i is NavItem => !!i);
+    if (visible.length) groups.push({ key, items: visible });
+  };
+
+  add("home", [{ key: "dashboard", href: `${base}/dashboard` }]);
+  add("projectsGroup", [
+    (has("project.view") || anyProjectGrant) && { key: "projects", href: `${base}/projects`, match: [`${base}/diary`] },
+    hasTimeAccess(ctx) && { key: "time", href: `${base}/time` },
+    (has("documents.view") || anyProjectGrant) && { key: "documents", href: `${base}/documents` },
+  ]);
+  // Production control ("Tuotannonohjaus"): takt, logistics, lifting and materials.
   const logistics = hasLogisticsAccess(ctx);
-  if (takt || logistics) items.push({ key: "production", href: takt ? `${base}/takt` : `${base}/logistics`, match: [`${base}/takt`, `${base}/logistics`] });
-  if (hasLogisticsAccess(ctx)) items.push({ key: "lifting", href: `${base}/lifting` });
-  if (hasMaterialAccess(ctx)) items.push({ key: "materials", href: `${base}/materials` });
-  if (hasHseAccess(ctx)) items.push({ key: "hse", href: `${base}/hse` });
-  if (has("crm.view")) items.push({ key: "sales", href: `${base}/sales` });
-  if (has("marketing.view")) items.push({ key: "marketing", href: `${base}/marketing` });
-  if (has("invoice.manage") || [...ctx.projectGrants.values()].some((g) => g.has("invoice.manage"))) items.push({ key: "billing", href: `${base}/billing` });
-  if (has("employee.view")) items.push({ key: "workforce", href: `${base}/workforce` });
-  if (opts.myEmployeeId) items.push({ key: "myCard", href: `${base}/workforce/${opts.myEmployeeId}` });
-  if (has("equipment.view")) items.push({ key: "equipment", href: `${base}/equipment` });
-  if (has("documents.view") || anyProjectGrant) items.push({ key: "documents", href: `${base}/documents` });
-  if (has("company.manage") || has("company.members.manage") || has("company.roles.manage") || has("audit.view")) {
-    items.push({ key: "settings", href: `${base}/settings` });
-  }
-  return items;
+  add("productionGroup", [
+    hasTaktAccess(ctx) && { key: "takt", href: `${base}/takt` },
+    logistics && { key: "logistics", href: `${base}/logistics` },
+    logistics && { key: "lifting", href: `${base}/lifting` },
+    hasMaterialAccess(ctx) && { key: "materials", href: `${base}/materials`, match: [`${base}/scan`] },
+  ]);
+  add("hseGroup", [hasHseAccess(ctx) && { key: "hse", href: `${base}/hse` }]);
+  // People: the same visibility as the workforce tabs (workforce/_components/hr/access.ts).
+  const hrCompanyWide = has("hr.view") || has("hr.manage");
+  const hrLists = hrCompanyWide || !!opts.myEmployeeId;
+  const w = `${base}/workforce`;
+  add("peopleGroup", [
+    has("employee.view") && { key: "workforce", href: w },
+    !!opts.myEmployeeId && { key: "myCard", href: `${w}/${opts.myEmployeeId}` },
+    (has("employee.view") || has("hr.view")) && { key: "teams", href: `${w}/teams` },
+    (has("rotation.view") || has("rotation.manage")) && { key: "rotation", href: `${w}/rotation` },
+    hrLists && { key: "matrix", href: `${w}/matrix` },
+    hrLists && { key: "qualifications", href: `${w}/qualifications` },
+    hrLists && { key: "hrOverview", href: `${w}/overview` },
+    has("hr.manage") && { key: "hrSettings", href: `${w}/settings` },
+  ]);
+  add("equipmentGroup", [has("equipment.view") && { key: "equipment", href: `${base}/equipment` }]);
+  add("salesGroup", [
+    has("crm.view") && { key: "sales", href: `${base}/sales` },
+    has("crm.view") && has("commercial.view") && { key: "quotes", href: `${base}/sales/quotes` },
+    has("marketing.view") && { key: "marketing", href: `${base}/marketing` },
+    (has("invoice.manage") || grants.some((g) => g.has("invoice.manage"))) && { key: "billing", href: `${base}/billing` },
+  ]);
+  add("settingsGroup", [
+    (has("company.manage") || has("company.members.manage") || has("company.roles.manage") || has("audit.view")) && { key: "settings", href: `${base}/settings` },
+  ]);
+  return groups;
 }
 
 /** Any time-tracking capability, company-wide or through a project role. */

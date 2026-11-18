@@ -18,8 +18,8 @@ test.describe("HR admin", () => {
 
   test("competence matrix shows the latest assessment and separates 'not assessed'", async ({ page }, testInfo) => {
     await page.goto("/c/sk-infra-demo/dashboard");
-    await navigate(page, testInfo, "Henkilöstö");
-    await page.getByRole("link", { name: "Osaamismatriisi" }).click();
+    await navigate(page, testInfo, "Henkilöt");
+    await page.getByRole("main").getByRole("link", { name: "Osaamismatriisi" }).click();
     const matrix = page.getByTestId("competence-matrix");
     await expect(matrix).toBeVisible();
     const row = matrix.getByRole("row", { name: /Tyyppi Timo/ });
@@ -42,7 +42,7 @@ test.describe("HR admin", () => {
     await expect(page.locator('[data-validity="EXPIRED"]').first()).toBeVisible();
 
     await openCard(page, "Tyyppi Timo");
-    await page.getByRole("link", { name: "Pätevyydet" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Pätevyydet" }).click();
     const name = unique(testInfo, "Tieturva");
     await page.getByTestId("add-qualification").locator("summary").click();
     const form = page.getByTestId("add-qualification");
@@ -83,8 +83,8 @@ test.describe("supervisor", () => {
   test("sees the subordinate's emergency contact and assesses competence, not clothing", async ({ page }) => {
     await openCard(page, "Tyyppi Timo");
     await expect(page.getByText("Tiina Tyyppi")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Varusteet" })).toHaveCount(0);
-    await page.getByRole("link", { name: "Osaaminen" }).click();
+    await expect(page.getByRole("main").getByRole("link", { name: "Varusteet" })).toHaveCount(0);
+    await page.getByRole("main").getByRole("link", { name: "Osaaminen" }).click();
     await expect(page.getByTestId("assessment-history").locator('[data-status="DRAFT"]').first()).toBeVisible();
     await page.getByTestId("new-assessment").locator("summary").click();
     const form = page.getByTestId("new-assessment");
@@ -103,7 +103,7 @@ test.describe("employee (own card)", () => {
     await page.goto("/c/sk-infra-demo/dashboard");
     await navigate(page, testInfo, "Oma kortti");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Timo Tyyppi");
-    await page.getByRole("link", { name: "Osaaminen" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Osaaminen" }).click();
     const history = page.getByTestId("assessment-history");
     await expect(history.locator('[data-kind="SUPERVISOR"][data-status="DRAFT"]')).toHaveCount(0);
     await expect(history).toContainText("Noudattaa työmaan turvallisuusohjeita");
@@ -114,7 +114,7 @@ test.describe("employee (own card)", () => {
     await comment.getByRole("button", { name: "Tallenna kommentti" }).click();
     await expect(history).toContainText(`Kiitos palautteesta (${testInfo.project.name})`);
 
-    await page.getByRole("link", { name: "Pätevyydet" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Pätevyydet" }).click();
     const ack = page.getByRole("button", { name: "Kuittaa perehdytys" });
     if (await ack.count()) {
       await ack.first().click();
@@ -122,7 +122,7 @@ test.describe("employee (own card)", () => {
     }
     await expect(page.getByRole("button", { name: "Myönnä käyttölupa" })).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Varusteet" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Varusteet" }).click();
     await expect(page.getByTestId("clothing-history")).toContainText("Huomiotakki");
     await expect(page.getByTestId("issue-clothing")).toHaveCount(0);
     if (isMobile(testInfo)) await expect(page.getByTestId("company-items")).toBeVisible();

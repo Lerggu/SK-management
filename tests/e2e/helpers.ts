@@ -38,14 +38,19 @@ export function unique(testInfo: TestInfo, prefix: string) {
 export async function navigate(page: Page, testInfo: TestInfo, label: string) {
   if (isMobile(testInfo)) {
     const nav = page.getByTestId("mobile-nav");
-    const link = nav.getByRole("link", { name: label });
+    const link = nav.getByRole("link", { name: label, exact: true });
     if (await link.count()) await link.click();
     else {
       await page.getByTestId("mobile-more").click();
-      await page.getByRole("dialog").getByRole("link", { name: label }).click();
+      await page.getByRole("dialog").getByRole("link", { name: label, exact: true }).click();
     }
   } else {
-    await page.locator("aside").getByRole("link", { name: label }).click();
+    // Areas are collapsible groups in the sidebar: open them so every page link is visible.
+    const aside = page.locator("aside");
+    // The set of collapsed groups shrinks as they open, so always open the first remaining one.
+    const collapsed = aside.locator('[data-nav-group][aria-expanded="false"]');
+    for (let i = 0; i < 20 && (await collapsed.count()) > 0; i++) await collapsed.first().click();
+    await aside.getByRole("link", { name: label, exact: true }).click();
   }
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 }

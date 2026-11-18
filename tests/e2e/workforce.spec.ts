@@ -7,7 +7,7 @@ test("employee CRUD with rates", async ({ page }, testInfo) => {
   acceptDialogs(page);
   const number = unique(testInfo, "E");
   await page.goto("/c/sk-infra-demo/dashboard");
-  await navigate(page, testInfo, "Henkilöstö");
+  await navigate(page, testInfo, "Henkilöt");
   await page.getByRole("link", { name: "Uusi henkilö" }).click();
   await page.getByLabel("Etunimi").fill("Eero");
   await page.getByLabel("Sukunimi").fill("Esimerkki");

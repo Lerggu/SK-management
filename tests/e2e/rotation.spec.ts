@@ -15,7 +15,7 @@ test.describe("rotation planner", () => {
     // A week far enough ahead that parallel runs (desktop/mobile) use different days.
     const date = isMobile(testInfo) ? "2027-03-08" : "2027-03-01";
     await page.goto(`${ROTATION}?date=${date}&weeks=1`);
-    await expect(page.getByRole("link", { name: "Rotaatio" })).toHaveAttribute("aria-current", /.+/);
+    await expect(page.getByRole("main").getByRole("link", { name: "Rotaatio" })).toHaveAttribute("aria-current", /.+/);
     const panel = page.getByTestId("people-panel");
     const person = panel.locator("[data-panel-person]").first();
     const name = (await person.getAttribute("data-panel-person"))!;
