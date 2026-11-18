@@ -165,7 +165,12 @@ async function discoverTed(scope: MarketingScope, opts: AgentOptions, countries:
   const repo = new MarketingRepo(readClient(), scope.companyId);
   let notices: TedNotice[];
   try {
-    notices = await getTedFetch()({ countries, since, limit: 100 });
+    // The home market (Finland) is queried on its own so that large countries do not crowd it out of the result limit.
+    const home = countries.filter((c) => c === "FI");
+    const others = countries.filter((c) => c !== "FI");
+    const batches = await Promise.all([home, others].filter((c) => c.length).map((c) => getTedFetch()({ countries: c, since, limit: 100 })));
+    const seen = new Set<string>();
+    notices = batches.flat().filter((n) => !seen.has(n.publicationNumber) && seen.add(n.publicationNumber));
   } catch (e) {
     const r = await repo.createRun({ kind: "DISCOVERY", source: "TED", startedById: opts.userId ?? null });
     await repo.finishRun(r.id, { status: "FAILED", error: err(e) });
@@ -305,6 +310,7 @@ export async function runDiscovery(scope: MarketingScope, opts: AgentOptions = {
     const out: DiscoveryResult = { sources: [] };
     out.sources.push({ source: "TED", ...(await discoverTed(scope, opts, settings.countries, since)) });
     for (const focus of DISCOVERY_FOCUSES) {
+      if (focus.country && !settings.countries.includes(focus.country)) continue;
       out.sources.push({ source: focus.key, ...(await discoverWeb(scope, opts, focus, settings.countries)) });
     }
     return out;

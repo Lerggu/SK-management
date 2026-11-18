@@ -110,15 +110,36 @@ export function heuristicTedScores(notices: (TedNotice & { ref: string })[]) {
 // ── Web discovery ───────────────────────────────────────────────────
 
 export interface DiscoveryFocus {
-  key: "DATA_CENTERS" | "INDUSTRY" | "GRID" | "FI_PROCUREMENT";
+  key: "FI_INVESTMENTS" | "FI_GRID_PERMITS" | "DATA_CENTERS" | "INDUSTRY" | "GRID" | "FI_PROCUREMENT";
   sourceKind: "WEB" | "GRID" | "HILMA";
   maxSearches: number;
   allowedDomains?: string[];
+  /** Runs only when this country is among the searched countries, and searches it only. */
+  country?: string;
+  /** Local-language search terms the model should use. */
+  searchTerms?: string[];
   brief: string;
 }
 
 /** Search focuses (owner decision 2026-11-17: web search, Hilma, TSOs and similar sources). */
 export const DISCOVERY_FOCUSES: DiscoveryFocus[] = [
+  // Home market first, in Finnish: news, company pages, municipal releases, permits.
+  {
+    key: "FI_INVESTMENTS",
+    sourceKind: "WEB",
+    maxSearches: 12,
+    country: "FI",
+    searchTerms: ["datakeskus", "datakeskushanke", "teollisuusinvestointi", "tehdasinvestointi", "akkutehdas", "vetylaitos", "elektrolyysilaitos", "sähkökattila", "investointipäätös", "rakentaminen alkaa", "kaavoitus datakeskus", "kunta tiedote teollisuushanke"],
+    brief: "Data centre and large industrial projects in Finland (announced, zoning, permitting, investment decision or construction starting in the next 24 months). Use Finnish news (Yle, Kauppalehti, Talouselämä, Rakennuslehti, Tekniikka&Talous, regional papers), company press releases and websites, Business Finland and municipal releases.",
+  },
+  {
+    key: "FI_GRID_PERMITS",
+    sourceKind: "GRID",
+    maxSearches: 10,
+    country: "FI",
+    searchTerms: ["110 kV", "sähköasema", "voimajohto", "liittymä Fingrid", "kantaverkkoliittymä", "sähköaseman rakentaminen", "YVA-menettely", "ympäristölupa teollisuus", "tuulivoimapuisto sähköasema", "aurinkopuisto liittymä", "akkuvarasto"],
+    brief: "Grid-related projects in Finland: 110 kV and higher connections, substations and power lines (Fingrid and distribution operators), plus projects in environmental impact assessment (YVA, ymparisto.fi) or environmental permitting that will need grid connections: data centres, industry, wind and solar parks, battery storage.",
+  },
   {
     key: "DATA_CENTERS",
     sourceKind: "WEB",
@@ -261,9 +282,11 @@ export function discoveryPrompt(focus: DiscoveryFocus, input: { countries: strin
     ].join("\n"),
     prompt: [
       `Brief: ${focus.brief}`,
-      `Countries (ISO): ${input.countries.join(", ")}. Today is ${input.today}.`,
+      focus.country
+        ? `Country: ${focus.country} only. Search in the local language${focus.searchTerms?.length ? `, e.g. with these terms: ${focus.searchTerms.join(", ")}` : ""}. Today is ${input.today}.`
+        : `Countries (ISO): ${input.countries.join(", ")}. Search in each country's own language as well as English. Today is ${input.today}.`,
       input.known.length ? `Already in the register (skip these unless there is important new information): ${input.known.slice(0, 60).join("; ")}` : "",
-      "Return at most 10 of the best-fitting projects.",
+      "Return up to 12 of the best-fitting projects (most relevant first).",
     ]
       .filter(Boolean)
       .join("\n"),
@@ -277,7 +300,7 @@ export function sampleDiscovery(focus: DiscoveryFocus) {
       {
         title: `[TEST] Sample ${focus.key.toLowerCase().replace("_", " ")} project`,
         summary: "[TEST] Sample project produced without an AI model or web search.",
-        category: focus.key === "DATA_CENTERS" ? "DATA_CENTER" : focus.key === "GRID" ? "GRID" : "INDUSTRIAL",
+        category: focus.key === "DATA_CENTERS" ? "DATA_CENTER" : focus.key === "GRID" || focus.key === "FI_GRID_PERMITS" ? "GRID" : "INDUSTRIAL",
         stage: "PLANNING",
         country: "FI",
         location: "Testikylä",
@@ -288,7 +311,7 @@ export function sampleDiscovery(focus: DiscoveryFocus) {
         budget: 50_000_000,
         currency: "EUR",
         budgetText: "50 M€",
-        voltageKv: focus.key === "GRID" ? 110 : null,
+        voltageKv: focus.key === "GRID" || focus.key === "FI_GRID_PERMITS" ? 110 : null,
         fitScore: 80,
         services: ["ELECTRICAL", "INFRA", "LOGISTICS"],
         fitReason: "[TEST] Sample fit reason.",

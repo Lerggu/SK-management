@@ -3307,7 +3307,7 @@
     "aiBudget": "AI cost this month",
     "aiBudgetHint": "Web search and letters; limit in settings",
     "agents": "Agents",
-    "agentsHint": "The search covers EU procurement (TED), web news and press releases, transmission system operators and Hilma. Letter drafts are prepared for approval. A search takes a few minutes.",
+    "agentsHint": "The search covers EU procurement (TED, Finland separately), Finnish news, company pages, municipal releases and permit/EIA decisions, European data centre and industrial projects, grid operators and Hilma. Letter drafts are prepared for approval. A search takes a few minutes.",
     "runNow": "Search now",
     "runStarted": "Search started. New projects and letter drafts appear within a few minutes.",
     "runStatuses": {
@@ -3467,7 +3467,7 @@
     "countries": "Countries searched",
     "sourcesTitle": "Sources",
     "sourceTed": "EU public procurement (TED) – official API.",
-    "sourceWeb": "AI web search: data centre and industrial projects from news, press releases and permit decisions.",
+    "sourceWeb": "AI web search in Finnish and other languages: news, company pages and releases, municipal releases, zoning, permit and EIA decisions.",
     "sourceGrid": "Transmission and distribution system operators (Fingrid, Svenska kraftnät, Statnett, Energinet, Elering, …): 110 kV connections and substations.",
     "sourceHilma": "Hilma (hankintailmoitukset.fi).",
     "gdprHint": "Contacts are collected from public sources only (the source link is stored). Every letter has an unsubscribe link; people who unsubscribe are never contacted again.",
@@ -3492,12 +3492,14 @@
     "recentRuns": "Recent runs",
     "runSources": {
       "TED": "EU procurement (TED)",
-      "DATA_CENTERS": "Data centres (web search)",
-      "INDUSTRY": "Industry (web search)",
-      "GRID": "Grid operators / 110 kV",
+      "DATA_CENTERS": "Europe: data centres",
+      "INDUSTRY": "Europe: industry",
+      "GRID": "Europe: grid operators / 110 kV",
       "FI_PROCUREMENT": "Hilma",
       "DRAFT": "Letter draft",
-      "OTHER": "Other"
+      "OTHER": "Other",
+      "FI_INVESTMENTS": "Finland: data centres and industry",
+      "FI_GRID_PERMITS": "Finland: 110 kV, substations and EIA"
     }
   }
 }

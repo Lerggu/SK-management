@@ -77,3 +77,15 @@ The owner wants an automatic marketing and sales system for SK Infra.
 - **Opt-in for calls:** automated AI voice calls need a separate owner decision and prior consent from each person.
 - **Hilma and TSO data:** these come through web search restricted to their domains, because there is no official open API integration in this release. A Hilma API key can be added later without changing the register.
 - **Reply tracking:** replies go to people's mailboxes and are not read by the system. Salespeople mark a lead `REPLIED` or `INTERESTED`. An interested lead converts to a CRM opportunity in one step.
+
+## Addendum 2026-11-18: home market first
+- **Owner feedback:** no Finnish projects appeared.
+- **Causes:**
+  - TED was queried once for all countries with a 100-notice limit, so large countries crowded Finland out;
+  - web search ran in English across all countries with few searches.
+- **Changes:**
+  - TED is queried for Finland on its own;
+  - two Finnish focuses run first, in Finnish and without domain restrictions: data centres and industry (news, company pages and releases, municipal releases), and 110 kV, substations and EIA/permits;
+  - the other focuses also search in each country's own language;
+  - up to 12 projects per focus.
+- **Cost:** a full run now has up to 51 web searches plus tokens. With a daily interval this can exceed the default 40 €/month budget. Runs stop at the budget, and the owner can raise it or lengthen the interval in the settings.
