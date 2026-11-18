@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { err } from "./agents";
 import { clampScore, dedupeKey, discoveryDue, isoDateOrNull, letterLanguage, mergeLead, normaliseEmail, safeUrl, words, type LeadFields } from "./rules";
 
 const lead = (over: Partial<LeadFields> = {}): LeadFields => ({
@@ -54,5 +55,13 @@ describe("marketing rules", () => {
     expect(discoveryDue({ enabled: true, intervalHours: 24, lastRunAt: null }, now)).toBe(true);
     expect(discoveryDue({ enabled: true, intervalHours: 24, lastRunAt: new Date("2026-11-18T00:00:00Z") }, now)).toBe(false);
     expect(discoveryDue({ enabled: true, intervalHours: 12, lastRunAt: new Date("2026-11-18T00:00:00Z") }, now)).toBe(true);
+  });
+
+  it("maps provider and source failures to translatable messages", () => {
+    expect(err(new Error('401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}'))).toBe("marketing.errors.aiKey");
+    expect(err(new Error('529 {"type":"error","error":{"type":"overloaded_error"}}'))).toBe("marketing.errors.aiBusy");
+    expect(err(new Error("Your credit balance is too low"))).toBe("marketing.errors.aiBilling");
+    expect(err(new Error("TED search failed: HTTP 503"))).toBe("marketing.errors.sourceUnavailable");
+    expect(err(new Error("x".repeat(800)))).toHaveLength(500);
   });
 });

@@ -3310,7 +3310,6 @@
     "agentsHint": "Haku käy läpi EU-hankinnat (TED), verkon uutiset ja tiedotteet, kantaverkkoyhtiöt sekä Hilman. Löydetyistä hankkeista laaditaan kirjeluonnokset hyväksyttäviksi. Haku kestää muutaman minuutin.",
     "runNow": "Hae nyt",
     "runStarted": "Haku käynnistyi. Uudet hankkeet ja kirjeluonnokset ilmestyvät muutaman minuutin kuluessa.",
-    "lastRunDetail": "Viimeisin ajo: {source} – {status}",
     "runStatuses": {
       "RUNNING": "käynnissä",
       "SUCCEEDED": "onnistui",
@@ -3484,7 +3483,21 @@
       "suppressed": "Vastaanottaja on perunut yhteydenotot.",
       "notDraft": "Kirje on jo käsitelty.",
       "duplicate": "Hanke on jo rekisterissä.",
-      "convertFirst": "Käytä painiketta ”Siirrä myyntimahdollisuudeksi”."
+      "convertFirst": "Käytä painiketta ”Siirrä myyntimahdollisuudeksi”.",
+      "aiKey": "Tekoälyavain ei kelpaa – päivitä avain Key Vaultiin ja käynnistä sovellus uudelleen.",
+      "aiBusy": "Tekoälypalvelu on ruuhkautunut – haku yritetään uudelleen seuraavassa ajossa.",
+      "aiBilling": "Tekoälytilin saldo tai laskutus estää ajon – tarkista Anthropic-tili.",
+      "sourceUnavailable": "Lähde ei vastannut – yritetään uudelleen seuraavassa ajossa."
+    },
+    "recentRuns": "Viimeisimmät ajot",
+    "runSources": {
+      "TED": "EU-hankinnat (TED)",
+      "DATA_CENTERS": "Datakeskukset (verkkohaku)",
+      "INDUSTRY": "Teollisuus (verkkohaku)",
+      "GRID": "Verkkoyhtiöt / 110 kV",
+      "FI_PROCUREMENT": "Hilma",
+      "DRAFT": "Kirjeluonnos",
+      "OTHER": "Muu"
     }
   }
 }

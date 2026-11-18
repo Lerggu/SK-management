@@ -3310,7 +3310,6 @@
     "agentsHint": "The search covers EU procurement (TED), web news and press releases, transmission system operators and Hilma. Letter drafts are prepared for approval. A search takes a few minutes.",
     "runNow": "Search now",
     "runStarted": "Search started. New projects and letter drafts appear within a few minutes.",
-    "lastRunDetail": "Latest run: {source} – {status}",
     "runStatuses": {
       "RUNNING": "running",
       "SUCCEEDED": "succeeded",
@@ -3484,7 +3483,21 @@
       "suppressed": "The recipient has unsubscribed.",
       "notDraft": "The letter has already been handled.",
       "duplicate": "The project is already in the register.",
-      "convertFirst": "Use the “Convert to opportunity” button."
+      "convertFirst": "Use the “Convert to opportunity” button.",
+      "aiKey": "The AI API key is not valid – update it in Key Vault and restart the app.",
+      "aiBusy": "The AI service is busy – the search is retried in the next run.",
+      "aiBilling": "The AI account balance or billing blocks the run – check the Anthropic account.",
+      "sourceUnavailable": "The source did not respond – retried in the next run."
+    },
+    "recentRuns": "Recent runs",
+    "runSources": {
+      "TED": "EU procurement (TED)",
+      "DATA_CENTERS": "Data centres (web search)",
+      "INDUSTRY": "Industry (web search)",
+      "GRID": "Grid operators / 110 kV",
+      "FI_PROCUREMENT": "Hilma",
+      "DRAFT": "Letter draft",
+      "OTHER": "Other"
     }
   }
 }

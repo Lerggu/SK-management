@@ -12,6 +12,8 @@ import { MarketingNav } from "./_components/marketing-nav";
 import { LEAD_TONE } from "./_components/tone";
 import { createLeadAction, startDiscoveryAction } from "./actions";
 
+const RUN_SOURCES = new Set(["TED", "DATA_CENTERS", "INDUSTRY", "GRID", "FI_PROCUREMENT"]);
+
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("marketing"))("title") };
 }
@@ -30,7 +32,6 @@ export default async function MarketingPage({ params, searchParams }: { params: 
     getFormatter(),
   ]);
   const base = `/c/${companySlug}/marketing`;
-  const lastRun = overview.runs[0];
   return (
     <>
       <PageHeader title={t("title")} description={t("intro")} />
@@ -50,13 +51,22 @@ export default async function MarketingPage({ params, searchParams }: { params: 
               <ActionButton action={startDiscoveryAction.bind(null, companySlug)} variant="default" showSuccess>
                 {t("runNow")}
               </ActionButton>
-              {lastRun && (
-                <span className="text-xs text-muted-foreground" data-testid="last-run">
-                  {t("lastRunDetail", { source: lastRun.source ?? lastRun.kind, status: t(`runStatuses.${lastRun.status}`) })}
-                  {lastRun.error ? ` – ${lastRun.error.startsWith("marketing.") ? t(lastRun.error.replace("marketing.", "")) : lastRun.error}` : ""}
-                </span>
-              )}
             </div>
+            {overview.runs.length > 0 && (
+              <div className="mt-4">
+                <h3 className="mb-1 text-sm font-medium">{t("recentRuns")}</h3>
+                <ul className="divide-y text-xs" data-testid="last-run">
+                  {overview.runs.map((r) => (
+                    <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 py-1.5">
+                      <span className="tabular-nums text-muted-foreground">{fmtDateTime(format, r.startedAt)}</span>
+                      <span className="font-medium">{r.kind === "DISCOVERY" ? t(`runSources.${RUN_SOURCES.has(r.source ?? "") ? r.source : "OTHER"}`) : t("runSources.DRAFT")}</span>
+                      <span className={r.status === "SUCCEEDED" ? "text-emerald-700" : r.status === "RUNNING" ? "text-sky-700" : "text-destructive"}>{t(`runStatuses.${r.status}`)}</span>
+                      {r.error && <span className="basis-full text-muted-foreground">{r.error.startsWith("marketing.") ? t(r.error.replace("marketing.", "")) : r.error}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </Section>
         )}
 

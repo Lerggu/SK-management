@@ -60,7 +60,15 @@ const DRAFTS_PER_RUN = 15;
 const MIN_REMAINING_EUR = 0.5;
 
 const systemActor = (scope: MarketingScope) => ({ kind: "system" as const, meta: META, companyId: scope.companyId, organizationId: scope.organizationId });
-const err = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 500);
+/** Error text stored on a run: known provider failures become translatable keys, others are clipped. */
+export function err(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/authentication_error|invalid x-api-key|SK_ANTHROPIC_API_KEY is not configured/i.test(msg)) return "marketing.errors.aiKey";
+  if (/rate_limit_error|overloaded_error|\b(429|529)\b/.test(msg)) return "marketing.errors.aiBusy";
+  if (/credit balance|billing/i.test(msg)) return "marketing.errors.aiBilling";
+  if (/TED search failed|fetch failed|ETIMEDOUT|ECONNRESET|aborted|timeout/i.test(msg)) return "marketing.errors.sourceUnavailable";
+  return msg.slice(0, 500);
+}
 
 async function settingsOf(repo: MarketingRepo) {
   return (await repo.getSettings()) ?? (await repo.upsertSettings({}));
