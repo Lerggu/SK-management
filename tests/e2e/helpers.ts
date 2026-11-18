@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, type Page, type TestInfo } from "@playwright/test";
 
 export const USERS = {
@@ -60,9 +61,30 @@ export function acceptDialogs(page: Page) {
 }
 
 /** Opens the logistics board for a site (sites are chosen with the GET picker). */
+/**
+ * The day the E2E data was seeded (Helsinki), written by prepare-db.ts; null
+ * when the database was prepared elsewhere. Day-based views open this day so
+ * a run that crosses midnight still sees the seeded data.
+ */
+export function seedDate(): string | null {
+  try {
+    const d = readFileSync("tests/e2e/.auth/seed-date.txt", "utf8").trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+async function pickSeedDay(page: Page) {
+  const day = seedDate();
+  const input = page.getByTestId("site-day-picker").locator('input[name="date"]');
+  if (day && (await input.count())) await input.fill(day);
+}
+
 export async function openLogisticsBoard(page: Page, site = "NDC-001 · Data Hall A") {
   await page.goto("/c/sk-infra-demo/logistics");
   await page.getByTestId("site-day-picker").getByLabel("Työmaa").selectOption({ label: site });
+  await pickSeedDay(page);
   await page.getByTestId("site-day-picker").getByRole("button", { name: "Näytä" }).click();
   await expect(page).toHaveURL(/site=/);
 }
@@ -70,6 +92,7 @@ export async function openLogisticsBoard(page: Page, site = "NDC-001 · Data Hal
 /** Chooses a site with the GET site picker on the current page. */
 export async function pickSite(page: Page, site = "NDC-001 · Data Hall A") {
   await page.getByTestId("site-day-picker").getByLabel("Työmaa").selectOption({ label: site });
+  await pickSeedDay(page);
   await page.getByTestId("site-day-picker").getByRole("button", { name: "Näytä" }).click();
   await expect(page).toHaveURL(/site=/);
 }

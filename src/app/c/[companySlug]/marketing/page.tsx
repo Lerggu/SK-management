@@ -12,7 +12,7 @@ import { MarketingNav } from "./_components/marketing-nav";
 import { LEAD_TONE } from "./_components/tone";
 import { createLeadAction, startDiscoveryAction } from "./actions";
 
-const RUN_SOURCES = new Set(["TED", "FI_INVESTMENTS", "FI_GRID_PERMITS", "SE_INVESTMENTS", "SE_GRID_PERMITS", "WATCHLIST", "DATA_CENTERS", "INDUSTRY", "GRID", "FI_PROCUREMENT"]);
+const RUN_SOURCES = new Set(["TED", "FI_INVESTMENTS", "FI_GRID_PERMITS", "FI_HYDROGEN_BIO", "SE_INVESTMENTS", "SE_GRID_PERMITS", "SE_HYDROGEN_BIO", "WATCHLIST", "HYDROGEN_BIO", "DATA_CENTERS", "INDUSTRY", "GRID", "FI_PROCUREMENT"]);
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("marketing"))("title") };
@@ -61,6 +61,7 @@ export default async function MarketingPage({ params, searchParams }: { params: 
                       <span className="tabular-nums text-muted-foreground">{fmtDateTime(format, r.startedAt)}</span>
                       <span className="font-medium">{r.kind === "DISCOVERY" ? t(`runSources.${RUN_SOURCES.has(r.source ?? "") ? r.source : "OTHER"}`) : t("runSources.DRAFT")}</span>
                       <span className={r.status === "SUCCEEDED" ? "text-emerald-700" : r.status === "RUNNING" ? "text-sky-700" : "text-destructive"}>{t(`runStatuses.${r.status}`)}</span>
+                      {r.kind === "DISCOVERY" && r.status === "SUCCEEDED" && <span className="text-muted-foreground">{t("runCounts", { found: r.found, created: r.created })}</span>}
                       {r.error && <span className="basis-full text-muted-foreground">{r.error.startsWith("marketing.") ? t(r.error.replace("marketing.", "")) : r.error}</span>}
                     </li>
                   ))}

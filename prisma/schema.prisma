@@ -3843,6 +3843,10 @@ enum MarketingCategory {
   ENERGY
   INFRASTRUCTURE
   OTHER
+  /// Hydrogen, electrolysers, e-fuels / Power-to-X.
+  HYDROGEN
+  /// Biorefineries, biogas, bioproduct mills, bioenergy plants.
+  BIO
 }
 
 enum MarketingStage {

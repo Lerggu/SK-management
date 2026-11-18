@@ -103,3 +103,12 @@ The owner wants an automatic marketing and sales system for SK Infra.
   - Every run searches the latest project news of a list of developers and operators. The default list includes Google, Microsoft, AWS, Meta, Equinix, atNorth, EcoDataCenter, Fingrid and Svenska kraftnät.
   - The list is editable in the settings; the names are search hints only.
 - **Cost:** search API calls are billed by the search provider, outside the AI budget.
+
+## Addendum 2026-11-18 (3): hydrogen and bio projects; runs that finish
+- **Owner request:** hydrogen and bio projects.
+- **New categories:** `HYDROGEN` (hydrogen, electrolysers, Power-to-X, e-fuels) and `BIO` (biorefineries, biogas, bioproduct mills, bioenergy).
+- **New focuses:** Finland and Sweden in their own languages (including EIA/YVA and permitting), and one for Europe. Hydrogen is no longer folded into the general industry focus.
+- **Root cause of the weak results:**
+  - Server-side web search pauses (`pause_turn`) every few searches, and the call loop allowed only 4 calls, so discovery runs failed before saving anything.
+  - The call limit now scales with the search budget, discovery uses a 32k output limit, and every run records found/new counts.
+- **Cost:** a full run (FI + SE) is now up to about 110 searches. Raise the marketing budget or lengthen the interval accordingly.

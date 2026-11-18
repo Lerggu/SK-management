@@ -3,7 +3,7 @@
  * merge of a re-found lead, letter language, sendability.
  */
 
-export const MARKETING_CATEGORIES = ["DATA_CENTER", "INDUSTRIAL", "GRID", "ENERGY", "INFRASTRUCTURE", "OTHER"] as const;
+export const MARKETING_CATEGORIES = ["DATA_CENTER", "HYDROGEN", "BIO", "INDUSTRIAL", "GRID", "ENERGY", "INFRASTRUCTURE", "OTHER"] as const;
 export type MarketingCategory = (typeof MARKETING_CATEGORIES)[number];
 export const MARKETING_STAGES = ["PLANNING", "PERMITTING", "TENDERING", "CONSTRUCTION", "OPERATION", "UNKNOWN"] as const;
 export type MarketingStage = (typeof MARKETING_STAGES)[number];

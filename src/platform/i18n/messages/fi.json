@@ -3365,7 +3365,9 @@
       "GRID": "Sähköverkko / 110 kV",
       "ENERGY": "Energia",
       "INFRASTRUCTURE": "Infra",
-      "OTHER": "Muu"
+      "OTHER": "Muu",
+      "HYDROGEN": "Vety / Power-to-X",
+      "BIO": "Bio (jalostamot, biokaasu, bioenergia)"
     },
     "stages": {
       "PLANNING": "Suunnittelu",
@@ -3504,7 +3506,8 @@
       "aiKey": "Tekoälyavain ei kelpaa – päivitä avain Key Vaultiin ja käynnistä sovellus uudelleen.",
       "aiBusy": "Tekoälypalvelu on ruuhkautunut – haku yritetään uudelleen seuraavassa ajossa.",
       "aiBilling": "Tekoälytilin saldo tai laskutus estää ajon – tarkista Anthropic-tili.",
-      "sourceUnavailable": "Lähde ei vastannut – yritetään uudelleen seuraavassa ajossa."
+      "sourceUnavailable": "Lähde ei vastannut – yritetään uudelleen seuraavassa ajossa.",
+      "aiIncomplete": "Tekoäly ei saanut hakua valmiiksi aikarajassa – yritetään uudelleen seuraavassa ajossa."
     },
     "recentRuns": "Viimeisimmät ajot",
     "runSources": {
@@ -3519,11 +3522,15 @@
       "FI_GRID_PERMITS": "Suomi: 110 kV, sähköasemat ja YVA",
       "SE_INVESTMENTS": "Ruotsi: datakeskukset ja teollisuus",
       "SE_GRID_PERMITS": "Ruotsi: 130 kV, sähköasemat ja luvat",
-      "WATCHLIST": "Seurattavat yritykset"
+      "WATCHLIST": "Seurattavat yritykset",
+      "FI_HYDROGEN_BIO": "Suomi: vety- ja biohankkeet",
+      "SE_HYDROGEN_BIO": "Ruotsi: vety- ja biohankkeet",
+      "HYDROGEN_BIO": "Eurooppa: vety- ja biohankkeet"
     },
     "watchCompanies": "Seurattavat yritykset",
     "watchCompaniesHint": "Yksi yritys per rivi. Agentti hakee joka kerta näiden yritysten uusimmat hanke-uutiset (datakeskukset, tehtaat, sähköasemat).",
     "sourceGoogleOn": "Googlen haku käytössä: {provider}.",
-    "sourceGoogleOff": "Googlen haku ei ole käytössä – lisää hakupalvelun avain (Serper tai Brave), niin agentti hakee myös Googlesta."
+    "sourceGoogleOff": "Googlen haku ei ole käytössä – lisää hakupalvelun avain (Serper tai Brave), niin agentti hakee myös Googlesta.",
+    "runCounts": "löytyi {found}, uusia {created}"
   }
 }
