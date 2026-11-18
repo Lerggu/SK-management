@@ -89,6 +89,8 @@ export interface AiRunRequest {
    * request must never contain internal personal data.
    */
   webSearch?: { maxUses: number; allowedDomains?: string[] };
+  /** Output token limit per call (thinking + answer); defaults to 16 000. */
+  maxOutputTokens?: number;
   /** Schema of the final answer; defaults to `AI_INSIGHT_SCHEMA`. */
   resultSchema?: JsonSchema;
   /**

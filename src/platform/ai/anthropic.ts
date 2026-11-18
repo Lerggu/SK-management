@@ -93,12 +93,14 @@ export class AnthropicProvider implements AiProvider {
     let nudged = false;
     let rounds = 0;
 
-    // Hard upper bound on API calls (tool rounds + pause_turn resumes + one nudge).
-    for (let call = 0; call < request.maxToolRounds + 4; call++) {
+    // Hard upper bound on API calls: tool rounds, pause_turn resumes (server-side
+    // web search pauses every few searches) and one nudge.
+    const maxCalls = request.maxToolRounds + Math.ceil((request.webSearch?.maxUses ?? 0) / 2) + 6;
+    for (let call = 0; call < maxCalls; call++) {
       const response: BetaMessage = await this.client.beta.messages
         .stream({
           model: this.model,
-          max_tokens: MAX_TOKENS,
+          max_tokens: request.maxOutputTokens ?? MAX_TOKENS,
           thinking: { type: "adaptive" },
           output_config: { effort: "medium" },
           cache_control: { type: "ephemeral" },

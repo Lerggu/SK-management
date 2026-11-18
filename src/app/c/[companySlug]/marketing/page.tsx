@@ -61,6 +61,7 @@ export default async function MarketingPage({ params, searchParams }: { params: 
                       <span className="tabular-nums text-muted-foreground">{fmtDateTime(format, r.startedAt)}</span>
                       <span className="font-medium">{r.kind === "DISCOVERY" ? t(`runSources.${RUN_SOURCES.has(r.source ?? "") ? r.source : "OTHER"}`) : t("runSources.DRAFT")}</span>
                       <span className={r.status === "SUCCEEDED" ? "text-emerald-700" : r.status === "RUNNING" ? "text-sky-700" : "text-destructive"}>{t(`runStatuses.${r.status}`)}</span>
+                      {r.kind === "DISCOVERY" && r.status === "SUCCEEDED" && <span className="text-muted-foreground">{t("runCounts", { found: r.found, created: r.created })}</span>}
                       {r.error && <span className="basis-full text-muted-foreground">{r.error.startsWith("marketing.") ? t(r.error.replace("marketing.", "")) : r.error}</span>}
                     </li>
                   ))}

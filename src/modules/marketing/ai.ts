@@ -304,6 +304,7 @@ export function discoveryPrompt(focus: DiscoveryFocus, input: { countries: strin
     system: [
       `You are a market researcher for a construction company. ${COMPANY_PROFILE}`,
       "Search the web for current projects that match the brief. Report only projects that the sources actually describe; never invent projects, figures, dates, names or contact details.",
+      "Include projects at any stage before completion: land acquired, zoning or permitting, investment decision pending, paused or delayed, or under construction. State the status in the summary. Large data centre campuses (e.g. Google, Microsoft, AWS, Meta) and their grid connections are always relevant.",
       "Every project must have at least one source URL. Every contact must have the URL of the page where it is published (sourceUrl).",
       "Contacts: only business contact details that the organisation itself published for this project or role (e.g. project manager, procurement contact, press contact). Never guess e-mail addresses from name patterns. Leave email and phone null when not published.",
       "Score fitScore 0–100 by how well the project fits what the company sells.",

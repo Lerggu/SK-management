@@ -3504,7 +3504,8 @@
       "aiKey": "Tekoälyavain ei kelpaa – päivitä avain Key Vaultiin ja käynnistä sovellus uudelleen.",
       "aiBusy": "Tekoälypalvelu on ruuhkautunut – haku yritetään uudelleen seuraavassa ajossa.",
       "aiBilling": "Tekoälytilin saldo tai laskutus estää ajon – tarkista Anthropic-tili.",
-      "sourceUnavailable": "Lähde ei vastannut – yritetään uudelleen seuraavassa ajossa."
+      "sourceUnavailable": "Lähde ei vastannut – yritetään uudelleen seuraavassa ajossa.",
+      "aiIncomplete": "Tekoäly ei saanut hakua valmiiksi aikarajassa – yritetään uudelleen seuraavassa ajossa."
     },
     "recentRuns": "Viimeisimmät ajot",
     "runSources": {
@@ -3524,6 +3525,7 @@
     "watchCompanies": "Seurattavat yritykset",
     "watchCompaniesHint": "Yksi yritys per rivi. Agentti hakee joka kerta näiden yritysten uusimmat hanke-uutiset (datakeskukset, tehtaat, sähköasemat).",
     "sourceGoogleOn": "Googlen haku käytössä: {provider}.",
-    "sourceGoogleOff": "Googlen haku ei ole käytössä – lisää hakupalvelun avain (Serper tai Brave), niin agentti hakee myös Googlesta."
+    "sourceGoogleOff": "Googlen haku ei ole käytössä – lisää hakupalvelun avain (Serper tai Brave), niin agentti hakee myös Googlesta.",
+    "runCounts": "löytyi {found}, uusia {created}"
   }
 }

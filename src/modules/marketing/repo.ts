@@ -200,6 +200,10 @@ export class MarketingRepo {
     return this.tx.marketingRun.update({ where: { companyId_id: { companyId: this.companyId, id } }, data: { ...data, finishedAt: new Date() } });
   }
 
+  updateRunCounts(id: string, counts: { found: number; created: number; updated: number }) {
+    return this.tx.marketingRun.update({ where: { companyId_id: { companyId: this.companyId, id } }, data: counts });
+  }
+
   listRuns(take = 20) {
     return this.tx.marketingRun.findMany({ where: { companyId: this.companyId }, orderBy: { startedAt: "desc" }, take });
   }

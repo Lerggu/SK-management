@@ -71,7 +71,8 @@ export function err(e: unknown): string {
   if (/authentication_error|invalid x-api-key|SK_ANTHROPIC_API_KEY is not configured/i.test(msg)) return "marketing.errors.aiKey";
   if (/rate_limit_error|overloaded_error|\b(429|529)\b/.test(msg)) return "marketing.errors.aiBusy";
   if (/credit balance|billing/i.test(msg)) return "marketing.errors.aiBilling";
-  if (/TED search failed|fetch failed|ETIMEDOUT|ECONNRESET|aborted|timeout/i.test(msg)) return "marketing.errors.sourceUnavailable";
+  if (/TED search failed|Search failed|fetch failed|ETIMEDOUT|ECONNRESET|aborted|timeout/i.test(msg)) return "marketing.errors.sourceUnavailable";
+  if (/did not finish within the tool budget|exceeded the output limit|did not deliver a structured answer/i.test(msg)) return "marketing.errors.aiIncomplete";
   return msg.slice(0, 500);
 }
 
@@ -203,6 +204,7 @@ async function discoverTed(scope: MarketingScope, opts: AgentOptions, countries:
       error = scored.error;
       break;
     }
+    const before = { created, updated };
     for (const n of batch) {
       const s = scored.value.find((x) => x.ref === n.ref);
       if (!s) continue;
@@ -226,6 +228,7 @@ async function discoverTed(scope: MarketingScope, opts: AgentOptions, countries:
       if (r === "created") created++;
       else if (r === "updated") updated++;
     }
+    await repo.updateRunCounts(scored.runId, { found: batch.length, created: created - before.created, updated: updated - before.updated });
   }
   return { found: notices.length, created, updated, error };
 }
@@ -291,6 +294,7 @@ async function discoverWeb(scope: MarketingScope, opts: AgentOptions, focus: Dis
         executeTool,
         maxToolRounds: search ? 10 : 0,
         resultSchema: DISCOVERY_SCHEMA,
+        maxOutputTokens: 32_000,
         webSearch: { maxUses: focus.maxSearches, allowedDomains: focus.allowedDomains },
         deterministicAnswer: () => sampleDiscovery(focus),
       });
@@ -308,6 +312,7 @@ async function discoverWeb(scope: MarketingScope, opts: AgentOptions, focus: Dis
     if (r === "created") created++;
     else if (r === "updated") updated++;
   }
+  await repo.updateRunCounts(res.runId, { found: res.value.length, created, updated });
   return { found: res.value.length, created, updated };
 }
 

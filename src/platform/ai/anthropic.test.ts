@@ -117,6 +117,15 @@ describe("AnthropicProvider", () => {
     expect((plain.bodies[0].tools as { name: string }[]).some((t) => t.name === "web_search")).toBe(false);
   });
 
+  it("keeps resuming server-side web search pauses (pause_turn) until the answer, with a larger output limit", async () => {
+    const pauses = Array.from({ length: 6 }, () => sse([{ type: "text", text: "searching" }], "pause_turn"));
+    const { fetchFn, bodies } = stubFetch([...pauses, sse([{ type: "tool_use", id: "toolu_9", name: "submit_result", input: answer }], "tool_use")]);
+    const out = await new AnthropicProvider("test-key", { fetch: fetchFn, maxRetries: 0 }).run({ ...request([]), tools: [], maxToolRounds: 0, webSearch: { maxUses: 8 }, maxOutputTokens: 32_000 });
+    expect(out.result).toEqual(answer);
+    expect(bodies).toHaveLength(7);
+    expect(bodies[0].max_tokens).toBe(32_000);
+  });
+
   it("returns tool errors to the model instead of failing", async () => {
     const { fetchFn, bodies } = stubFetch([
       sse([{ type: "tool_use", id: "toolu_1", name: "project_overview", input: {} }], "tool_use"),
