@@ -8,7 +8,7 @@ import { AppShell } from "@/ui/shell/app-shell";
 import { ExternalGuard } from "./_components/external-guard";
 import { getLocale, requireCompanyContext, requireUserContext } from "@/app/_lib/context";
 import { requireRegistered } from "@/app/_lib/registration";
-import { navItems } from "@/app/_lib/nav";
+import { navGroups } from "@/app/_lib/nav";
 import { setLocaleAction, signOutAction } from "@/app/_lib/shell-actions";
 
 export default async function CompanyLayout({ children, params }: { children: React.ReactNode; params: Promise<{ companySlug: string }> }) {
@@ -31,7 +31,7 @@ export default async function CompanyLayout({ children, params }: { children: Re
       company={{ name: ctx.company.name, slug: ctx.company.slug }}
       companies={companies.map((c) => ({ name: c.name, slug: c.slug }))}
       user={{ name: ctx.user.name, email: ctx.user.email }}
-      nav={navItems(ctx, { myEmployeeId }).map((i) => ({ ...i, label: t(i.key) }))}
+      nav={navGroups(ctx, { myEmployeeId }).map((g) => ({ key: g.key, label: t(`groups.${g.key}`), items: g.items.map((i) => ({ ...i, label: t(i.key) })) }))}
       locale={locale}
       labels={{
         appName: tc("appName"),

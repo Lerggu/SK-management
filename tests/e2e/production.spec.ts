@@ -11,7 +11,7 @@ test.describe("logistics coordinator", () => {
 
   test("takt and logistics are under 'Tuotannonohjaus'", async ({ page }, testInfo) => {
     await page.goto("/c/sk-infra-demo/dashboard");
-    await navigate(page, testInfo, "Tuotannonohjaus");
+    await navigate(page, testInfo, "Tahtiaikataulu");
     const tabs = page.getByRole("navigation", { name: "Tuotannonohjaus" });
     await expect(tabs.getByRole("link", { name: "Tahtiaikataulu" })).toBeVisible();
     await tabs.getByRole("link", { name: "Logistiikka" }).click();

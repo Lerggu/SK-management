@@ -6,7 +6,7 @@ test.use({ storageState: authFile("ceo") });
 test("create a project and a site", async ({ page }, testInfo) => {
   const code = unique(testInfo, "P");
   await page.goto("/c/sk-infra-demo/dashboard");
-  await navigate(page, testInfo, "Projektit");
+  await navigate(page, testInfo, "Projektilista");
   await page.getByRole("link", { name: "Uusi projekti" }).click();
 
   // Validation error keeps the typed values.

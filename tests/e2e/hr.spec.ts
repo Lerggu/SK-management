@@ -18,7 +18,7 @@ test.describe("HR admin", () => {
 
   test("competence matrix shows the latest assessment and separates 'not assessed'", async ({ page }, testInfo) => {
     await page.goto("/c/sk-infra-demo/dashboard");
-    await navigate(page, testInfo, "Henkilöstö");
+    await navigate(page, testInfo, "Henkilöt");
     await page.getByRole("link", { name: "Osaamismatriisi" }).click();
     const matrix = page.getByTestId("competence-matrix");
     await expect(matrix).toBeVisible();
