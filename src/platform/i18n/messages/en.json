@@ -847,7 +847,14 @@
       "sales_document_create_credit_note": "Credit note made",
       "sales_document_archive": "Draft deleted",
       "billing_settings_create": "Billing settings created",
-      "billing_settings_update": "Billing settings changed"
+      "billing_settings_update": "Billing settings changed",
+      "site_map_upload": "Site map uploaded",
+      "site_map_object_create": "Map object added",
+      "site_map_object_update": "Map object changed",
+      "site_map_object_move": "Map object moved",
+      "site_map_object_archive": "Map object removed",
+      "site_map_place_task": "Task placed on the map",
+      "site_map_unplace_task": "Task removed from the map"
     }
   },
   "errors": {
@@ -1001,7 +1008,8 @@
     "iban": "Invalid IBAN",
     "bic": "Invalid BIC",
     "dueBeforeIssue": "The due date cannot be before the date",
-    "reverseChargeVat": "Reverse charge needs the buyer's business ID or VAT number"
+    "reverseChargeVat": "Reverse charge needs the buyer's business ID or VAT number",
+    "areaOutside": "The area does not fit on the map"
   },
   "time": {
     "title": "Hours",
@@ -2946,6 +2954,7 @@
       "bookings": "Resource bookings",
       "taskTypes": "Task types",
       "calendar": "Calendar",
+      "map": "Site map",
       "deviations": "Deviations",
       "risks": "Risks"
     },
@@ -3099,7 +3108,8 @@
         "OPEN": "Open",
         "ACKNOWLEDGED": "Acknowledged",
         "RESOLVED": "Resolved"
-      }
+      },
+      "onMap": "On the map: {object}"
     },
     "ai": {
       "title": "AI suggestion",
@@ -3150,6 +3160,89 @@
         "IDLE_CAPACITY": "{people} people and {equipment} equipment unbooked for {days} days",
         "TAKT_IMPACT": "Logistics at risk serves this takt activity"
       }
+    },
+    "map": {
+      "title": "Site map",
+      "hint": "Overview of the site: gates, cranes, storage and other objects, and logistics tasks on the map. An object blinks red while it or its task has an open deviation.",
+      "noSites": "No sites whose logistics you can view.",
+      "site": "Site",
+      "noMapShort": "no map",
+      "period": "Period",
+      "ranges": {
+        "day": "Day",
+        "week": "Week"
+      },
+      "from": "From {date}",
+      "uploadMap": "Upload site map",
+      "replaceMap": "Replace site map",
+      "mapTitle": "Title (optional)",
+      "upload": "Upload",
+      "uploadHint": "An image (PNG, JPG) or a PDF. The first page of a PDF is converted to an image in the browser. Objects and tasks stay in place when the map is replaced.",
+      "converting": "Converting the PDF to an image…",
+      "uploading": "Uploading…",
+      "uploaded": "Site map saved.",
+      "convertFailed": "The file could not be read. Check that it is an image or a PDF.",
+      "mapAlt": "Site map",
+      "noMap": "No site map has been uploaded yet.",
+      "noMapEdit": "Upload a site plan or other overview above to place objects and tasks on the map.",
+      "legend": "Legend",
+      "blinkLegend": "Blinking: open deviation",
+      "hasDeviation": "open deviation",
+      "deviation": "Deviation",
+      "deviationsOnMap": "{n, plural, one {# object has an open deviation} other {# objects have an open deviation}}",
+      "kinds": {
+        "GATE": "Gate",
+        "UNLOADING": "Unloading point",
+        "STORAGE": "Storage",
+        "CRANE": "Crane",
+        "LIFT_AREA": "Lifting area",
+        "SITE_OFFICE": "Site office",
+        "PARKING": "Parking",
+        "WASTE": "Waste point",
+        "DANGER_ZONE": "Danger zone",
+        "OTHER": "Other object"
+      },
+      "tasks": "Tasks",
+      "dragHint": "Drag a task onto the map or onto an object. On a phone, tap a task and then the map.",
+      "noTasks": "No tasks in this period.",
+      "notOnMap": "Not on the map",
+      "onMap": "On the map",
+      "objects": "Objects",
+      "noObjects": "No objects on the map yet.",
+      "addObject": "Add object",
+      "kind": "Type",
+      "existingLocation": "Existing location",
+      "newLocation": "– New –",
+      "code": "Code",
+      "name": "Name",
+      "opens": "Opens",
+      "closes": "Closes",
+      "placeObject": "Place on the map",
+      "tapToPlaceTask": "Tap the map or an object to place “{task}”.",
+      "tapToPlaceObject": "Tap the map where the object goes.",
+      "cancel": "Cancel",
+      "close": "Close",
+      "placed": "“{task}” placed on the map.",
+      "placedAt": "“{task}” placed at {object}.",
+      "objectAdded": "Object {name} added.",
+      "openTask": "Open task",
+      "move": "Move",
+      "placeOnMap": "Place on the map",
+      "removeFromMap": "Remove from the map",
+      "missing": "{n} missing",
+      "hours": "open {from}–{to}",
+      "handleDeviations": "Handle deviations",
+      "taskDeviationHere": "A task at this object has an open deviation.",
+      "tasksHere": "Tasks at this object",
+      "edit": "Edit",
+      "save": "Save",
+      "saved": "Saved.",
+      "notes": "Notes",
+      "remove": "Remove object",
+      "removeConfirm": "Remove the object from the map? Its tasks stay on the map and the location stays in logistics.",
+      "removed": "Object removed.",
+      "whatDeviation": "What is the deviation?",
+      "deviationReported": "Deviation reported. The object blinks until the deviation is handled."
     }
   },
   "rotation": {

@@ -847,7 +847,14 @@
       "sales_document_create_credit_note": "Hyvityslasku tehty",
       "sales_document_archive": "Luonnos poistettu",
       "billing_settings_create": "Laskutusasetukset luotu",
-      "billing_settings_update": "Laskutusasetukset muutettu"
+      "billing_settings_update": "Laskutusasetukset muutettu",
+      "site_map_upload": "Aluekartta ladattu",
+      "site_map_object_create": "Kartan kohde lisätty",
+      "site_map_object_update": "Kartan kohde muutettu",
+      "site_map_object_move": "Kartan kohde siirretty",
+      "site_map_object_archive": "Kartan kohde poistettu",
+      "site_map_place_task": "Tehtävä sijoitettu kartalle",
+      "site_map_unplace_task": "Tehtävä poistettu kartalta"
     }
   },
   "errors": {
@@ -1001,7 +1008,8 @@
     "iban": "Virheellinen IBAN-tilinumero",
     "bic": "Virheellinen BIC-koodi",
     "dueBeforeIssue": "Eräpäivä ei voi olla ennen päiväystä",
-    "reverseChargeVat": "Käännetty verovelvollisuus vaatii ostajan Y-tunnuksen tai ALV-tunnisteen"
+    "reverseChargeVat": "Käännetty verovelvollisuus vaatii ostajan Y-tunnuksen tai ALV-tunnisteen",
+    "areaOutside": "Alue ei mahdu kartalle"
   },
   "time": {
     "title": "Tunnit",
@@ -2946,6 +2954,7 @@
       "bookings": "Resurssivaraukset",
       "taskTypes": "Tehtävätyypit",
       "calendar": "Kalenteri",
+      "map": "Aluekartta",
       "deviations": "Poikkeamat",
       "risks": "Riskit"
     },
@@ -3099,7 +3108,8 @@
         "OPEN": "Avoin",
         "ACKNOWLEDGED": "Kuitattu",
         "RESOLVED": "Ratkaistu"
-      }
+      },
+      "onMap": "Kartalla: {object}"
     },
     "ai": {
       "title": "AI-ehdotus",
@@ -3150,6 +3160,89 @@
         "IDLE_CAPACITY": "{people} henkilöä ja {equipment} kalustoa ilman varauksia {days} päivään",
         "TAKT_IMPACT": "Riskissä oleva logistiikka palvelee tätä tahtitehtävää"
       }
+    },
+    "map": {
+      "title": "Aluekartta",
+      "hint": "Työmaan yleiskuva: portit, nosturit, varastot ja muut kohteet sekä logistiikkatehtävät kartalla. Kohde vilkkuu punaisena, kun siihen tai sen tehtävään liittyy avoin poikkeama.",
+      "noSites": "Ei työmaita, joiden logistiikkaa voit katsoa.",
+      "site": "Työmaa",
+      "noMapShort": "ei karttaa",
+      "period": "Ajanjakso",
+      "ranges": {
+        "day": "Päivä",
+        "week": "Viikko"
+      },
+      "from": "Alkaen {date}",
+      "uploadMap": "Lataa aluekartta",
+      "replaceMap": "Vaihda aluekartta",
+      "mapTitle": "Otsikko (valinnainen)",
+      "upload": "Lataa",
+      "uploadHint": "Kuva (PNG, JPG) tai PDF. PDF:n ensimmäinen sivu muutetaan kuvaksi selaimessa. Kohteet ja tehtävät säilyvät paikoillaan, kun kartta vaihdetaan.",
+      "converting": "Muunnetaan PDF:ää kuvaksi…",
+      "uploading": "Ladataan…",
+      "uploaded": "Aluekartta tallennettu.",
+      "convertFailed": "Tiedostoa ei voitu lukea. Tarkista, että se on kuva tai PDF.",
+      "mapAlt": "Työmaan aluekartta",
+      "noMap": "Työmaalle ei ole vielä ladattu aluekarttaa.",
+      "noMapEdit": "Lataa työmaan asemapiirros tai muu yleiskuva yllä, niin voit sijoittaa kohteet ja tehtävät kartalle.",
+      "legend": "Selitteet",
+      "blinkLegend": "Vilkkuu: avoin poikkeama",
+      "hasDeviation": "avoin poikkeama",
+      "deviation": "Poikkeama",
+      "deviationsOnMap": "{n, plural, one {# kohteessa on avoin poikkeama} other {# kohteessa on avoin poikkeama}}",
+      "kinds": {
+        "GATE": "Portti",
+        "UNLOADING": "Purkupaikka",
+        "STORAGE": "Varasto",
+        "CRANE": "Nosturi",
+        "LIFT_AREA": "Nostoalue",
+        "SITE_OFFICE": "Työmaatoimisto",
+        "PARKING": "Pysäköinti",
+        "WASTE": "Jätepiste",
+        "DANGER_ZONE": "Vaara-alue",
+        "OTHER": "Muu kohde"
+      },
+      "tasks": "Tehtävät",
+      "dragHint": "Raahaa tehtävä kartalle tai kohteen päälle. Puhelimessa napauta tehtävää ja sitten karttaa.",
+      "noTasks": "Ei tehtäviä tällä ajanjaksolla.",
+      "notOnMap": "Ei kartalla",
+      "onMap": "Kartalla",
+      "objects": "Kohteet",
+      "noObjects": "Kartalla ei ole vielä kohteita.",
+      "addObject": "Lisää kohde",
+      "kind": "Tyyppi",
+      "existingLocation": "Olemassa oleva sijainti",
+      "newLocation": "– Uusi –",
+      "code": "Tunnus",
+      "name": "Nimi",
+      "opens": "Aukeaa",
+      "closes": "Sulkeutuu",
+      "placeObject": "Sijoita kartalle",
+      "tapToPlaceTask": "Napauta karttaa tai kohdetta, johon “{task}” sijoitetaan.",
+      "tapToPlaceObject": "Napauta karttaa kohdasta, johon kohde sijoitetaan.",
+      "cancel": "Peruuta",
+      "close": "Sulje",
+      "placed": "“{task}” sijoitettu kartalle.",
+      "placedAt": "“{task}” sijoitettu kohteeseen {object}.",
+      "objectAdded": "Kohde {name} lisätty.",
+      "openTask": "Avaa tehtävä",
+      "move": "Siirrä",
+      "placeOnMap": "Sijoita kartalle",
+      "removeFromMap": "Poista kartalta",
+      "missing": "Puuttuu {n}",
+      "hours": "auki {from}–{to}",
+      "handleDeviations": "Käsittele poikkeamat",
+      "taskDeviationHere": "Kohteen tehtävässä on avoin poikkeama.",
+      "tasksHere": "Tehtävät tässä kohteessa",
+      "edit": "Muokkaa",
+      "save": "Tallenna",
+      "saved": "Tallennettu.",
+      "notes": "Lisätiedot",
+      "remove": "Poista kohde",
+      "removeConfirm": "Poistetaanko kohde kartalta? Sen tehtävät jäävät kartalle ja sijainti säilyy logistiikassa.",
+      "removed": "Kohde poistettu.",
+      "whatDeviation": "Mikä on poikkeama?",
+      "deviationReported": "Poikkeama ilmoitettu. Kohde vilkkuu, kunnes poikkeama on käsitelty."
     }
   },
   "rotation": {
