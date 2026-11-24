@@ -23,6 +23,7 @@ export type NavKey =
   | "sales"
   | "quotes"
   | "marketing"
+  | "invoicing"
   | "billing"
   | "settings";
 
@@ -105,6 +106,8 @@ export function navGroups(ctx: RequestContext, opts: { myEmployeeId?: string | n
     has("crm.view") && { key: "sales", href: `${base}/sales` },
     has("crm.view") && has("commercial.view") && { key: "quotes", href: `${base}/sales/quotes` },
     has("marketing.view") && { key: "marketing", href: `${base}/marketing` },
+    // Order confirmations and invoices (ADR 0033): company-wide invoicing.
+    has("invoice.manage") && { key: "invoicing", href: `${base}/invoicing` },
     (has("invoice.manage") || grants.some((g) => g.has("invoice.manage"))) && { key: "billing", href: `${base}/billing` },
   ]);
   add("settingsGroup", [

@@ -268,7 +268,7 @@ async function issueInTx(ctx: RequestContext, id: string) {
       if (isUniqueViolation(e)) throw new ValidationError({ _form: ["sales.errors.numberTaken"] });
       throw e;
     }
-    await audit(tx, ctx, "salesDocument.issue", doc.id, { kind: doc.kind, number, referenceNumber, totalNet: totals.net, totalVat: totals.vat, totalGross: totals.gross, pdfSha256: sha256 });
+    await audit(tx, ctx, "sales_document.issue", doc.id, { kind: doc.kind, number, referenceNumber, totalNet: totals.net, totalVat: totals.vat, totalGross: totals.gross, pdfSha256: sha256 });
     return issued;
   });
 }
@@ -341,7 +341,7 @@ async function copyToDraft(ctx: RequestContext, sourceId: string, from: SalesDoc
         }),
       );
     }
-    await audit(tx, ctx, to === "CREDIT_NOTE" ? "salesDocument.createCreditNote" : "salesDocument.createFromOrder", doc.id, { kind: to, sourceDocumentId: src.id, sourceNumber: src.number, lines: src.lines.length });
+    await audit(tx, ctx, to === "CREDIT_NOTE" ? "sales_document.create_credit_note" : "sales_document.create_from_order", doc.id, { kind: to, sourceDocumentId: src.id, sourceNumber: src.number, lines: src.lines.length });
     return doc;
   });
 }
@@ -472,7 +472,7 @@ export const salesDocumentService = {
         createdById: ctx.user.id,
         updatedById: ctx.user.id,
       });
-      await audit(tx, ctx, "salesDocument.create", doc.id, { kind: doc.kind, buyerName: doc.buyerName, customerId: doc.customerId, projectId: doc.projectId });
+      await audit(tx, ctx, "sales_document.create", doc.id, { kind: doc.kind, buyerName: doc.buyerName, customerId: doc.customerId, projectId: doc.projectId });
       return doc;
     });
   },
@@ -499,7 +499,7 @@ export const salesDocumentService = {
       });
       const { lines: _l, sends: _s, customer: _c, project: _p, source: _src, derived: _d, ...beforeHeader } = doc;
       const { pdfStorageKey: _k, ...afterHeader } = after;
-      await audit(tx, ctx, "salesDocument.update", doc.id, afterHeader, beforeHeader);
+      await audit(tx, ctx, "sales_document.update", doc.id, afterHeader, beforeHeader);
       return after;
     });
   },
@@ -512,7 +512,7 @@ export const salesDocumentService = {
       const doc = await loadDraft(repo, ctx, documentId);
       if (doc.lines.length >= 300) throw new ValidationError({ _form: ["sales.errors.tooManyLines"] });
       const line = await repo.createLine({ documentId: doc.id, sortOrder: await repo.nextSortOrder(doc.id), ...lineData(doc.kind, data), createdById: ctx.user.id, updatedById: ctx.user.id });
-      await audit(tx, ctx, "salesDocument.addLine", doc.id, { lineId: line.id, name: line.name, quantity: line.quantity, unitPrice: line.unitPrice, amount: line.amount });
+      await audit(tx, ctx, "sales_document.line_add", doc.id, { lineId: line.id, name: line.name, quantity: line.quantity, unitPrice: line.unitPrice, amount: line.amount });
       return line;
     });
   },
@@ -526,7 +526,7 @@ export const salesDocumentService = {
       if (!line) throw new NotFoundError();
       const doc = await loadDraft(repo, ctx, line.documentId);
       const after = await repo.updateLine(line.id, { ...lineData(doc.kind, data), updatedById: ctx.user.id });
-      await audit(tx, ctx, "salesDocument.updateLine", doc.id, { lineId: line.id, name: after.name, quantity: after.quantity, unitPrice: after.unitPrice, amount: after.amount }, { lineId: line.id, name: line.name, quantity: line.quantity, unitPrice: line.unitPrice, amount: line.amount });
+      await audit(tx, ctx, "sales_document.line_update", doc.id, { lineId: line.id, name: after.name, quantity: after.quantity, unitPrice: after.unitPrice, amount: after.amount }, { lineId: line.id, name: line.name, quantity: line.quantity, unitPrice: line.unitPrice, amount: line.amount });
       return after;
     });
   },
@@ -539,7 +539,7 @@ export const salesDocumentService = {
       if (!line) throw new NotFoundError();
       const doc = await loadDraft(repo, ctx, line.documentId);
       await repo.deleteLine(line.id);
-      await audit(tx, ctx, "salesDocument.removeLine", doc.id, null, { lineId: line.id, name: line.name, quantity: line.quantity, amount: line.amount });
+      await audit(tx, ctx, "sales_document.line_remove", doc.id, null, { lineId: line.id, name: line.name, quantity: line.quantity, amount: line.amount });
     });
   },
 
@@ -604,7 +604,7 @@ export const salesDocumentService = {
       const now = new Date();
       await r.createSend({ documentId: doc.id, toEmail: data.to, ccEmails: cc.filter((x) => x !== data.to), subject, sentAt: now, sentById: ctx.user.id });
       const after = await r.updateDocument(doc.id, { sentAt: now, sendCount: { increment: 1 }, updatedById: ctx.user.id });
-      await audit(tx, ctx, "salesDocument.send", doc.id, { number: doc.number, to: data.to, cc, subject, pdfSha256: doc.pdfSha256 });
+      await audit(tx, ctx, "sales_document.send", doc.id, { number: doc.number, to: data.to, cc, subject, pdfSha256: doc.pdfSha256 });
       return after;
     });
   },
@@ -618,7 +618,7 @@ export const salesDocumentService = {
       const doc = await loadDocument(repo, ctx, id);
       if (doc.kind !== "ORDER_CONFIRMATION" || doc.status !== "ISSUED") throw new ValidationError({ _form: ["validation.invalidTransition"] });
       const after = await repo.updateDocument(doc.id, { status: "VOID", voidedAt: new Date(), voidedById: ctx.user.id, voidReason: data.reason, updatedById: ctx.user.id });
-      await audit(tx, ctx, "salesDocument.void", doc.id, { status: "VOID", reason: data.reason }, { status: doc.status });
+      await audit(tx, ctx, "sales_document.void", doc.id, { status: "VOID", reason: data.reason }, { status: doc.status });
       return after;
     });
   },
@@ -641,7 +641,7 @@ export const salesDocumentService = {
       const repo = new SalesRepo(tx, ctx.company.id);
       const doc = await loadDraft(repo, ctx, id);
       await repo.updateDocument(doc.id, { archivedAt: new Date(), updatedById: ctx.user.id });
-      await audit(tx, ctx, "salesDocument.archive", doc.id, { archived: true });
+      await audit(tx, ctx, "sales_document.archive", doc.id, { archived: true });
     });
   },
 };
@@ -675,7 +675,7 @@ export const billingSettingsService = {
         defaultVatRate: D(data.defaultVatRate),
         updatedById: ctx.user.id,
       });
-      await writeAudit(tx, ctx, { action: before ? "billingSettings.update" : "billingSettings.create", entityType: "billing_settings", entityId: ctx.company.id, before, after, diff: !!before });
+      await writeAudit(tx, ctx, { action: before ? "billing_settings.update" : "billing_settings.create", entityType: "billing_settings", entityId: ctx.company.id, before, after, diff: !!before });
       return after;
     });
   },

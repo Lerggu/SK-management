@@ -20,6 +20,9 @@ Assistant (owner approval 2026-11-18): voice/text assistant proposes actions, a 
 
 Marketing automation (owner request and decisions 2026-11-17): discovery agent (TED API, AI web search, TSOs, Hilma) fills the marketing register; letter agent drafts targeted letters and call scripts; a person approves before sending (`auto_send` off by default); Reply-To goes to the chosen salespeople; unsubscribe link and do-not-contact list; no AI robocalls (call list instead); separate monthly marketing AI budget; access only for the CEO and Project Manager roles (owner 2026-11-18; never other roles or personal extras) — `docs/adr/0032-marketing-automation.md`, user guide `docs/MARKETING_GUIDE.md`.
 
+Order confirmations and invoices (owner request and decisions 2026-11-24): order confirmations, invoices and credit notes in the SK Infra layout (the owner's model confirmation) with the logo, sent as a PDF attachment to any e-mail; SK Management numbers the invoices (accounting gets copies); only companies with billing set up (SK Infra) can issue; rental or sales terms attached per document (starting texts to be reviewed by a lawyer); an issued document is immutable and corrected with a credit note; `invoice.manage` to use, `company.manage` for the settings — `docs/adr/0033-sales-documents.md`.
+Purent: the owner reported on 2026-11-24 that Purent is no longer in the program. It remains only as the second demo/test company used to verify tenant isolation, and in the install examples (`infra/`), until the owner decides otherwise.
+
 ## Owner requirements (binding)
 1. Finnish is the default UI language; English is available from V1 (i18n from day one, no hard-coded UI strings).
 2. SK Infra and Purent are separate companies on the same platform. The multi-company architecture exists from day one.

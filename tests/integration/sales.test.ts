@@ -30,7 +30,7 @@ const settings = {
   iban: "FI21 1234 5600 0007 85",
   bic: "NDEAFIHH",
   paymentTermDays: "14",
-  logo: "SK_INFRA",
+  logo: "SK_INFRA" as const,
   nextOrderNumber: "1001",
   nextInvoiceNumber: "10001",
   rentalTerms: "1. VUOKRA-AIKA\nVuokra-aika alkaa noutopäivästä.",
@@ -71,7 +71,7 @@ describe("billing settings", () => {
     expect(s.iban).toBe("FI2112345600000785");
     expect(s.vatNumber).toBe("FI01120389");
     expect(s.logo).toBe("SK_INFRA");
-    expect((await auditFor(t.companyId, t.companyId)).some((e) => e.action === "billingSettings.create")).toBe(true);
+    expect((await auditFor(t.companyId, t.companyId)).some((e) => e.action === "billing_settings.create")).toBe(true);
   });
 
   it("is changed only with company.manage", async () => {
@@ -143,7 +143,7 @@ describe("order confirmation → invoice → credit note", () => {
     expect(again.sendCount).toBe(2);
     expect(again.sends.map((x) => x.toEmail).sort()).toEqual(["matti@ndc.example.test", "other@example.test"]);
     const actions = (await auditFor(t.companyId, orderId)).map((e) => e.action);
-    expect(actions).toEqual(expect.arrayContaining(["salesDocument.create", "salesDocument.addLine", "salesDocument.updateLine", "salesDocument.issue", "salesDocument.send"]));
+    expect(actions).toEqual(expect.arrayContaining(["sales_document.create", "sales_document.line_add", "sales_document.line_update", "sales_document.issue", "sales_document.send"]));
   });
 
   it("keeps an issued document immutable in the service and in the database", async () => {
@@ -274,7 +274,7 @@ describe("drafts, numbering and validation", () => {
     await expect(salesDocumentService.issue(t.ownerCtx, d.id)).rejects.toBeInstanceOf(ValidationError);
     await expect(salesDocumentService.addLine(t.ownerCtx, d.id, line({ quantity: "0" }))).rejects.toBeInstanceOf(ValidationError);
     await expect(salesDocumentService.addLine(t.ownerCtx, d.id, line({ discountPct: "101" }))).rejects.toBeInstanceOf(ValidationError);
-    const header = { buyerName: "Validointi Oy", issueDate: "2026-11-24", vatMode: "STANDARD" };
+    const header = { buyerName: "Validointi Oy", issueDate: "2026-11-24", vatMode: "STANDARD" as const };
     await expect(salesDocumentService.update(t.ownerCtx, d.id, { ...header, dueDate: "2026-11-20" })).rejects.toBeInstanceOf(ValidationError);
     await expect(salesDocumentService.update(t.ownerCtx, d.id, { ...header, vatMode: "REVERSE_CHARGE" })).rejects.toBeInstanceOf(ValidationError);
     const u = await salesDocumentService.update(t.ownerCtx, d.id, { ...header, vatMode: "REVERSE_CHARGE", buyerVatNumber: "FI01120389", language: "en", buyerReference: "PO-4471" });
