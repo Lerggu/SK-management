@@ -360,8 +360,10 @@ async function riskFacts(ctx: RequestContext, projectId: string, repo: Productio
   }
 
   for (const d of deviations) {
-    facts.push({ type: "OPEN_DEVIATION", severity: d.type === "SAFETY" || d.type === "LATE_DELIVERY" ? "CRITICAL" : "WARNING", subject: clip(d.request.title), at: iso(d.createdAt), params: { deviation: d.type, status: d.status }, taskId: d.request.id });
-    atRiskTasks.add(d.request.id);
+    // A deviation of a map object (ADR 0034) has no task; the object is the subject.
+    const subject = d.request ? d.request.title : d.mapObject ? (d.mapObject.code ? `${d.mapObject.code} ${d.mapObject.name}` : d.mapObject.name) : "";
+    facts.push({ type: "OPEN_DEVIATION", severity: d.type === "SAFETY" || d.type === "LATE_DELIVERY" ? "CRITICAL" : "WARNING", subject: clip(subject), at: iso(d.createdAt), params: { deviation: d.type, status: d.status }, taskId: d.request?.id ?? null });
+    if (d.request) atRiskTasks.add(d.request.id);
   }
 
   const lateActivities = new Set<string>();

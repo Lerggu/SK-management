@@ -219,6 +219,9 @@ model Company {
   marketingMessages      MarketingMessage[]
   billingSettings        BillingSettings?
   salesDocuments         SalesDocument[]
+  siteMaps               SiteMap[]
+  siteMapObjects         SiteMapObject[]
+  siteMapTaskPins        SiteMapTaskPin[]
 
   @@index([organizationId])
   @@map("companies")
@@ -546,6 +549,8 @@ model Site {
   bookings           ResourceBooking[]
   logisticsRequests  LogisticsRequest[]
   logisticsLocations LogisticsLocation[]
+  siteMaps           SiteMap[]
+  siteMapObjects     SiteMapObject[]
   deliveries         Delivery[]
   liftPlans          LiftPlan[]
   materialBatches    MaterialBatch[]
@@ -1649,6 +1654,7 @@ model LogisticsLocation {
   materialBatches   MaterialBatch[]
   materialMovements MaterialMovement[]
   cableDrums        CableDrum[]
+  mapObject         SiteMapObject?
 
   @@unique([companyId, id])
   @@unique([companyId, siteId, id])
@@ -1723,6 +1729,7 @@ model LogisticsRequest {
   deliveries    Delivery[]
   liftPlans     LiftPlan[]
   aiRuns        AiRun[]
+  mapPin        SiteMapTaskPin?
 
   @@unique([companyId, id])
   @@unique([companyId, siteId, id])
@@ -3636,7 +3643,10 @@ model LogisticsDeviation {
   id               String          @id @default(uuid(7)) @db.Uuid
   companyId        String          @map("company_id") @db.Uuid
   projectId        String          @map("project_id") @db.Uuid
-  requestId        String          @map("request_id") @db.Uuid
+  /// The task, or null when the deviation concerns only a map object (ADR 0034).
+  requestId        String?         @map("request_id") @db.Uuid
+  /// Site map object the deviation concerns (gate, crane, storage …); it blinks red on the map.
+  mapObjectId      String?         @map("map_object_id") @db.Uuid
   type             DeviationType
   comment          String?
   status           DeviationStatus @default(OPEN)
@@ -3650,12 +3660,14 @@ model LogisticsDeviation {
   createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  request LogisticsRequest          @relation(fields: [companyId, requestId], references: [companyId, id], onDelete: Restrict)
+  request   LogisticsRequest?         @relation(fields: [companyId, requestId], references: [companyId, id], onDelete: Restrict)
+  mapObject SiteMapObject?            @relation(fields: [companyId, projectId, mapObjectId], references: [companyId, projectId, id], onDelete: Restrict)
   photos  LogisticsDeviationPhoto[]
 
   @@unique([companyId, id])
   @@index([companyId, requestId, status])
   @@index([companyId, status, createdAt])
+  @@index([companyId, mapObjectId, status])
   @@map("logistics_deviations")
 }
 
@@ -4295,4 +4307,109 @@ model SalesDocumentSend {
   @@unique([companyId, id])
   @@index([companyId, documentId])
   @@map("sales_document_sends")
+}
+
+// ── Site map in production control (docs/adr/0034-site-map.md) ─────────
+
+enum SiteMapObjectKind {
+  GATE
+  UNLOADING
+  STORAGE
+  CRANE
+  LIFT_AREA
+  SITE_OFFICE
+  PARKING
+  WASTE
+  DANGER_ZONE
+  OTHER
+}
+
+/// Overview image of a site (uploaded image, or a PDF's first page converted in the browser). One active map per site.
+model SiteMap {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  companyId    String    @map("company_id") @db.Uuid
+  projectId    String    @map("project_id") @db.Uuid
+  siteId       String    @map("site_id") @db.Uuid
+  title        String?
+  fileName     String    @map("file_name")
+  contentType  String    @map("content_type")
+  sizeBytes    BigInt    @map("size_bytes")
+  sha256       String    @db.Char(64)
+  storageKey   String    @map("storage_key")
+  widthPx      Int       @map("width_px")
+  heightPx     Int       @map("height_px")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById  String?   @map("created_by") @db.Uuid
+  archivedAt   DateTime? @map("archived_at") @db.Timestamptz(6)
+  archivedById String?   @map("archived_by") @db.Uuid
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site    Site    @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, siteId])
+  @@map("site_maps")
+}
+
+/// A thing on the site map: gate with its code, crane, storage area … Positions are fractions (0–1) of the map image.
+model SiteMapObject {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  companyId   String            @map("company_id") @db.Uuid
+  projectId   String            @map("project_id") @db.Uuid
+  siteId      String            @map("site_id") @db.Uuid
+  kind        SiteMapObjectKind
+  /// Short identifier printed on the map, e.g. "P1" for gate 1.
+  code        String?
+  name        String
+  x           Float
+  y           Float
+  /// Size of an area object (fractions of the map); null for a point.
+  width       Float?
+  height      Float?
+  /// Gates, unloading points and storage are logistics locations too (deliveries use them).
+  locationId  String?           @unique @map("location_id") @db.Uuid
+  notes       String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?           @map("created_by") @db.Uuid
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?           @map("updated_by") @db.Uuid
+  archivedAt  DateTime?         @map("archived_at") @db.Timestamptz(6)
+
+  company    Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  site       Site                 @relation(fields: [companyId, projectId, siteId], references: [companyId, projectId, id], onDelete: Restrict)
+  location   LogisticsLocation?   @relation(fields: [companyId, siteId, locationId], references: [companyId, siteId, id], onDelete: Restrict)
+  pins       SiteMapTaskPin[]
+  deviations LogisticsDeviation[]
+
+  @@unique([companyId, id])
+  @@unique([companyId, projectId, id])
+  @@unique([companyId, siteId, id])
+  @@unique([companyId, siteId, locationId])
+  @@index([companyId, siteId, archivedAt])
+  @@map("site_map_objects")
+}
+
+/// Where a logistics task sits on its site's map, optionally at an object (e.g. unloading at gate P1).
+model SiteMapTaskPin {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  siteId      String   @map("site_id") @db.Uuid
+  requestId   String   @unique @map("request_id") @db.Uuid
+  objectId    String?  @map("object_id") @db.Uuid
+  x           Float
+  y           Float
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?  @map("updated_by") @db.Uuid
+
+  company Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  request LogisticsRequest @relation(fields: [companyId, siteId, requestId], references: [companyId, siteId, id], onDelete: Restrict)
+  object  SiteMapObject?   @relation(fields: [companyId, siteId, objectId], references: [companyId, siteId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@unique([companyId, siteId, requestId])
+  @@index([companyId, siteId])
+  @@map("site_map_task_pins")
 }

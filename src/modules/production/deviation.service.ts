@@ -14,6 +14,7 @@ import { requireLogistics } from "@/modules/logistics/access";
 import { sha256Hex } from "@/modules/documents/versioning";
 import { validateHrFile } from "@/modules/hr/files.service";
 import { ProductionRepo } from "./repo";
+import { SiteMapRepo } from "./sitemap.repo";
 
 export const DEVIATION_TYPES = ["LATE_DELIVERY", "RESOURCE_MISSING", "EQUIPMENT_FAULT", "WEATHER", "SAFETY", "OTHER"] as const;
 
@@ -35,6 +36,16 @@ const toGrant = (r: { templateKey: string | null; projectAccess: "ALL" | "ASSIGN
  * comment); logistics approvers are notified by e-mail and acknowledge and
  * resolve it. Open deviations blink red in the production calendar.
  */
+async function storePhoto(ctx: RequestContext, folder: string, photo: Photo | null | undefined) {
+  if (!photo) return null;
+  checkRateLimit(RATE_LIMITS.upload, ctx.user.id);
+  const { fileName, contentType } = validateHrFile(photo, true);
+  const id = uuidv7();
+  const key = `companies/${ctx.company.id}/logistics/deviations/${folder}/${id}`;
+  await getStorage().put(key, photo.bytes, contentType);
+  return { fileName, contentType, size: photo.bytes.byteLength, sha256: sha256Hex(photo.bytes), key, id };
+}
+
 export const deviationService = {
   async report(ctx: RequestContext, requestId: string, input: { type?: string; comment?: string | null }, photo?: Photo | null) {
     const data = parseInput(reportSchema, input);
@@ -45,15 +56,7 @@ export const deviationService = {
     requireLogistics(ctx, task.projectId, "logistics.view");
     if (task.status === "CANCELLED") throw new ValidationError({ _form: ["validation.invalidTransition"] });
 
-    let stored: { fileName: string; contentType: string; size: number; sha256: string; key: string; id: string } | null = null;
-    if (photo) {
-      checkRateLimit(RATE_LIMITS.upload, ctx.user.id);
-      const { fileName, contentType } = validateHrFile(photo, true);
-      const id = uuidv7();
-      const key = `companies/${ctx.company.id}/logistics/deviations/${task.id}/${id}`;
-      await getStorage().put(key, photo.bytes, contentType);
-      stored = { fileName, contentType, size: photo.bytes.byteLength, sha256: sha256Hex(photo.bytes), key, id };
-    }
+    const stored = await storePhoto(ctx, task.id, photo);
 
     const deviation = await runInTransaction(async (tx) => {
       const trepo = new ProductionRepo(tx, ctx.company.id);
@@ -64,7 +67,32 @@ export const deviationService = {
       await writeAudit(tx, ctx, { action: "logistics_deviation.report", entityType: "logistics_deviation", entityId: d.id, projectId: task.projectId, after: { requestId: task.id, type: d.type, photo: Boolean(stored) } });
       return d;
     });
-    const notify = await notifyApprovers(ctx, deviation.id, task, data.type);
+    const notify = await notifyApprovers(ctx, deviation.id, { title: task.title, projectId: task.projectId, path: `logistics/requests/${task.id}` }, data.type);
+    return { id: deviation.id, status: deviation.status, ...notify };
+  },
+
+  /**
+   * A deviation of a site map object without a task, e.g. a jammed gate or a
+   * crane fault (ADR 0034). The object blinks red on the map until resolved.
+   */
+  async reportOnObject(ctx: RequestContext, objectId: string, input: { type?: string; comment?: string | null }, photo?: Photo | null) {
+    const data = parseInput(reportSchema, input);
+    if (ctx.external) throw new NotFoundError();
+    const object = await new SiteMapRepo(readClient(), ctx.company.id).findObject(objectId);
+    if (!object) throw new NotFoundError();
+    requireLogistics(ctx, object.projectId, "logistics.view");
+    const stored = await storePhoto(ctx, `objects/${object.id}`, photo);
+    const deviation = await runInTransaction(async (tx) => {
+      const trepo = new ProductionRepo(tx, ctx.company.id);
+      const d = await trepo.createDeviation({ projectId: object.projectId, mapObjectId: object.id, type: data.type, comment: data.comment, reportedById: ctx.user.id });
+      if (stored) {
+        await trepo.createDeviationPhoto({ id: stored.id, deviationId: d.id, fileName: stored.fileName, contentType: stored.contentType, sizeBytes: BigInt(stored.size), sha256: stored.sha256, storageKey: stored.key, createdById: ctx.user.id });
+      }
+      await writeAudit(tx, ctx, { action: "logistics_deviation.report", entityType: "logistics_deviation", entityId: d.id, projectId: object.projectId, after: { mapObjectId: object.id, type: d.type, photo: Boolean(stored) } });
+      return d;
+    });
+    const label = object.code ? `${object.code} ${object.name}` : object.name;
+    const notify = await notifyApprovers(ctx, deviation.id, { title: label, projectId: object.projectId, path: `logistics/map?site=${object.siteId}` }, data.type);
     return { id: deviation.id, status: deviation.status, ...notify };
   },
 
@@ -100,7 +128,8 @@ export const deviationService = {
       acknowledgedBy: name(r.acknowledgedById),
       resolvedBy: name(r.resolvedById),
       photoIds: r.photos.map((p) => p.id),
-      task: { id: r.request.id, title: r.request.title, site: `${r.request.site.project.code} · ${r.request.site.name}` },
+      task: r.request ? { id: r.request.id, title: r.request.title, site: `${r.request.site.project.code} · ${r.request.site.name}` } : null,
+      object: r.mapObject ? { id: r.mapObject.id, label: r.mapObject.code ? `${r.mapObject.code} ${r.mapObject.name}` : r.mapObject.name, siteId: r.mapObject.siteId, site: `${r.mapObject.site.project.code} · ${r.mapObject.site.name}` } : null,
       canManage: hasProjectPermission(ctx, r.projectId, "logistics.approve") && r.status !== "RESOLVED",
     }));
   },
@@ -153,7 +182,7 @@ async function manage(
  * E-mails the project's logistics approvers (capability, never role names).
  * Runs after the report is saved: a mail failure never loses the report.
  */
-async function notifyApprovers(ctx: RequestContext, deviationId: string, task: { id: string; title: string; projectId: string }, type: string) {
+async function notifyApprovers(ctx: RequestContext, deviationId: string, task: { title: string; projectId: string; path: string }, type: string) {
   const repo = new ProductionRepo(readClient(), ctx.company.id);
   const members = await repo.membersWithRoles(task.projectId);
   const recipients = members.filter((m) => {
@@ -170,7 +199,7 @@ async function notifyApprovers(ctx: RequestContext, deviationId: string, task: {
   const mailer = getMailer();
   let sent = 0;
   if (mailer) {
-    const link = `${appBaseUrl()}/c/${ctx.company.slug}/logistics/requests/${task.id}`;
+    const link = `${appBaseUrl()}/c/${ctx.company.slug}/${task.path}`;
     for (const r of recipients) {
       const params = { task: task.title, type: translate(r.user.locale, `production.deviations.types.${type}`), link };
       try {

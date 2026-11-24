@@ -9,6 +9,7 @@
  *
  * Usage: pnpm db:seed   (idempotent: skips if the demo organization exists)
  */
+import { readFileSync } from "node:fs";
 import { db } from "@/platform/db";
 import "@/modules/registry"; // V8: services run under row-level security
 import { FakeAiProvider, setAiProviderForTests } from "@/platform/ai";
@@ -37,6 +38,8 @@ import { contractService, forecastService, variationService } from "@/modules/co
 import { invoiceService } from "@/modules/commercial/invoice.service";
 import { billingSettingsService, salesDocumentService } from "@/modules/sales/service";
 import { termsTemplates } from "@/modules/sales/terms-templates";
+import { siteMapService } from "@/modules/production/sitemap.service";
+import { deviationService } from "@/modules/production/deviation.service";
 import { deliveryService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { hseActionService, hseObservationService, incidentService } from "@/modules/hse/hse.service";
 import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
@@ -745,6 +748,34 @@ async function main() {
   });
   const demoOrder = await salesDocumentService.create(skCeoCtx, { kind: "ORDER_CONFIRMATION", customerId: hyperscale.id, termsType: "RENTAL", title: "Kelannostohaarukan vuokraus" });
   await salesDocumentService.addLine(skCeoCtx, demoOrder.id, { productCode: "LF38-VUOKRA", name: "Kelannostohaarukka 17 000 kg, vuokra", description: "Vuokra laskutetaan toteutuneiden arkipäivien mukaan kahden viikon välein.", quantity: "10", unit: "pv", unitPrice: "78", vatRate: "25.5" });
+
+  // ── Site map: fictional site plan of the data centre campus with objects, tasks and a blinking deviation (ADR 0034) ──
+  {
+    const hallAId = (await db.site.findFirstOrThrow({ where: { company: { slug: "sk-infra-demo" }, code: "DH-A" } })).id;
+    const plan = new Uint8Array(readFileSync("prisma/seed-assets/ndc-site-plan.png"));
+    await siteMapService.uploadMap(logisticsCtx, hallAId, { width: "2400", height: "1600", title: "Nordic Data Center Demo – asemapiirros" }, { fileName: "ndc-asemapiirros.png", bytes: plan });
+    const loc = async (name: string) => (await db.logisticsLocation.findFirstOrThrow({ where: { siteId: hallAId, name } })).id;
+    const add = (input: Parameters<typeof siteMapService.createObject>[2]) => siteMapService.createObject(logisticsCtx, hallAId, input);
+    await add({ kind: "GATE", code: "P1", name: "Portti 1 (pohjoinen)", x: "0.4646", y: "0.106", locationId: await loc("Portti 1 (pohjoinen)") });
+    await add({ kind: "GATE", code: "P2", name: "Portti 2 (itä)", x: "0.8667", y: "0.497", locationId: await loc("Portti 2 (itä)") });
+    await add({ kind: "GATE", code: "P3", name: "Portti 3 (etelä)", x: "0.4646", y: "0.875", opens: "06:00", closes: "22:00", notes: "Erikoiskuljetukset ja muuntajat" });
+    const unload = await add({ kind: "UNLOADING", code: "PA", name: "Purkualue A", x: "0.4625", y: "0.47", locationId: await loc("Purkualue A") });
+    const store = await add({ kind: "STORAGE", code: "KV", name: "Kaapelivarasto", x: "0.504", y: "0.6", width: "0.1333", height: "0.1813", locationId: await loc("Kaapelivarasto") });
+    await add({ kind: "STORAGE", code: "KT", name: "Kenttävarasto", x: "0.517", y: "0.25", width: "0.108", height: "0.1", locationId: await loc("Kenttävarasto") });
+    const crane = await add({ kind: "CRANE", code: "N1", name: "Ajoneuvonosturi 100 t", x: "0.455", y: "0.3", notes: "Tukijalat aina kuormanjakolevyjen päällä" });
+    await add({ kind: "LIFT_AREA", code: "NA1", name: "Nostoalue A", x: "0.43", y: "0.22", width: "0.07", height: "0.16" });
+    await add({ kind: "SITE_OFFICE", code: "T1", name: "Työmaatoimisto ja sosiaalitilat", x: "0.375", y: "0.8" });
+    await add({ kind: "PARKING", code: "PK", name: "Pysäköinti", x: "0.08", y: "0.8", width: "0.045", height: "0.06" });
+    await add({ kind: "WASTE", code: "J1", name: "Jätepiste", x: "0.75", y: "0.86" });
+    await add({ kind: "DANGER_ZONE", code: "VA", name: "110 kV jännitteinen alue", x: "0.65", y: "0.6", width: "0.1375", height: "0.1813", notes: "Pääsy vain sähkötyöluvalla" });
+    const hallTasks = await db.logisticsRequest.findMany({ where: { siteId: hallAId, status: { not: "CANCELLED" } }, orderBy: { requestedStart: "asc" } });
+    for (const task of hallTasks) {
+      if (task.serviceType === "DELIVERY") await siteMapService.placeTask(logisticsCtx, task.id, { x: "0.504", y: "0.6", objectId: store.id });
+      else if (task.serviceType === "LIFT") await siteMapService.placeTask(logisticsCtx, task.id, { x: "0.455", y: "0.3", objectId: crane.id });
+      else await siteMapService.placeTask(logisticsCtx, task.id, { x: "0.4625", y: "0.47", objectId: unload.id });
+    }
+    await deviationService.reportOnObject(supervisorCtx, crane.id, { type: "EQUIPMENT_FAULT", comment: "Tukijalan kuormitusanturi antaa hälytyksen – nostot keskeytetty tarkastukseen asti" });
+  }
 
   // All demo users (also those created through invitations) have filled in the registration form (ADR 0030).
   await db.user.updateMany({ where: { registeredAt: null }, data: { registeredAt: new Date(), privacyAcceptedAt: new Date() } });

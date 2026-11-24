@@ -24,16 +24,21 @@ export async function DeviationList({ slug, rows, showTask }: { slug: string; ro
               {t(`statuses.${d.status}`)}
             </Badge>
             <span className="font-medium">{t(`types.${d.type}`)}</span>
-            {showTask && (
+            {showTask && d.task && (
               <Link href={`/c/${slug}/logistics/requests/${d.task.id}`} className="text-sm text-primary underline-offset-2 hover:underline">
                 {d.task.title}
+              </Link>
+            )}
+            {showTask && d.object && (
+              <Link href={`/c/${slug}/logistics/map?site=${d.object.siteId}&object=${d.object.id}`} className="text-sm text-primary underline-offset-2 hover:underline">
+                {t("onMap", { object: d.object.label })}
               </Link>
             )}
             <span className="ml-auto text-xs text-muted-foreground">
               {fmtDateTime(format, d.createdAt)} · {t("reportedBy")}: {d.reportedBy ?? "–"}
             </span>
           </div>
-          {showTask && <p className="mt-0.5 text-xs text-muted-foreground">{d.task.site}</p>}
+          {showTask && <p className="mt-0.5 text-xs text-muted-foreground">{d.task?.site ?? d.object?.site}</p>}
           {d.comment && <p className="mt-1 text-sm whitespace-pre-wrap">{d.comment}</p>}
           {d.photoIds.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">

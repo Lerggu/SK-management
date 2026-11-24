@@ -177,15 +177,20 @@ export class ProductionRepo {
     return this.tx.logisticsDeviation.update({ where: { id, ...this.c }, data });
   }
 
-  listDeviations(params: { projectIds?: string[]; requestId?: string; open?: boolean; take?: number }) {
+  listDeviations(params: { projectIds?: string[]; requestId?: string; mapObjectId?: string; open?: boolean; take?: number }) {
     return this.tx.logisticsDeviation.findMany({
       where: {
         ...this.c,
         ...(params.projectIds ? { projectId: { in: params.projectIds } } : {}),
         ...(params.requestId ? { requestId: params.requestId } : {}),
+        ...(params.mapObjectId ? { mapObjectId: params.mapObjectId } : {}),
         ...(params.open ? { status: { in: ["OPEN", "ACKNOWLEDGED"] as ("OPEN" | "ACKNOWLEDGED")[] } } : {}),
       },
-      include: { photos: { select: { id: true } }, request: { select: { id: true, title: true, site: { select: { name: true, project: { select: { code: true } } } } } } },
+      include: {
+        photos: { select: { id: true } },
+        request: { select: { id: true, title: true, site: { select: { name: true, project: { select: { code: true } } } } } },
+        mapObject: { select: { id: true, code: true, name: true, siteId: true, site: { select: { name: true, project: { select: { code: true } } } } } },
+      },
       orderBy: [{ createdAt: "desc" }],
       take: params.take ?? 200,
     });
