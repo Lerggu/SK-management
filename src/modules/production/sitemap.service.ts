@@ -63,7 +63,6 @@ async function loadObject(repo: SiteMapRepo, ctx: RequestContext, objectId: stri
   return o;
 }
 
-const locationName = (code: string | null, name: string) => (code ? `${code} ${name}` : name).slice(0, 120);
 
 export const siteMapService = {
   /** The map of a site with its objects, the site's tasks for the period and what blinks. */
@@ -201,7 +200,7 @@ export const siteMapService = {
     });
   },
 
-  /** Adds an object; a new gate, unloading point or storage also becomes a logistics location. */
+  /** Adds an object; a new gate, unloading point or storage also becomes a logistics location (same name). */
   async createObject(ctx: RequestContext, siteId: string, input: CreateObjectInput) {
     const data = parseInput(createObjectSchema, input);
     const site = await loadSite(new SiteMapRepo(readClient(), ctx.company.id), ctx, siteId, "logistics.approve");
@@ -219,7 +218,8 @@ export const siteMapService = {
             projectId: site.projectId,
             siteId: site.id,
             kind: data.kind as "GATE" | "UNLOADING" | "STORAGE",
-            name: locationName(data.code, data.name),
+            // The code is shown on the map; the location keeps the plain name used in delivery forms.
+            name: data.name,
             opensMinute: data.kind === "GATE" ? data.opens : null,
             closesMinute: data.kind === "GATE" ? data.closes : null,
             createdById: ctx.user.id,

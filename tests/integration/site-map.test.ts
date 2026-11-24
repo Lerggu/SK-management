@@ -66,7 +66,7 @@ describe("site map", () => {
     const gate = await siteMapService.createObject(o, siteId, { kind: "GATE", code: "P1", name: "Portti 1 (pohjoinen)", x: "0.46", y: "0.1", opens: "06:00", closes: "18:00" });
     gateId = gate.id;
     const loc = await db.logisticsLocation.findUniqueOrThrow({ where: { id: gate.locationId! } });
-    expect(loc).toMatchObject({ kind: "GATE", name: "P1 Portti 1 (pohjoinen)", opensMinute: 360, closesMinute: 1080, siteId });
+    expect(loc).toMatchObject({ kind: "GATE", name: "Portti 1 (pohjoinen)", opensMinute: 360, closesMinute: 1080, siteId });
     await expect(siteMapService.createObject(o, siteId, { kind: "CRANE", code: "p1", name: "Nosturi", x: "0.5", y: "0.5" })).rejects.toBeInstanceOf(ValidationError);
     await expect(siteMapService.createObject(o, siteId, { kind: "STORAGE", name: "Liian iso", x: "0.9", y: "0.5", width: "0.2", height: "0.1" })).rejects.toBeInstanceOf(ValidationError);
     await expect(siteMapService.createObject(o, siteId, { kind: "OTHER", name: "Ulkona", x: "1.5", y: "0.5" })).rejects.toBeInstanceOf(ValidationError);
@@ -87,7 +87,7 @@ describe("site map", () => {
     await siteMapService.archiveObject(o, storage.id);
     const v2 = await siteMapService.view(o, { siteId });
     expect(v2.objects.map((x) => x.code)).not.toContain("V1");
-    const loc = v2.locations.find((l) => l.name === "V1 Kaapelivarasto")!;
+    const loc = v2.locations.find((l) => l.name === "Kaapelivarasto")!;
     expect(loc).toBeDefined();
     const again = await siteMapService.createObject(o, siteId, { kind: "STORAGE", code: "V1", name: "Kaapelivarasto", x: "0.5", y: "0.6", width: "0.1", height: "0.1", locationId: loc.id });
     expect(again.locationId).toBe(loc.id);

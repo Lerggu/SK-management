@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { siteMapService } from "@/modules/production/sitemap.service";
 import { DEVIATION_TYPES } from "@/modules/production/deviation.service";
@@ -35,6 +35,7 @@ export default async function SiteMapPage({ params, searchParams }: { params: Pr
   const ctx = await requireCompanyContext(companySlug);
   const t = await getTranslations("production.map");
   const tc = await getTranslations("production.calendar");
+  const format = await getFormatter();
   const data = await orForbidden(siteMapService.view(ctx, { siteId: sp.site, date: sp.date, range: sp.range }));
   if (!data) {
     return (
@@ -128,8 +129,7 @@ export default async function SiteMapPage({ params, searchParams }: { params: Pr
             tasks={data.tasks.map((x) => ({
               id: x.id,
               title: x.title,
-              start: x.start.toISOString(),
-              end: x.end.toISOString(),
+              when: `${format.dateTime(x.start, { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}–${format.dateTime(x.end, { hour: "2-digit", minute: "2-digit" })}`,
               phase: x.phase,
               missing: x.missing,
               inRange: x.inRange,

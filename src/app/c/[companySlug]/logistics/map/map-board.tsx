@@ -55,8 +55,8 @@ export interface MapObject {
 export interface MapTask {
   id: string;
   title: string;
-  start: string;
-  end: string;
+  /** Formatted on the server in Helsinki time (no hydration mismatch). */
+  when: string;
   phase: Phase;
   missing: number;
   inRange: boolean;
@@ -502,9 +502,7 @@ export function SiteMapBoard({
                 <X className="size-4" aria-hidden />
               </button>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {new Date(selectedTask.start).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })} – {new Date(selectedTask.end).toLocaleTimeString(undefined, { timeStyle: "short" })}
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{selectedTask.when}</p>
             <p className="mt-2">
               <span className={cn("inline-flex rounded-md border px-1.5 py-0.5 text-xs", PHASE_STYLE[selectedTask.phase])}>{tCal(`phases.${selectedTask.phase}`)}</span>
               {selectedTask.missing > 0 && <span className="ml-2 text-xs text-amber-800">{t("missing", { n: selectedTask.missing })}</span>}
@@ -634,7 +632,7 @@ function TaskItem({
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{task.title}</span>
           <span className="block truncate text-xs opacity-80">
-            {new Date(task.start).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}
+            {task.when}
             {at ? ` · ${at}` : ""} · {t(`phases.${task.phase}`)}
           </span>
         </span>

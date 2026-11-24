@@ -26,7 +26,7 @@ Integrity rules:
 - Row-level security applies as for every company table (ADR 0022).
 
 ### Gates are logistics locations
-- A gate, unloading point or storage created on the map is also a logistics location, named "code name", so deliveries can use it.
+- A gate, unloading point or storage created on the map is also a logistics location with the same name, so deliveries can use it. The code is shown on the map.
 - An existing location can be placed on the map instead.
 - Removing the object keeps the location and releases it to be placed again.
 
