@@ -10,6 +10,9 @@ onlyBuiltDependencies:
 overrides:
   # GHSA: deepmerge-ts <8 stack exhaustion (pulled in by @prisma/config; only merges our own config file).
   deepmerge-ts: "^8.0.0"
+  # GHSA-7589-6fvf-x4pw: effect <=3.22.0 ReDoS in Schema.TemplateLiteral (published 2026-11; pulled in
+  # by @prisma/config, which pins 3.21.0 and only parses our own prisma.config.ts). Same major, patched.
+  effect: "^3.22.1"
 auditConfig:
   ignoreGhsas:
     # picomatch <=4.0.7 ReDoS (published 2026-11-17, no patched version yet). Only reached via

@@ -52,6 +52,7 @@ import { personalIdService } from "./workforce/personal-id.service";
 import { teamService } from "./workforce/team.service";
 import { assistantService } from "./assistant/service";
 import { marketingService } from "./marketing/service";
+import { billingSettingsService, salesDocumentService } from "./sales/service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -148,6 +149,9 @@ export const SERVICE_REGISTRY = {
   assistant: assistantService,
   // Marketing automation (ADR 0032)
   marketing: marketingService,
+  // Order confirmations and invoices (ADR 0033)
+  salesDocument: salesDocumentService,
+  billingSettings: billingSettingsService,
 } as const;
 
 // ── V8: tenant scope for row-level security ──────────────────────────

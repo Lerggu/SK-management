@@ -4104,6 +4104,12 @@ enum SalesVatMode {
   REVERSE_CHARGE
 }
 
+enum SalesTermsType {
+  NONE
+  RENTAL
+  SALE
+}
+
 enum SalesLogo {
   NONE
   SK_INFRA
@@ -4135,6 +4141,16 @@ model BillingSettings {
   nextOrderNumber   Int       @default(1001) @map("next_order_number")
   nextInvoiceNumber Int       @default(10001) @map("next_invoice_number")
   footerNote        String?   @map("footer_note")
+  /// Kotipaikka, printed in the footer.
+  domicile          String?
+  /// Verkkolaskuosoite and välittäjän tunnus, printed in the footer.
+  einvoiceAddress   String?   @map("einvoice_address")
+  einvoiceOperator  String?   @map("einvoice_operator")
+  /// Terms attached to rental and sales documents (copied to the document when chosen, editable there).
+  rentalTermsTitle  String    @default("VUOKRAUSEHDOT") @map("rental_terms_title")
+  rentalTerms       String?   @map("rental_terms")
+  salesTermsTitle   String    @default("MYYNTIEHDOT") @map("sales_terms_title")
+  salesTerms        String?   @map("sales_terms")
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   updatedById       String?   @map("updated_by") @db.Uuid
@@ -4157,6 +4173,8 @@ model SalesDocument {
   /// Invoice made from an order confirmation, or the invoice a credit note credits.
   sourceDocumentId String?             @map("source_document_id") @db.Uuid
   title            String?
+  /// The customer's number in our register, printed next to the billing and delivery address.
+  buyerCustomerNumber String?          @map("buyer_customer_number")
   buyerName        String              @map("buyer_name")
   buyerBusinessId  String?             @map("buyer_business_id")
   buyerVatNumber   String?             @map("buyer_vat_number")
@@ -4168,17 +4186,31 @@ model SalesDocument {
   buyerEmail       String?             @map("buyer_email")
   /// The customer's order number or reference.
   buyerReference   String?             @map("buyer_reference")
-  /// Our contact person.
+  /// The customer's order number (Tilausnumeronne).
+  buyerOrderNumber String?             @map("buyer_order_number")
+  /// Order mark (Tilausmerkki).
+  orderMark        String?             @map("order_mark")
+  /// Our reference (Viitteemme).
   ourReference     String?             @map("our_reference")
+  /// Salesperson (Myyjä).
+  salesperson      String?
   issueDate        DateTime            @map("issue_date") @db.Date
   dueDate          DateTime?           @map("due_date") @db.Date
   deliveryDate     DateTime?           @map("delivery_date") @db.Date
   deliveryTerms    String?             @map("delivery_terms")
   deliveryMethod   String?             @map("delivery_method")
   deliveryAddress  String?             @map("delivery_address")
+  /// Toimitustieto and Toimitusteksti.
+  deliveryInfo     String?             @map("delivery_info")
+  deliveryText     String?             @map("delivery_text")
   paymentTerms     String?             @map("payment_terms")
   vatMode          SalesVatMode        @default(STANDARD) @map("vat_mode")
   notes            String?
+  /// Which terms are attached: rental terms, sales terms or none.
+  termsType        SalesTermsType      @default(NONE) @map("terms_type")
+  /// Terms printed after the totals (a copy of the chosen terms, editable in the draft).
+  termsTitle       String?             @map("terms_title")
+  terms            String?
   currency         String              @default("EUR") @db.Char(3)
   /// Finnish reference number of an invoice (viitenumero).
   referenceNumber  String?             @map("reference_number")

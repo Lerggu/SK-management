@@ -10,6 +10,16 @@ export interface MailMessage {
   replyTo?: string[];
   /** Extra headers, e.g. List-Unsubscribe. */
   headers?: Record<string, string>;
+  /** Copies (order confirmations and invoices, ADR 0033). */
+  cc?: string[];
+  /** Files sent with the message, e.g. an invoice PDF (ADR 0033). */
+  attachments?: MailAttachment[];
+}
+
+export interface MailAttachment {
+  filename: string;
+  content: Uint8Array;
+  contentType: string;
 }
 
 /** Outbound e-mail adapter (V7). Domain modules use this interface only. */
@@ -22,7 +32,16 @@ class SmtpMailer implements Mailer {
   readonly kind = "smtp" as const;
   private readonly transport = nodemailer.createTransport(env().SMTP_URL!);
   async send(m: MailMessage) {
-    await this.transport.sendMail({ from: env().MAIL_FROM, to: m.to, subject: m.subject, text: m.text, replyTo: m.replyTo?.length ? m.replyTo : undefined, headers: m.headers });
+    await this.transport.sendMail({
+      from: env().MAIL_FROM,
+      to: m.to,
+      cc: m.cc?.length ? m.cc : undefined,
+      subject: m.subject,
+      text: m.text,
+      replyTo: m.replyTo?.length ? m.replyTo : undefined,
+      headers: m.headers,
+      attachments: m.attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.content), contentType: a.contentType })),
+    });
   }
 }
 
@@ -33,8 +52,10 @@ class SmtpMailer implements Mailer {
 class DevOutboxMailer implements Mailer {
   readonly kind = "dev-outbox" as const;
   async send(m: MailMessage) {
-    const head = m.replyTo?.length ? `Reply-To: ${m.replyTo.join(", ")}\n\n` : "";
-    await db.devMailOutbox.create({ data: { to: m.to.toLowerCase(), subject: m.subject, bodyText: head + m.text } });
+    const head = [m.replyTo?.length ? `Reply-To: ${m.replyTo.join(", ")}` : null, m.cc?.length ? `Cc: ${m.cc.join(", ")}` : null].filter(Boolean).join("\n");
+    // The dev mailbox keeps text only; attachments are listed by name and size.
+    const files = m.attachments?.length ? `\n\n${m.attachments.map((a) => `[Liite: ${a.filename}, ${a.content.byteLength} tavua]`).join("\n")}` : "";
+    await db.devMailOutbox.create({ data: { to: m.to.toLowerCase(), subject: m.subject, bodyText: (head ? `${head}\n\n` : "") + m.text + files } });
   }
 }
 

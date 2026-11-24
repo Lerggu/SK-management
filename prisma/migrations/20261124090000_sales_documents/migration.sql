@@ -13,6 +13,9 @@ CREATE TYPE "SalesDocumentStatus" AS ENUM ('DRAFT', 'ISSUED', 'VOID');
 CREATE TYPE "SalesVatMode" AS ENUM ('STANDARD', 'REVERSE_CHARGE');
 
 -- CreateEnum
+CREATE TYPE "SalesTermsType" AS ENUM ('NONE', 'RENTAL', 'SALE');
+
+-- CreateEnum
 CREATE TYPE "SalesLogo" AS ENUM ('NONE', 'SK_INFRA');
 
 -- CreateTable
@@ -39,6 +42,13 @@ CREATE TABLE "billing_settings" (
     "next_order_number" INTEGER NOT NULL DEFAULT 1001,
     "next_invoice_number" INTEGER NOT NULL DEFAULT 10001,
     "footer_note" TEXT,
+    "domicile" TEXT,
+    "einvoice_address" TEXT,
+    "einvoice_operator" TEXT,
+    "rental_terms_title" TEXT NOT NULL DEFAULT 'VUOKRAUSEHDOT',
+    "rental_terms" TEXT,
+    "sales_terms_title" TEXT NOT NULL DEFAULT 'MYYNTIEHDOT',
+    "sales_terms" TEXT,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
     "updated_by" UUID,
@@ -58,6 +68,7 @@ CREATE TABLE "sales_documents" (
     "project_id" UUID,
     "source_document_id" UUID,
     "title" TEXT,
+    "buyer_customer_number" TEXT,
     "buyer_name" TEXT NOT NULL,
     "buyer_business_id" TEXT,
     "buyer_vat_number" TEXT,
@@ -68,16 +79,24 @@ CREATE TABLE "sales_documents" (
     "buyer_contact" TEXT,
     "buyer_email" TEXT,
     "buyer_reference" TEXT,
+    "buyer_order_number" TEXT,
+    "order_mark" TEXT,
     "our_reference" TEXT,
+    "salesperson" TEXT,
     "issue_date" DATE NOT NULL,
     "due_date" DATE,
     "delivery_date" DATE,
     "delivery_terms" TEXT,
     "delivery_method" TEXT,
     "delivery_address" TEXT,
+    "delivery_info" TEXT,
+    "delivery_text" TEXT,
     "payment_terms" TEXT,
     "vat_mode" "SalesVatMode" NOT NULL DEFAULT 'STANDARD',
     "notes" TEXT,
+    "terms_type" "SalesTermsType" NOT NULL DEFAULT 'NONE',
+    "terms_title" TEXT,
+    "terms" TEXT,
     "currency" CHAR(3) NOT NULL DEFAULT 'EUR',
     "reference_number" TEXT,
     "total_net" DECIMAL(14,2),
