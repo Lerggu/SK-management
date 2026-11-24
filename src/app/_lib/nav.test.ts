@@ -30,7 +30,7 @@ describe("grouped navigation", () => {
       hseGroup: ["hse"],
       peopleGroup: ["workforce", "myCard", "teams", "rotation", "matrix", "qualifications", "hrOverview", "hrSettings"],
       equipmentGroup: ["equipment"],
-      salesGroup: ["sales", "quotes", "marketing", "billing"],
+      salesGroup: ["sales", "quotes", "marketing", "invoicing", "billing"],
       settingsGroup: ["settings"],
     });
   });

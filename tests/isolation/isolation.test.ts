@@ -66,6 +66,7 @@ import { teamService } from "@/modules/workforce/team.service";
 import { assistantService } from "@/modules/assistant/service";
 import { deviationService } from "@/modules/production/deviation.service";
 import { marketingService } from "@/modules/marketing/service";
+import { billingSettingsService, salesDocumentService } from "@/modules/sales/service";
 import { setTedFetchForTests } from "@/platform/integrations/ted";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
@@ -151,6 +152,7 @@ interface World {
   teams: { a: string; b: string };
   assistant: { conversation: string; action: string };
   mk: { lead: string; contact: string; draft: string; sent: string };
+  sales: { draft: string; line: string; order: string; invoice: string };
   bProject: string;
   bDocument: string;
   bEquipmentType: string;
@@ -308,6 +310,18 @@ beforeAll(async () => {
   const mkSent = await db.marketingMessage.create({
     data: { companyId: a.companyId, leadId: mkLead.id, contactId: mkContact2.id, subject: "A sent", body: "A body", unsubscribeToken: "a-iso-sent-token-xxxxxxxxxxx", status: "SENT", approvedAt: new Date(), sentAt: new Date(), sentTo: "a.contact2@example.test", callStatus: "TODO" },
   });
+  // ── Order confirmations and invoices in company A (ADR 0033) ──
+  const billing = { enabled: "on", legalName: "A Oy", businessId: "0112038-9", streetAddress: "A street 1", postalCode: "00100", city: "Helsinki", iban: "FI21 1234 5600 0007 85", nextOrderNumber: "1001", nextInvoiceNumber: "10001", rentalTerms: "A secret terms" };
+  await billingSettingsService.update(actx, billing);
+  await billingSettingsService.update(b.ownerCtx, { ...billing, legalName: "B Oy", rentalTerms: "B terms" });
+  const saleLine = { name: "A secret line", quantity: "2", unitPrice: "100", vatRate: "25.5" };
+  const saDraft = await salesDocumentService.create(actx, { kind: "INVOICE", customerId: customer.id, title: "A secret invoice" });
+  const saLine = await salesDocumentService.addLine(actx, saDraft.id, saleLine);
+  const saOrder = await salesDocumentService.create(actx, { kind: "ORDER_CONFIRMATION", buyerName: "A buyer", termsType: "RENTAL" });
+  await salesDocumentService.addLine(actx, saOrder.id, saleLine);
+  await salesDocumentService.issue(actx, saOrder.id);
+  const saInvoice = await salesDocumentService.createInvoiceFromOrder(actx, saOrder.id);
+  await salesDocumentService.issue(actx, saInvoice.id);
   await hrSettingsService.update(actx, { reminderEmail: "a.hr.maintenance@example.test" });
   const hrArea = await competenceAreaService.create(actx, { category: "A", name: "A area", isKey: true });
   const hrType = await qualificationTypeService.create(actx, { name: "A card" });
@@ -451,6 +465,7 @@ beforeAll(async () => {
     teams: { a: aTeam.id, b: bTeam.id },
     assistant: { conversation: aConv.conversationId!, action: aAction.id },
     mk: { lead: mkLead.id, contact: mkContact.id, draft: mkDraft.id, sent: mkSent.id },
+    sales: { draft: saDraft.id, line: saLine.id, order: saOrder.id, invoice: saInvoice.id },
     bProject: bProject.id,
     bDocument: bDocument.id,
     bEquipmentType: bType.id,
@@ -1435,6 +1450,45 @@ const cases: Record<string, Case> = {
     expect((await db.marketingMessage.findUniqueOrThrow({ where: { id: w.mk.draft } })).status).toBe("DRAFT");
     expect(await db.marketingSuppression.count({ where: { companyId: w.a.companyId } })).toBe(0);
   },
+  // ── Order confirmations and invoices (ADR 0033) ─────────────────
+  "salesDocument.list": async () => {
+    const ids = (await salesDocumentService.list(w.bCtx)).map((d) => d.id);
+    expect(ids).not.toContain(w.sales.draft);
+    expect(ids).not.toContain(w.sales.invoice);
+  },
+  "salesDocument.options": async () => {
+    const o = await salesDocumentService.options(w.bCtx);
+    expect(o.customers.map((c) => c.id)).not.toContain(w.v6.customer);
+    expect(o.projects.map((p) => p.id)).not.toContain(w.ids.project);
+  },
+  "salesDocument.get": () => expectNotFound(salesDocumentService.get(w.bCtx, w.sales.draft)),
+  "salesDocument.create": async () => {
+    await expectRejected(salesDocumentService.create(w.bCtx, { kind: "INVOICE", customerId: w.v6.customer }));
+    await expectRejected(salesDocumentService.create(w.bCtx, { kind: "INVOICE", buyerName: "B buyer", projectId: w.ids.project }));
+  },
+  "salesDocument.update": () => expectNotFound(salesDocumentService.update(w.bCtx, w.sales.draft, { buyerName: "Hijacked", issueDate: "2026-11-24" })),
+  "salesDocument.addLine": () => expectNotFound(salesDocumentService.addLine(w.bCtx, w.sales.draft, { name: "Intruder", quantity: "1", unitPrice: "1", vatRate: "25.5" })),
+  "salesDocument.updateLine": () => expectNotFound(salesDocumentService.updateLine(w.bCtx, w.sales.line, { name: "Hijacked", quantity: "1", unitPrice: "1", vatRate: "25.5" })),
+  "salesDocument.removeLine": () => expectNotFound(salesDocumentService.removeLine(w.bCtx, w.sales.line)),
+  "salesDocument.pdf": async () => {
+    await expectNotFound(salesDocumentService.pdf(w.bCtx, w.sales.draft));
+    await expectNotFound(salesDocumentService.pdf(w.bCtx, w.sales.invoice));
+  },
+  "salesDocument.issue": () => expectNotFound(salesDocumentService.issue(w.bCtx, w.sales.draft)),
+  "salesDocument.send": () => expectNotFound(salesDocumentService.send(w.bCtx, w.sales.invoice, { to: "b@example.test" })),
+  "salesDocument.void": () => expectNotFound(salesDocumentService.void(w.bCtx, w.sales.order, { reason: "Hijacked" })),
+  "salesDocument.createInvoiceFromOrder": () => expectNotFound(salesDocumentService.createInvoiceFromOrder(w.bCtx, w.sales.order)),
+  "salesDocument.createCreditNote": () => expectNotFound(salesDocumentService.createCreditNote(w.bCtx, w.sales.invoice)),
+  "salesDocument.archiveDraft": () => expectNotFound(salesDocumentService.archiveDraft(w.bCtx, w.sales.draft)),
+  "billingSettings.get": async () => {
+    const r = await billingSettingsService.get(w.bCtx);
+    expect(r.settings?.legalName).toBe("B Oy");
+    expect(r.settings?.rentalTerms).toBe("B terms");
+  },
+  "billingSettings.update": async () => {
+    await billingSettingsService.update(w.bCtx, { enabled: "on", legalName: "B Oy 2", businessId: "0112038-9", streetAddress: "B street", postalCode: "00100", city: "Helsinki", iban: "FI21 1234 5600 0007 85", nextOrderNumber: "1001", nextInvoiceNumber: "10001" });
+    expect((await db.billingSettings.findUniqueOrThrow({ where: { companyId: w.a.companyId } })).legalName).toBe("A Oy");
+  },
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -1520,5 +1574,10 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect(await db.marketingContact.findUniqueOrThrow({ where: { id: w.mk.contact } })).toMatchObject({ name: "A contact", archivedAt: null });
     expect(await db.marketingMessage.findUniqueOrThrow({ where: { id: w.mk.draft } })).toMatchObject({ status: "DRAFT", subject: "A draft" });
     expect((await db.marketingMessage.findUniqueOrThrow({ where: { id: w.mk.sent } })).callStatus).toBe("TODO");
+    expect(await db.salesDocument.findUniqueOrThrow({ where: { id: w.sales.draft } })).toMatchObject({ status: "DRAFT", title: "A secret invoice", archivedAt: null });
+    expect(await db.salesDocumentLine.findUniqueOrThrow({ where: { id: w.sales.line } })).toMatchObject({ name: "A secret line" });
+    expect(await db.salesDocument.findUniqueOrThrow({ where: { id: w.sales.order } })).toMatchObject({ status: "ISSUED", number: "1001", sendCount: 0 });
+    expect(await db.salesDocument.count({ where: { companyId: w.a.companyId } })).toBe(3);
+    expect((await db.billingSettings.findUniqueOrThrow({ where: { companyId: w.a.companyId } })).nextInvoiceNumber).toBe(10002);
   });
 });

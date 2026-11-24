@@ -49,6 +49,7 @@ export const NAV_ICONS = {
   sales: Handshake,
   quotes: FileSignature,
   marketing: Megaphone,
+  invoicing: FileText,
   billing: Receipt,
   settings: Settings,
 } as const;

@@ -35,6 +35,8 @@ import { customerService, opportunityService } from "@/modules/commercial/crm.se
 import { quoteService } from "@/modules/commercial/quote.service";
 import { contractService, forecastService, variationService } from "@/modules/commercial/project.service";
 import { invoiceService } from "@/modules/commercial/invoice.service";
+import { billingSettingsService, salesDocumentService } from "@/modules/sales/service";
+import { termsTemplates } from "@/modules/sales/terms-templates";
 import { deliveryService, logisticsLocationService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { hseActionService, hseObservationService, incidentService } from "@/modules/hse/hse.service";
 import { hseInspectionService, riskAssessmentService, toolboxTalkService, workPermitService } from "@/modules/hse/planning.service";
@@ -717,6 +719,32 @@ async function main() {
   for (const r of await db.logisticsRequest.findMany({ where: { company: { slug: "sk-infra-demo" }, serviceType: "LIFT", status: { notIn: ["COMPLETE", "CANCELLED"] } } })) {
     await staffingService.setTaskType(logisticsCtx, r.id, { taskTypeId: liftType.id });
   }
+
+  // ── Order confirmations and invoices: fictional seller details, terms and one draft (ADR 0033) ──
+  const skCeoCtx = await ctxFor("ceo@skinfra.example.com", "sk-infra-demo");
+  const terms = termsTemplates("SK Infra Demo");
+  await billingSettingsService.update(skCeoCtx, {
+    enabled: "on",
+    legalName: "SK Infra Demo",
+    businessId: "0112038-9",
+    streetAddress: "Esimerkkitie 1",
+    postalCode: "85900",
+    city: "Reisjärvi",
+    domicile: "Reisjärvi",
+    phone: "+358 40 000 0000",
+    email: "laskutus@skinfra.example.com",
+    website: "www.skinfra.example.com",
+    iban: "FI21 1234 5600 0007 85",
+    bic: "NDEAFIHH",
+    bankName: "Demopankki",
+    logo: "SK_INFRA",
+    nextOrderNumber: "1001",
+    nextInvoiceNumber: "10001",
+    rentalTerms: terms.rental,
+    salesTerms: terms.sales,
+  });
+  const demoOrder = await salesDocumentService.create(skCeoCtx, { kind: "ORDER_CONFIRMATION", customerId: hyperscale.id, termsType: "RENTAL", title: "Kelannostohaarukan vuokraus" });
+  await salesDocumentService.addLine(skCeoCtx, demoOrder.id, { productCode: "LF38-VUOKRA", name: "Kelannostohaarukka 17 000 kg, vuokra", description: "Vuokra laskutetaan toteutuneiden arkipäivien mukaan kahden viikon välein.", quantity: "10", unit: "pv", unitPrice: "78", vatRate: "25.5" });
 
   // All demo users (also those created through invitations) have filled in the registration form (ADR 0030).
   await db.user.updateMany({ where: { registeredAt: null }, data: { registeredAt: new Date(), privacyAcceptedAt: new Date() } });

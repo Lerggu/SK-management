@@ -217,6 +217,8 @@ model Company {
   marketingRuns          MarketingRun[]
   marketingSuppressions  MarketingSuppression[]
   marketingMessages      MarketingMessage[]
+  billingSettings        BillingSettings?
+  salesDocuments         SalesDocument[]
 
   @@index([organizationId])
   @@map("companies")
@@ -491,6 +493,7 @@ model Project {
   customer          Customer?                 @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
   quotes            Quote[]
   contracts         Contract[]
+  salesDocuments    SalesDocument[]
   variations        Variation[]
   invoiceCandidates InvoiceCandidate[]
   costForecasts     CostForecast[]
@@ -2093,6 +2096,7 @@ model Customer {
   contracts     Contract[]
   projects      Project[]
   candidates    InvoiceCandidate[]
+  salesDocuments SalesDocument[]
 
   @@unique([companyId, id])
   @@unique([companyId, name])
@@ -4079,4 +4083,216 @@ model MarketingRun {
   @@unique([companyId, id])
   @@index([companyId, startedAt])
   @@map("marketing_runs")
+}
+
+// ── Order confirmations and invoices (docs/adr/0033-sales-documents.md) ──
+
+enum SalesDocumentKind {
+  ORDER_CONFIRMATION
+  INVOICE
+  CREDIT_NOTE
+}
+
+enum SalesDocumentStatus {
+  DRAFT
+  ISSUED
+  VOID
+}
+
+enum SalesVatMode {
+  STANDARD
+  REVERSE_CHARGE
+}
+
+enum SalesTermsType {
+  NONE
+  RENTAL
+  SALE
+}
+
+enum SalesLogo {
+  NONE
+  SK_INFRA
+}
+
+/// Seller details printed on order confirmations and invoices, and the number series.
+model BillingSettings {
+  companyId         String    @id @map("company_id") @db.Uuid
+  /// Owner decision 2026-11-24: only companies with billing set up can send documents.
+  enabled           Boolean   @default(false)
+  legalName         String    @map("legal_name")
+  businessId        String    @map("business_id")
+  vatNumber         String?   @map("vat_number")
+  streetAddress     String    @map("street_address")
+  postalCode        String    @map("postal_code")
+  city              String
+  country           String    @default("Suomi")
+  phone             String?
+  email             String?
+  website           String?
+  iban              String
+  bic               String?
+  bankName          String?   @map("bank_name")
+  paymentTermDays   Int       @default(14) @map("payment_term_days")
+  penaltyInterest   String    @default("Viivästyskorko korkolain mukaan") @map("penalty_interest")
+  defaultVatRate    Decimal   @default(25.5) @map("default_vat_rate") @db.Decimal(5, 2)
+  logo              SalesLogo @default(NONE)
+  /// Next numbers; taken atomically when a document is issued (no gaps from drafts).
+  nextOrderNumber   Int       @default(1001) @map("next_order_number")
+  nextInvoiceNumber Int       @default(10001) @map("next_invoice_number")
+  footerNote        String?   @map("footer_note")
+  /// Kotipaikka, printed in the footer.
+  domicile          String?
+  /// Verkkolaskuosoite and välittäjän tunnus, printed in the footer.
+  einvoiceAddress   String?   @map("einvoice_address")
+  einvoiceOperator  String?   @map("einvoice_operator")
+  /// Terms attached to rental and sales documents (copied to the document when chosen, editable there).
+  rentalTermsTitle  String    @default("VUOKRAUSEHDOT") @map("rental_terms_title")
+  rentalTerms       String?   @map("rental_terms")
+  salesTermsTitle   String    @default("MYYNTIEHDOT") @map("sales_terms_title")
+  salesTerms        String?   @map("sales_terms")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById       String?   @map("updated_by") @db.Uuid
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@map("billing_settings")
+}
+
+model SalesDocument {
+  id               String              @id @default(uuid(7)) @db.Uuid
+  companyId        String              @map("company_id") @db.Uuid
+  kind             SalesDocumentKind
+  status           SalesDocumentStatus @default(DRAFT)
+  /// Assigned when issued: order confirmations and invoices have their own series; credit notes use the invoice series.
+  number           String?
+  language         String              @default("fi")
+  customerId       String?             @map("customer_id") @db.Uuid
+  projectId        String?             @map("project_id") @db.Uuid
+  /// Invoice made from an order confirmation, or the invoice a credit note credits.
+  sourceDocumentId String?             @map("source_document_id") @db.Uuid
+  title            String?
+  /// The customer's number in our register, printed next to the billing and delivery address.
+  buyerCustomerNumber String?          @map("buyer_customer_number")
+  buyerName        String              @map("buyer_name")
+  buyerBusinessId  String?             @map("buyer_business_id")
+  buyerVatNumber   String?             @map("buyer_vat_number")
+  buyerAddress     String?             @map("buyer_address")
+  buyerPostalCode  String?             @map("buyer_postal_code")
+  buyerCity        String?             @map("buyer_city")
+  buyerCountry     String?             @map("buyer_country")
+  buyerContact     String?             @map("buyer_contact")
+  buyerEmail       String?             @map("buyer_email")
+  /// The customer's order number or reference.
+  buyerReference   String?             @map("buyer_reference")
+  /// The customer's order number (Tilausnumeronne).
+  buyerOrderNumber String?             @map("buyer_order_number")
+  /// Order mark (Tilausmerkki).
+  orderMark        String?             @map("order_mark")
+  /// Our reference (Viitteemme).
+  ourReference     String?             @map("our_reference")
+  /// Salesperson (Myyjä).
+  salesperson      String?
+  issueDate        DateTime            @map("issue_date") @db.Date
+  dueDate          DateTime?           @map("due_date") @db.Date
+  deliveryDate     DateTime?           @map("delivery_date") @db.Date
+  deliveryTerms    String?             @map("delivery_terms")
+  deliveryMethod   String?             @map("delivery_method")
+  deliveryAddress  String?             @map("delivery_address")
+  /// Toimitustieto and Toimitusteksti.
+  deliveryInfo     String?             @map("delivery_info")
+  deliveryText     String?             @map("delivery_text")
+  paymentTerms     String?             @map("payment_terms")
+  vatMode          SalesVatMode        @default(STANDARD) @map("vat_mode")
+  notes            String?
+  /// Which terms are attached: rental terms, sales terms or none.
+  termsType        SalesTermsType      @default(NONE) @map("terms_type")
+  /// Terms printed after the totals (a copy of the chosen terms, editable in the draft).
+  termsTitle       String?             @map("terms_title")
+  terms            String?
+  currency         String              @default("EUR") @db.Char(3)
+  /// Finnish reference number of an invoice (viitenumero).
+  referenceNumber  String?             @map("reference_number")
+  totalNet         Decimal?            @map("total_net") @db.Decimal(14, 2)
+  totalVat         Decimal?            @map("total_vat") @db.Decimal(14, 2)
+  totalGross       Decimal?            @map("total_gross") @db.Decimal(14, 2)
+  /// The PDF as issued; re-sends use these exact bytes.
+  pdfStorageKey    String?             @map("pdf_storage_key")
+  pdfSha256        String?             @map("pdf_sha256") @db.Char(64)
+  pdfSizeBytes     Int?                @map("pdf_size_bytes")
+  issuedAt         DateTime?           @map("issued_at") @db.Timestamptz(6)
+  issuedById       String?             @map("issued_by") @db.Uuid
+  sentAt           DateTime?           @map("sent_at") @db.Timestamptz(6)
+  sendCount        Int                 @default(0) @map("send_count")
+  voidedAt         DateTime?           @map("voided_at") @db.Timestamptz(6)
+  voidedById       String?             @map("voided_by") @db.Uuid
+  voidReason       String?             @map("void_reason")
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById      String?             @map("created_by") @db.Uuid
+  updatedAt        DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById      String?             @map("updated_by") @db.Uuid
+  archivedAt       DateTime?           @map("archived_at") @db.Timestamptz(6)
+
+  company  Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer Customer?             @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  project  Project?              @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  source   SalesDocument?        @relation("SalesDocumentSource", fields: [companyId, sourceDocumentId], references: [companyId, id], onDelete: Restrict)
+  derived  SalesDocument[]       @relation("SalesDocumentSource")
+  lines    SalesDocumentLine[]
+  sends    SalesDocumentSend[]
+
+  @@unique([companyId, id])
+  @@index([companyId, kind, status])
+  @@index([companyId, customerId])
+  @@map("sales_documents")
+}
+
+model SalesDocumentLine {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  documentId  String   @map("document_id") @db.Uuid
+  sortOrder   Int      @default(0) @map("sort_order")
+  productCode String?  @map("product_code")
+  name        String
+  description String?
+  /// Negative only on credit notes.
+  quantity    Decimal  @db.Decimal(14, 3)
+  /// Unit of the quantity (kpl, m, h, …).
+  unit        String   @default("kpl")
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(14, 2)
+  discountPct Decimal  @default(0) @map("discount_pct") @db.Decimal(5, 2)
+  vatRate     Decimal  @map("vat_rate") @db.Decimal(5, 2)
+  /// Delivery time of the line, free text (e.g. "vko 50" or a date).
+  deliveryTime String? @map("delivery_time")
+  /// round(quantity × unit price × (1 − discount %), 2), without VAT.
+  amount      Decimal  @db.Decimal(14, 2)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?  @map("updated_by") @db.Uuid
+
+  document SalesDocument @relation(fields: [companyId, documentId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, documentId])
+  @@map("sales_document_lines")
+}
+
+/// Append-only log of every e-mail a document was sent with.
+model SalesDocumentSend {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  documentId String   @map("document_id") @db.Uuid
+  toEmail    String   @map("to_email")
+  ccEmails   String[] @default([]) @map("cc_emails")
+  subject    String
+  sentAt     DateTime @default(now()) @map("sent_at") @db.Timestamptz(6)
+  sentById   String?  @map("sent_by") @db.Uuid
+
+  document SalesDocument @relation(fields: [companyId, documentId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, id])
+  @@index([companyId, documentId])
+  @@map("sales_document_sends")
 }

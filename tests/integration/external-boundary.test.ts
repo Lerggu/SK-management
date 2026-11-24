@@ -17,6 +17,7 @@ import type { RequestContext } from "@/platform/authz";
 import { SERVICE_REGISTRY } from "@/modules/registry";
 import { companyAdminService } from "@/modules/companies/service";
 import { marketingService } from "@/modules/marketing/service";
+import { billingSettingsService, salesDocumentService } from "@/modules/sales/service";
 import { dashboardService } from "@/modules/companies/dashboard";
 import { projectService, siteService } from "@/modules/projects/service";
 import { employeeService } from "@/modules/workforce/service";
@@ -169,6 +170,13 @@ const CALLS: Record<string, Call> = {
   "personalId.set": w("personalId", (c) => personalIdService.set(c, f.employee, { personalId: "131052-308T" })),
   "team.list": r("team", (c) => teamService.list(c)),
   "team.create": w("team", (c) => teamService.create(c, { name: uniq("t") })),
+  "salesDocument.list": r("salesDocument", (c) => salesDocumentService.list(c)),
+  "salesDocument.options": r("salesDocument", (c) => salesDocumentService.options(c)),
+  "salesDocument.create": w("salesDocument", (c) => salesDocumentService.create(c, { kind: "INVOICE", buyerName: "Ulkoinen Oy" })),
+  "billingSettings.get": r("billingSettings", (c) => billingSettingsService.get(c)),
+  "billingSettings.update": w("billingSettings", (c) =>
+    billingSettingsService.update(c, { legalName: "Ulkoinen", businessId: "0112038-9", streetAddress: "x", postalCode: "00100", city: "x", iban: "FI21 1234 5600 0007 85", nextOrderNumber: "1", nextInvoiceNumber: "100" }),
+  ),
   "marketing.listLeads": r("marketing", (c) => marketingService.listLeads(c)),
   "marketing.overview": r("marketing", (c) => marketingService.overview(c)),
   "marketing.callList": r("marketing", (c) => marketingService.callList(c)),
