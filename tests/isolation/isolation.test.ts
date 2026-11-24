@@ -67,6 +67,7 @@ import { assistantService } from "@/modules/assistant/service";
 import { deviationService } from "@/modules/production/deviation.service";
 import { marketingService } from "@/modules/marketing/service";
 import { billingSettingsService, salesDocumentService } from "@/modules/sales/service";
+import { siteMapService } from "@/modules/production/sitemap.service";
 import { setTedFetchForTests } from "@/platform/integrations/ted";
 import { createMember, createTenant, meta, textFile, type Tenant } from "../helpers/fixtures";
 
@@ -153,6 +154,7 @@ interface World {
   assistant: { conversation: string; action: string };
   mk: { lead: string; contact: string; draft: string; sent: string };
   sales: { draft: string; line: string; order: string; invoice: string };
+  map: { map: string; gate: string; crane: string; deviation: string; bObject: string };
   bProject: string;
   bDocument: string;
   bEquipmentType: string;
@@ -343,6 +345,14 @@ beforeAll(async () => {
   const prodType = await taskTypeService.create(actx, { name: "A task type" });
   const prodRole = await taskTypeService.addRole(actx, prodType.id, { kind: "PERSON", label: "A role" });
   const prodRequest = await logisticsRequestService.create(actx, { siteId: site.id, serviceType: "LIFT", title: "A secret lift", requestedStart: "2026-11-05T07:00", requestedEnd: "2026-11-05T08:00", taskTypeId: prodType.id, submit: "on" });
+  // ── Site map in company A (ADR 0034) ──
+  const png = { fileName: "a-map.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7]) };
+  const aMap = await siteMapService.uploadMap(actx, site.id, { width: "2000", height: "1000" }, png);
+  const aGate = await siteMapService.createObject(actx, site.id, { kind: "GATE", code: "A1", name: "A secret gate", x: "0.5", y: "0.1" });
+  const aCrane = await siteMapService.createObject(actx, site.id, { kind: "CRANE", code: "AN", name: "A secret crane", x: "0.4", y: "0.4" });
+  await siteMapService.placeTask(actx, prodRequest.id, { x: "0.5", y: "0.1", objectId: aGate.id });
+  const aObjectDeviation = await deviationService.reportOnObject(actx, aCrane.id, { type: "EQUIPMENT_FAULT", comment: "A secret fault" });
+  const bObject = await siteMapService.createObject(b.ownerCtx, bSite.id, { kind: "OTHER", name: "B object", x: "0.2", y: "0.2" });
   const prodDeviation = await deviationService.report(actx, prodRequest.id, { type: "SAFETY", comment: "A secret" }, { fileName: "a.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]) });
   const prodPhoto = await db.logisticsDeviationPhoto.findFirstOrThrow({ where: { deviationId: prodDeviation.id } });
   const prodAiRun = await logisticsAiService.suggest(actx, prodRequest.id); // deterministic provider
@@ -466,6 +476,7 @@ beforeAll(async () => {
     assistant: { conversation: aConv.conversationId!, action: aAction.id },
     mk: { lead: mkLead.id, contact: mkContact.id, draft: mkDraft.id, sent: mkSent.id },
     sales: { draft: saDraft.id, line: saLine.id, order: saOrder.id, invoice: saInvoice.id },
+    map: { map: aMap.id, gate: aGate.id, crane: aCrane.id, deviation: aObjectDeviation.id, bObject: bObject.id },
     bProject: bProject.id,
     bDocument: bDocument.id,
     bEquipmentType: bType.id,
@@ -1489,6 +1500,26 @@ const cases: Record<string, Case> = {
     await billingSettingsService.update(w.bCtx, { enabled: "on", legalName: "B Oy 2", businessId: "0112038-9", streetAddress: "B street", postalCode: "00100", city: "Helsinki", iban: "FI21 1234 5600 0007 85", nextOrderNumber: "1001", nextInvoiceNumber: "10001" });
     expect((await db.billingSettings.findUniqueOrThrow({ where: { companyId: w.a.companyId } })).legalName).toBe("A Oy");
   },
+  "logisticsDeviation.reportOnObject": () => expectNotFound(deviationService.reportOnObject(w.bCtx, w.map.crane, { type: "OTHER" })),
+  // ── Site map (ADR 0034) ─────────────────────────────────────────
+  "siteMap.view": async () => {
+    await expectNotFound(siteMapService.view(w.bCtx, { siteId: w.ids.site }));
+    const v = await siteMapService.view(w.bCtx, {});
+    expect(v.site?.id).not.toBe(w.ids.site);
+    expect(v.objects.map((x) => x.id)).not.toContain(w.map.gate);
+  },
+  "siteMap.image": () => expectNotFound(siteMapService.image(w.bCtx, w.map.map)),
+  "siteMap.uploadMap": () => expectNotFound(siteMapService.uploadMap(w.bCtx, w.ids.site, { width: "100", height: "100" }, { fileName: "b.png", bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 9]) })),
+  "siteMap.createObject": () => expectNotFound(siteMapService.createObject(w.bCtx, w.ids.site, { kind: "OTHER", name: "Intruder", x: "0.1", y: "0.1" })),
+  "siteMap.updateObject": () => expectNotFound(siteMapService.updateObject(w.bCtx, w.map.gate, { name: "Hijacked" })),
+  "siteMap.moveObject": () => expectNotFound(siteMapService.moveObject(w.bCtx, w.map.gate, { x: "0.9", y: "0.9" })),
+  "siteMap.archiveObject": () => expectNotFound(siteMapService.archiveObject(w.bCtx, w.map.crane)),
+  "siteMap.placeTask": async () => {
+    await expectNotFound(siteMapService.placeTask(w.bCtx, w.prod.request, { x: "0.1", y: "0.1" }));
+    // B cannot attach its own task to A's object either.
+    await expectRejected(siteMapService.placeTask(w.bCtx, w.prod.bRequest, { x: "0.1", y: "0.1", objectId: w.map.gate }));
+  },
+  "siteMap.unplaceTask": () => expectNotFound(siteMapService.unplaceTask(w.bCtx, w.prod.request)),
   "profile.setLocale": async () => {
     await profileService.setLocale(w.bUser, { locale: "en" });
     expect((await db.user.findUniqueOrThrow({ where: { id: w.a.owner.user.id } })).locale).toBeNull();
@@ -1579,5 +1610,10 @@ describe("tenant isolation: company B user cannot reach company A data", () => {
     expect(await db.salesDocument.findUniqueOrThrow({ where: { id: w.sales.order } })).toMatchObject({ status: "ISSUED", number: "1001", sendCount: 0 });
     expect(await db.salesDocument.count({ where: { companyId: w.a.companyId } })).toBe(3);
     expect((await db.billingSettings.findUniqueOrThrow({ where: { companyId: w.a.companyId } })).nextInvoiceNumber).toBe(10002);
+    expect(await db.siteMapObject.findUniqueOrThrow({ where: { id: w.map.gate } })).toMatchObject({ name: "A secret gate", x: 0.5, y: 0.1, archivedAt: null });
+    expect((await db.siteMapObject.findUniqueOrThrow({ where: { id: w.map.crane } })).archivedAt).toBeNull();
+    expect(await db.siteMapTaskPin.findFirstOrThrow({ where: { requestId: w.prod.request } })).toMatchObject({ objectId: w.map.gate });
+    expect(await db.siteMap.count({ where: { companyId: w.a.companyId, archivedAt: null } })).toBe(1);
+    expect(await db.logisticsDeviation.count({ where: { mapObjectId: w.map.crane } })).toBe(1);
   });
 });

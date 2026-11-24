@@ -64,6 +64,7 @@ import { hrOverviewService } from "@/modules/hr/overview.service";
 import { staffingService, taskTypeService } from "@/modules/production/service";
 import { productionCalendarService } from "@/modules/production/calendar.service";
 import { deviationService } from "@/modules/production/deviation.service";
+import { siteMapService } from "@/modules/production/sitemap.service";
 import { logisticsAiService } from "@/modules/production/ai.service";
 import { rotationService } from "@/modules/workforce/rotation.service";
 import { personalIdService } from "@/modules/workforce/personal-id.service";
@@ -150,6 +151,13 @@ const CALLS: Record<string, Call> = {
   "production.deviations.report": w("logisticsDeviation", async (c) => {
     const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });
     return deviationService.report(c, req.id, { type: "OTHER", comment: "x" });
+  }),
+  // Site map (ADR 0034): internal only.
+  "production.siteMap.view": r("siteMap", (c) => siteMapService.view(c, { siteId: f.site })),
+  "production.siteMap.createObject": w("siteMap", (c) => siteMapService.createObject(c, f.site, { kind: "GATE", code: uniq("G").slice(0, 10), name: "Ulkoinen portti", x: "0.5", y: "0.5" })),
+  "production.siteMap.placeTask": w("siteMap", async (c) => {
+    const req = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: f.t.companyId } });
+    return siteMapService.placeTask(c, req.id, { x: "0.5", y: "0.5" });
   }),
   "production.taskTypes.create": w("taskType", (c) => taskTypeService.create(c, { name: uniq("x") })),
   "production.staffing.get": r("staffing", async (c) => {

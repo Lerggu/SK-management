@@ -53,6 +53,7 @@ import { teamService } from "./workforce/team.service";
 import { assistantService } from "./assistant/service";
 import { marketingService } from "./marketing/service";
 import { billingSettingsService, salesDocumentService } from "./sales/service";
+import { siteMapService } from "./production/sitemap.service";
 
 /**
  * Every service object whose methods take a RequestContext/UserContext.
@@ -152,6 +153,8 @@ export const SERVICE_REGISTRY = {
   // Order confirmations and invoices (ADR 0033)
   salesDocument: salesDocumentService,
   billingSettings: billingSettingsService,
+  // Site map in production control (ADR 0034)
+  siteMap: siteMapService,
 } as const;
 
 // ── V8: tenant scope for row-level security ──────────────────────────
