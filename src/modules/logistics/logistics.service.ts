@@ -111,7 +111,7 @@ export const logisticsRequestService = {
     const actors = requestActors(ctx, r.projectId, r.createdById);
     const next = (Object.keys(REQUEST_TRANSITIONS[r.status]) as RequestStatus[]).filter((to) => canTransitionRequest(r.status, to, actors));
     const users = await repo.findUsers([r.requestedById, r.approvedById, r.createdById].filter((x): x is string => !!x));
-    return { ...r, weightKg: r.weightKg?.toString() ?? null, next, users, permissions: logisticsPermissions(ctx, r.projectId) };
+    return { ...r, weightKg: r.weightKg?.toString() ?? null, liftRadiusM: r.liftRadiusM?.toString() ?? null, next, users, permissions: logisticsPermissions(ctx, r.projectId) };
   },
 
   async create(ctx: RequestContext, input: RequestInput) {
@@ -344,7 +344,7 @@ export const logisticsBoardService = {
       storage: locations.filter((l) => l.kind === "STORAGE"),
       slots: slots.map((s) => ({ start: s.start.toISOString(), minute: s.minute, label: formatMinute(s.minute) })),
       deliveries: deliveries.map((d) => ({ ...d, weightKg: d.weightKg?.toString() ?? null, startMinute: utcToZoned(d.slotStart).minute, endMinute: utcToZoned(d.slotEnd).minute, startLabel: formatMinute(utcToZoned(d.slotStart).minute), endLabel: formatMinute(utcToZoned(d.slotEnd).minute), next: nextDeliveryStatuses(d.status) })),
-      requests: requests.map((r) => ({ ...r, weightKg: r.weightKg?.toString() ?? null })),
+      requests: requests.map((r) => ({ ...r, weightKg: r.weightKg?.toString() ?? null, liftRadiusM: r.liftRadiusM?.toString() ?? null })),
       bookings: bookings.map((b) => ({ id: b.id, status: b.status, label: b.employee ? `${b.employee.lastName} ${b.employee.firstName}` : `${b.equipment!.assetNumber} ${b.equipment!.name}`, startsAt: b.startsAt, endsAt: b.endsAt, owner: b.ownerCompany, activity: b.activity })),
       equipmentTypes,
       permissions: logisticsPermissions(ctx, site.projectId),

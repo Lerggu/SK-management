@@ -32,9 +32,20 @@ test.describe("logistics coordinator", () => {
     await form.getByLabel("Palvelu").selectOption({ label: "Nosto" });
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Takt-tehtävä").selectOption({ index: 1 });
+    // Lift order details (ADR 0036): the responsible person is prefilled with the signed-in user.
+    await form.getByLabel("Raskain kappale (kg)").fill("2400");
+    await form.getByLabel("Nostosäde (m)").fill("16,5");
+    await form.getByLabel("Riggerit (hlö)").fill("2");
+    await form.getByLabel("Nostoapuvälineet").fill("Ketjuraksi 4-haarainen 5 t");
+    await expect(form.getByLabel("Nimi")).not.toHaveValue("");
+    await form.getByLabel("Puhelin").fill("+358 40 555 0101");
     await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
     await expect(page.getByText("Pyydetty")).toBeVisible();
+    await expect(page.getByText("16.5 m")).toBeVisible();
+    await expect(page.getByText("2 hlö")).toBeVisible();
+    await expect(page.getByText("1 h 0 min")).toBeVisible();
+    await expect(page.getByTestId("request-contact").getByRole("link", { name: "+358 40 555 0101" })).toHaveAttribute("href", "tel:+358405550101");
     await page.getByTestId("request-actions").getByRole("button", { name: "Hyväksy", exact: true }).click();
     await expect(page.getByText("Hyväksytty", { exact: true })).toBeVisible();
   });
