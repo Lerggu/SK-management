@@ -141,7 +141,7 @@ test("pd", async ({ browser }, testInfo) => {
   await j.step("Tarkista logistiikkariskit", async () => {
     await page.getByRole("navigation", { name: "Tuotannonohjaus" }).getByRole("link", { name: "Riskit", exact: true }).click();
     await expect(h1("Logistiikkariskit")).toBeVisible(t);
-    const project = page.getByLabel("Projekti");
+    const project = page.getByLabel("Projekti", { exact: true });
     if (await project.isVisible()) {
       const value = await project.locator("option", { hasText: "NSM-001" }).getAttribute("value", t);
       if (value) await project.selectOption(value);

@@ -198,7 +198,7 @@ test("ceo", async ({ browser }, testInfo) => {
     await go("Asetukset");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Asetukset", T);
     await page.getByRole("navigation", { name: "Asetukset" }).getByRole("link", { name: "Käyttäjät" }).click(T);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Käyttäjät", T);
+    await expect(page).toHaveURL(/\/settings\/members/, T);
     const invite = section(page, "Kutsu käyttäjä");
     await invite.getByLabel("Sähköposti").fill(`journey.ceo.${tag.toLowerCase()}@example.com`);
     await invite.getByLabel("Nimi").fill(`Testi Työnjohtaja ${tag}`);
