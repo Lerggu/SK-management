@@ -181,15 +181,15 @@ test("hr", async ({ browser }, testInfo) => {
   await j.step("Merkitse rotaatiorytmi 10/4 Sulattoon", async () => {
     const form = section("Rotaatiorytmi");
     const site = form.getByLabel("Työmaa", { exact: true });
-    const value = await site.locator("option", { hasText: "Sulatto" }).first().getAttribute("value", T).catch(() => null);
+    const sulatto = site.locator("option", { hasText: "Sulatto" });
+    const value = (await sulatto.count()) > 0 ? await sulatto.first().getAttribute("value") : null;
     if (value) await site.selectOption(value);
-    else await site.selectOption({ index: 1 });
     await form.getByLabel("Työpäiviä").fill("10");
     await form.getByLabel("Vapaapäiviä").fill("4");
     await form.getByLabel(listName).check();
     await form.getByRole("button", { name: "Lisää rytmi" }).click(T);
     await expect(form.getByRole("status")).toContainText("Rytmi lisätty", T);
-    if (!value) return "Työmaata \"Sulatto\" ei löytynyt valikosta, valittiin ensimmäinen";
+    if (!value) return "Työmaata \"Sulatto\" ei löytynyt valikosta, rytmi merkittiin ilman työmaata";
   });
 
   await j.step("Katso HR-yleiskuva", async () => {
