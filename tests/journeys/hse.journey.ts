@@ -204,7 +204,7 @@ test("hse", async ({ browser }, testInfo) => {
     const form = page.getByTestId("permit-form");
     await form.getByLabel("Työluvan tyyppi").selectOption({ label: "Tulityö" }, T);
     await form.getByLabel("Urakoitsija").fill("Teräs Demo AB", T);
-    await form.getByLabel("Työ" + "n kuvaus", { exact: true }).fill(permitWork, T);
+    await form.getByLabel(lbl("Työn kuvaus")).fill(permitWork, T);
     await selectSite(form);
     await form.getByLabel("Paikka").fill("Sulatto, linja 4", T);
     await form.getByLabel("Varotoimet").fill("Sammutin, palovartija 1 h työn jälkeen", T);

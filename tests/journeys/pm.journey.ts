@@ -164,7 +164,9 @@ test("pm", async ({ browser }, testInfo) => {
 
   await j.step("Luo tarjous projektille", async () => {
     await nav(page, "Tarjoukset");
+    await page.waitForURL(/\/sales\/quotes/, T);
     const form = page.getByTestId("quote-form");
+    await expect(form).toBeVisible(T);
     const customer = form.getByLabel("Asiakas");
     const options = (await customer.locator("option").allTextContents()).map((s) => s.trim());
     const pick = options.find((o) => /Nordic (Steel|Hyperscale)/.test(o)) ?? options.find((o) => o && o !== "–" && !o.startsWith("Valitse"));

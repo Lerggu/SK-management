@@ -191,7 +191,7 @@ test("subcontractor", async ({ browser }, testInfo) => {
     const form = page.getByTestId("permit-form");
     await form.getByLabel("Työluvan tyyppi").selectOption({ label: "Korkealla työskentely" }, T);
     await form.getByLabel("Urakoitsija").fill("Aliurakka Demo Oy", T);
-    await form.getByLabel("Työ" + "n kuvaus", { exact: true }).fill(permitWork, T);
+    await form.getByLabel(lbl("Työn kuvaus")).fill(permitWork, T);
     await form.getByLabel("Paikka").fill("Sulatto, linja 5, +12 m", T);
     await form.getByLabel("Varotoimet").fill("Henkilönostin, valjaat, alue eristetty", T);
     await form.getByRole("button", { name: "Pyydä työlupa" }).click(T);

@@ -151,7 +151,9 @@ test("lifting", async ({ browser }, testInfo) => {
   });
 
   await j.step("Tee nostopyyntö logistiikalle", async () => {
-    const form = section(page, "Logistiikkapyynnöt");
+    const opener = page.getByTestId("new-request");
+    if (!(await opener.getAttribute("open").catch(() => null))) await opener.locator("summary").click();
+    const form = page.getByTestId("request-form");
     await form.getByLabel("Palvelu").selectOption({ label: "Nosto" }, T);
     await form.getByLabel("Otsikko").fill(requestTitle, T);
     await form.getByLabel("Alkaa").fill(`${day(2)}T08:00`, T);
