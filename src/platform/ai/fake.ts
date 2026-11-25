@@ -13,6 +13,8 @@ export interface FakeAiOptions {
   respond?: (toolOutputs: Record<string, unknown>) => unknown;
   /** Throw instead of answering. */
   fail?: string;
+  /** Wait for this before answering, to keep runs in progress at the same time. */
+  gate?: Promise<void>;
 }
 
 export class FakeAiProvider implements AiProvider {
@@ -25,6 +27,7 @@ export class FakeAiProvider implements AiProvider {
 
   async run(request: AiRunRequest): Promise<AiRunResult> {
     this.requests.push(request);
+    if (this.options.gate) await this.options.gate;
     if (this.options.fail) throw new Error(this.options.fail);
 
     const toolCalls: AiToolCall[] = [];

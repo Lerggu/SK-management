@@ -1,4 +1,4 @@
-import { Prisma } from "@/platform/db";
+import { Prisma, type Tx } from "@/platform/db";
 import { readClient, runInTransaction } from "@/platform/db";
 import { writeAudit } from "@/platform/audit";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/platform/errors";
@@ -7,6 +7,7 @@ import { hasPermission, requirePermission, requireProjectPermission, type Reques
 import { getAiProvider, usdToEur, type AiRunResult } from "@/platform/ai";
 import { utcToZoned, zonedToUtc } from "@/platform/i18n/time";
 import { AiRepo } from "./repo";
+import { withBudgetHold } from "./budget";
 import { askSchema, budgetSchema, insightResultSchema, recommendationDecisionSchema, type AskInput, type BudgetInput, type InsightResult, type RecommendationDecisionInput } from "./schemas";
 import { toolsFor } from "./tools";
 
@@ -27,6 +28,20 @@ async function projectOr404(repo: AiRepo, projectId: string) {
   const project = await repo.findProject(projectId);
   if (!project) throw new NotFoundError();
   return project;
+}
+
+/** Remaining shared AI cap, read inside the budget hold's transaction (ADR 0035). */
+export function remainingAiBudget(companyId: string) {
+  return async (tx: Tx) => (await budgetStatus(new AiRepo(tx, companyId))).remainingEur;
+}
+
+/**
+ * Runs an AI call under a hold of the company's shared monthly cap (ADR 0035):
+ * `blocked` records the BLOCKED_BUDGET run when the cap, minus the runs in
+ * progress, is used up.
+ */
+export function withAiBudget<T>(ctx: RequestContext, blocked: () => Promise<T>, run: () => Promise<T>): Promise<T> {
+  return withBudgetHold(ctx.company.id, "AI", remainingAiBudget(ctx.company.id), blocked, run, { minFreeEur: MIN_REMAINING_EUR });
 }
 
 /** The company's monthly AI cap and what is used of it (shared by every AI feature). */
@@ -73,11 +88,21 @@ async function execute(ctx: RequestContext, projectId: string, kind: "REVIEW" | 
   if (!provider) throw new ValidationError({ _form: ["ai.errors.unavailable"] }, "AI provider not configured");
 
   const base = { projectId: project.id, requestedById: ctx.user.id, kind, question, locale: ctx.locale, promptVersion: PROMPT_VERSION } as const;
-  const budget = await budgetStatus(repo);
-  if (budget.exhausted) {
-    return persist(ctx, { ...base, provider: provider.name, model: provider.model, status: "BLOCKED_BUDGET", error: "ai.errors.budgetExhausted" }, null, []);
-  }
+  return withAiBudget(
+    ctx,
+    () => persist(ctx, { ...base, provider: provider.name, model: provider.model, status: "BLOCKED_BUDGET", error: "ai.errors.budgetExhausted" }, null, []),
+    () => runInsight(ctx, project, repo, provider, base),
+  );
+}
 
+async function runInsight(
+  ctx: RequestContext,
+  project: { id: string; code: string; name: string },
+  repo: AiRepo,
+  provider: NonNullable<ReturnType<typeof getAiProvider>>,
+  base: { projectId: string; requestedById: string; kind: "REVIEW" | "QUESTION"; question: string | null; locale: string; promptVersion: string },
+) {
+  const { kind, question } = base;
   const tools = toolsFor(ctx, project.id);
   let output: AiRunResult | null = null;
   let error: string | null = null;

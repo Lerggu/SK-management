@@ -21,6 +21,7 @@ import { getMailer, type Mailer } from "@/platform/mail";
 import { appBaseUrl } from "@/platform/config/env";
 import { getTedFetch, type TedNotice } from "@/platform/integrations/ted";
 import { getWebSearch } from "@/platform/integrations/web-search";
+import { withBudgetHold } from "@/modules/ai/budget";
 import { MarketingRepo } from "./repo";
 import {
   DISCOVERY_FOCUSES,
@@ -103,21 +104,30 @@ async function aiRun<T>(
     await repo.finishRun(r.id, { status: "FAILED", error: "marketing.errors.aiUnavailable" });
     return { value: null, runId: r.id, error: "marketing.errors.aiUnavailable" };
   }
-  if ((await marketingBudget(repo, opts.now)).exhausted) {
-    await repo.finishRun(r.id, { status: "BLOCKED_BUDGET", error: "marketing.errors.budgetExhausted" });
-    return { value: null, runId: r.id, error: "marketing.errors.budgetExhausted" };
-  }
-  let costUsd = 0;
-  try {
-    const out = await call(provider);
-    costUsd = out.costUsd;
-    const value = parse(out.result);
-    await repo.finishRun(r.id, { status: "SUCCEEDED", costUsd: costUsd.toFixed(6) });
-    return { value, runId: r.id };
-  } catch (e) {
-    await repo.finishRun(r.id, { status: "FAILED", costUsd: costUsd.toFixed(6), error: err(e) });
-    return { value: null, runId: r.id, error: err(e) };
-  }
+  // Serialized with the other marketing runs of the company (ADR 0035).
+  return withBudgetHold(
+    scope.companyId,
+    "MARKETING",
+    async (tx) => (await marketingBudget(new MarketingRepo(tx, scope.companyId), opts.now)).remainingEur,
+    async () => {
+      await repo.finishRun(r.id, { status: "BLOCKED_BUDGET", error: "marketing.errors.budgetExhausted" });
+      return { value: null, runId: r.id, error: "marketing.errors.budgetExhausted" };
+    },
+    async () => {
+      let costUsd = 0;
+      try {
+        const out = await call(provider);
+        costUsd = out.costUsd;
+        const value = parse(out.result);
+        await repo.finishRun(r.id, { status: "SUCCEEDED", costUsd: costUsd.toFixed(6) });
+        return { value, runId: r.id };
+      } catch (e) {
+        await repo.finishRun(r.id, { status: "FAILED", costUsd: costUsd.toFixed(6), error: err(e) });
+        return { value: null, runId: r.id, error: err(e) };
+      }
+    },
+    { minFreeEur: MIN_REMAINING_EUR },
+  );
 }
 
 // ── register upsert ─────────────────────────────────────────────────

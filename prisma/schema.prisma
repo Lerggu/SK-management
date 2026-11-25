@@ -203,6 +203,7 @@ model Company {
   billedCandidates       InvoiceCandidate[]      @relation("CandidateBillTo")
   invoiceExports         InvoiceExportBatch[]
   aiRuns                 AiRun[]
+  aiBudgetHolds          AiBudgetHold[]
   hrSettings             HrSettings?
   competenceAreas        CompetenceArea[]
   qualificationTypes     QualificationType[]
@@ -3025,6 +3026,30 @@ model AiRun {
   @@index([companyId, projectId, createdAt])
   @@index([companyId, logisticsRequestId, createdAt])
   @@map("ai_runs")
+}
+
+/// Which monthly AI cap a hold reserves: the shared AI cap or the marketing budget.
+enum AiBudgetPool {
+  AI
+  MARKETING
+}
+
+/// A short-lived reservation of a monthly AI cap while a run is in progress
+/// (ADR 0035). Reserving is serialized per company and pool with an advisory
+/// lock, so concurrent runs cannot all pass the cap check; the hold is removed
+/// when the run's real cost is recorded and ignored once it expires.
+model AiBudgetHold {
+  id        String       @id @default(uuid(7)) @db.Uuid
+  companyId String       @map("company_id") @db.Uuid
+  pool      AiBudgetPool
+  amountEur Decimal      @map("amount_eur") @db.Decimal(14, 6)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt DateTime     @map("expires_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, pool, expiresAt])
+  @@map("ai_budget_holds")
 }
 
 /// An AI_RECOMMENDATION item of a run's answer (facts and forecasts stay in
