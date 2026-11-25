@@ -76,11 +76,13 @@ test("siteManager", async ({ browser }, testInfo) => {
   await j.step("Kirjaa omat 8 h tunnit", async () => {
     await go("Tunnit", { group: "Projektit" });
     await h1("Tunnit");
-    const location = page.getByLabel("Projekti", { exact: true });
+    // The page also has the crew form ("Kirjaa työryhmälle") with the same field names.
+    const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Kirjaa tunnit", exact: true }) });
+    const location = form.getByLabel("Projekti", { exact: true });
     if (await location.locator("option", { hasText: SITE }).count()) await selectContaining(location, SITE);
-    await page.getByLabel("Tunnit", { exact: true }).fill("8");
-    await page.getByLabel("Muistiinpano", { exact: true }).fill(`Työnjohto ja tarkastukset ${tag}`);
-    await page.getByRole("button", { name: "Kirjaa tunnit", exact: true }).click(T);
+    await form.getByLabel("Tunnit", { exact: true }).fill("8");
+    await form.getByLabel("Muistiinpano", { exact: true }).fill(`Työnjohto ja tarkastukset ${tag}`);
+    await form.getByRole("button", { name: "Kirjaa tunnit", exact: true }).click(T);
     await expect(page.getByTestId("week-entries").getByText(`Työnjohto ja tarkastukset ${tag}`)).toBeVisible(T);
   });
 
@@ -125,10 +127,11 @@ test("siteManager", async ({ browser }, testInfo) => {
   await j.step("Kirjaa tämän päivän edistyminen 75 %", async () => {
     const week = page.getByTestId("week-list");
     await expect(week).toBeVisible(T);
-    const open = week.locator("li[data-activity]").filter({ has: page.getByRole("button", { name: "75 %" }) }).first();
+    const open = week.locator('li[data-activity]:not([data-status="COMPLETE"])').filter({ has: page.getByRole("button", { name: "75 %" }) }).first();
     if (!(await open.count())) return "Tämän viikon tehtävillä ei ole pikakirjauspainikkeita";
+    const id = await open.getAttribute("data-activity");
     await open.getByRole("button", { name: "75 %" }).click(T);
-    await expect(open.getByText("75 %").last()).toBeVisible(T);
+    await expect(week.locator(`li[data-activity="${id}"] span.tabular-nums`).first()).toHaveText("75 %", T);
   });
 
   await j.step("Lisää tehtävälle este (rajoite)", async () => {
