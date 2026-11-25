@@ -545,6 +545,19 @@ const cases: Record<string, Case> = {
     expect(s.employees).toBe(await db.employee.count({ where: { companyId: w.b.companyId, archivedAt: null } }));
     expect((s.recentAudit ?? []).every((e) => e.companyId === w.b.companyId)).toBe(true);
   },
+  "dashboard.decisions": async () => {
+    const items = await dashboardService.decisions(w.bCtx);
+    const owner = async (kind: string, id: string) => {
+      const where = { where: { id }, select: { companyId: true } };
+      if (kind === "quote") return db.quoteVersion.findUnique(where);
+      if (kind === "variation") return db.variation.findUnique(where);
+      if (kind === "takt") return db.taktPlanVersion.findUnique(where);
+      if (kind === "lift") return db.liftPlanVersion.findUnique(where);
+      if (kind === "permit") return db.workPermit.findUnique(where);
+      return db.logisticsRequest.findUnique(where);
+    };
+    for (const i of items) expect((await owner(i.kind, i.id))?.companyId).toBe(w.b.companyId);
+  },
 
   // ── projects / sites ────────────────────────────────────────────
   "project.list": async () => {
@@ -626,6 +639,8 @@ const cases: Record<string, Case> = {
   },
   "document.get": () => expectNotFound(documentService.get(w.bCtx, w.ids.document)),
   "document.create": () => expectRejected(documentService.create(w.bCtx, { title: "x", projectId: w.ids.project }, textFile("x.pdf"))),
+  "document.submitExternal": () => expectNotFound(documentService.submitExternal(w.bCtx, w.ids.project, { title: "x" }, textFile("x.pdf"))),
+  "document.listOwnSubmissions": () => expectNotFound(documentService.listOwnSubmissions(w.bCtx, w.ids.project)),
   "document.updateMetadata": () => expectNotFound(documentService.updateMetadata(w.bCtx, w.ids.document, { title: "Hijacked" })),
   "document.archive": () => expectNotFound(documentService.archive(w.bCtx, w.ids.document)),
   "document.uploadVersion": () => expectNotFound(documentService.uploadVersion(w.bCtx, w.ids.document, {}, textFile("x.pdf"))),

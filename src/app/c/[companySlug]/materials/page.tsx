@@ -12,6 +12,8 @@ import { StatusBadge } from "@/ui/components/status-badge";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
 import { SiteDayPicker } from "../logistics/_components/site-day-picker";
 import { createBatchAction, createDrumAction } from "./actions";
+import { preferredSiteId, siteCookieName } from "@/app/_lib/site-preference";
+import { RememberSite } from "@/ui/components/remember-site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("materials"))("title") };
@@ -40,7 +42,7 @@ export default async function MaterialsPage({ params, searchParams }: Props) {
       </>
     );
   }
-  const siteId = sites.some((s) => s.id === sp.site) ? sp.site! : sites[0].id;
+  const siteId = (await preferredSiteId(companySlug, sites, sp.site)) ?? sites[0].id;
   const [options, batches, drums] = await Promise.all([loadOr404(materialBatchService.options(ctx, siteId)), materialBatchService.list(ctx, { siteId }), cableDrumService.list(ctx, { siteId })]);
   const perms = options.permissions;
   const activityOptions = options.activities.map((a) => ({ value: a.id, label: `${a.taktArea.code} · ${a.workPackage.code} ${a.name}` }));
@@ -48,6 +50,7 @@ export default async function MaterialsPage({ params, searchParams }: Props) {
   const deliveryOptions = options.deliveries.map((d) => ({ value: d.id, label: `${d.slotStart.toISOString().slice(0, 10)} · ${d.supplier} · ${d.material}` }));
   return (
     <>
+      <RememberSite cookieName={siteCookieName(companySlug)} siteId={siteId} />
       <PageHeader title={t("title")} description={`${options.site.project.code} · ${options.site.name}`} actions={scan} />
       <div className="space-y-4">
         <SiteDayPicker sites={sites} siteId={siteId} showDate={false} />

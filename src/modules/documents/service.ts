@@ -25,6 +25,7 @@ import {
   documentSharingSchema,
   linkSchema,
   versionMetaSchema,
+  externalSubmissionSchema,
   type CreateDocumentInput,
   type DocumentMetadataInput,
   type DocumentSharingInput,
@@ -100,6 +101,7 @@ async function createVersion(
   doc: DocumentRow,
   stored: Awaited<ReturnType<typeof storeFile>>,
   meta: { revisionLabel: string | null; changeNote: string | null; issueDate: Date | null },
+  approvalState: "DRAFT" | "PENDING_APPROVAL" = "DRAFT",
 ) {
   await repo.lock(doc.id);
   const existing = await repo.listVersions(doc.id);
@@ -116,7 +118,7 @@ async function createVersion(
     sha256: stored.sha256,
     storageKey: stored.key,
     status: "CURRENT",
-    approvalState: "DRAFT",
+    approvalState,
     issueDate: meta.issueDate,
     changeNote: meta.changeNote,
     createdById: ctx.user.id,
@@ -168,8 +170,11 @@ export const documentService = {
     if (ctx.external) {
       const { links: _links, ...rest } = doc;
       void _links;
-      const versions = doc.versions.filter((v) => v.approvalState === "APPROVED").map(serializeVersion);
-      if (versions.length === 0) throw new NotFoundError();
+      const approved = doc.versions.filter((v) => v.approvalState === "APPROVED").map(serializeVersion);
+      if (approved.length === 0) throw new NotFoundError();
+      // For an external member the newest approved version is the valid one, even while a newer revision waits for approval.
+      const newest = approved.reduce((a, b) => (b.versionNumber > a.versionNumber ? b : a));
+      const versions = approved.map((v) => ({ ...v, status: v.id === newest.id ? ("CURRENT" as const) : ("SUPERSEDED" as const) }));
       return { ...rest, links: [], versions, permissions: { manage: false, approve: false, share: false } };
     }
     const perms = documentPermissions(ctx, doc);
@@ -217,6 +222,48 @@ export const documentService = {
       const version = await createVersion(tx, ctx, repo, doc, stored, meta);
       return { ...doc, currentVersion: serializeVersion(version) };
     });
+  },
+
+  /**
+   * Subcontractor delivery (ADR 0037): a subcontractor hands over a document
+   * (RAMS, certificate …) to a project they work in. It becomes an internal
+   * project document waiting for approval; it is not shared back to any
+   * external party until an internal approver decides and shares it.
+   */
+  async submitExternal(ctx: RequestContext, projectId: string, input: { title?: unknown; category?: unknown; description?: unknown }, file: UploadedFile) {
+    const data = parseInput(externalSubmissionSchema, input);
+    if (!ctx.external || !canAccessProject(ctx, projectId)) throw new NotFoundError();
+    if (!projectPermissions(ctx, projectId).has("portal.subcontractor")) throw new ForbiddenError("Missing permission portal.subcontractor");
+    const project = await new DocumentRepo(readClient(), ctx.company.id).findProject(projectId);
+    if (!project || project.archivedAt) throw new NotFoundError();
+    const documentId = uuidv7();
+    const stored = await storeFile(ctx, documentId, file);
+    return runInTransaction(async (tx) => {
+      const repo = new DocumentRepo(tx, ctx.company.id);
+      const doc = await repo.create({
+        id: documentId,
+        title: data.title,
+        documentNumber: null,
+        category: data.category,
+        description: data.description,
+        projectId,
+        siteId: null,
+        ownerUserId: ctx.user.id,
+        createdById: ctx.user.id,
+        updatedById: ctx.user.id,
+      });
+      await writeAudit(tx, ctx, { action: "document.external_submit", entityType: "document", entityId: doc.id, projectId, after: { title: doc.title, category: doc.category } });
+      const version = await createVersion(tx, ctx, repo, doc, stored, { revisionLabel: null, changeNote: null, issueDate: null }, "PENDING_APPROVAL");
+      return { id: doc.id, title: doc.title, category: doc.category, approvalState: version.approvalState };
+    });
+  },
+
+  /** The subcontractor's own deliveries in a project, with their approval state (no internal data). */
+  async listOwnSubmissions(ctx: RequestContext, projectId: string) {
+    if (!ctx.external || !canAccessProject(ctx, projectId)) throw new NotFoundError();
+    if (!projectPermissions(ctx, projectId).has("portal.subcontractor")) throw new ForbiddenError("Missing permission portal.subcontractor");
+    const rows = await new DocumentRepo(readClient(), ctx.company.id).listOwned(projectId, ctx.user.id);
+    return rows.map((d) => ({ id: d.id, title: d.title, category: d.category, createdAt: d.createdAt, approvalState: d.versions[0]?.approvalState ?? null, fileName: d.versions[0]?.fileName ?? null }));
   },
 
   async updateMetadata(ctx: RequestContext, documentId: string, input: DocumentMetadataInput) {

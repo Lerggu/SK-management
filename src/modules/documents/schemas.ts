@@ -31,6 +31,14 @@ export const createDocumentSchema = documentMetadataSchema
 export type CreateDocumentInput = z.input<typeof createDocumentSchema>;
 export type DocumentMetadataInput = z.input<typeof documentMetadataSchema>;
 
+/** Subcontractor delivery (ADR 0037): only these categories, nothing else from outside. */
+export const EXTERNAL_SUBMISSION_CATEGORIES = ["RAMS", "CERTIFICATE", "OTHER"] as const;
+export const externalSubmissionSchema = z.object({
+  title: text(200),
+  category: z.enum(EXTERNAL_SUBMISSION_CATEGORIES).default("OTHER"),
+  description: optionalText(2000),
+});
+
 export const versionMetaSchema = z.object({
   revisionLabel: optionalText(20),
   changeNote: optionalText(1000),

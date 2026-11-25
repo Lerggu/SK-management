@@ -7,6 +7,8 @@ import { DEVIATION_TYPES } from "@/modules/production/deviation.service";
 import { EmptyState, PageHeader } from "@/ui/components/page";
 import { cn } from "@/ui/lib/utils";
 import { requireCompanyContext } from "@/app/_lib/context";
+import { rememberedSiteId, siteCookieName } from "@/app/_lib/site-preference";
+import { RememberSite } from "@/ui/components/remember-site";
 import { ProductionTabs } from "@/app/c/[companySlug]/_components/production-tabs";
 import { orForbidden } from "../../workforce/_components/hr/access";
 import { SiteMapBoard, type MapActions } from "./map-board";
@@ -36,7 +38,12 @@ export default async function SiteMapPage({ params, searchParams }: { params: Pr
   const t = await getTranslations("production.map");
   const tc = await getTranslations("production.calendar");
   const format = await getFormatter();
-  const data = await orForbidden(siteMapService.view(ctx, { siteId: sp.site, date: sp.date, range: sp.range }));
+  let data = await orForbidden(siteMapService.view(ctx, { siteId: sp.site, date: sp.date, range: sp.range }));
+  // Without ?site, open the member's last-used site (role journeys 2026-11-26).
+  if (data && !sp.site) {
+    const remembered = await rememberedSiteId(companySlug, data.sites);
+    if (remembered && remembered !== data.site?.id) data = await orForbidden(siteMapService.view(ctx, { siteId: remembered, date: sp.date, range: sp.range }));
+  }
   if (!data) {
     return (
       <>
@@ -69,6 +76,7 @@ export default async function SiteMapPage({ params, searchParams }: { params: Pr
     <>
       <PageHeader title={t("title")} description={t("hint")} />
       <ProductionTabs ctx={ctx} active="map" />
+      {site && <RememberSite cookieName={siteCookieName(companySlug)} siteId={site.id} />}
       {!site ? (
         <EmptyState>{t("noSites")}</EmptyState>
       ) : (

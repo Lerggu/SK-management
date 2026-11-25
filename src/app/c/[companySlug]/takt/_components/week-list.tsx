@@ -17,13 +17,16 @@ interface WeekActivity {
   plannedEnd: string | null;
 }
 
+/** Blocked and running work first, finished work last (site view). */
+const ORDER: Record<string, number> = { BLOCKED: 0, IN_PROGRESS: 1, READY: 2, NOT_STARTED: 3, PLANNED: 3, COMPLETE: 9 };
+
 /** Mobile-first list of this week's activities with quick progress buttons. */
 export async function WeekList({ slug, planId, activities, canProgress }: { slug: string; planId: string; activities: WeekActivity[]; canProgress: boolean }) {
   const t = await getTranslations("takt");
   if (activities.length === 0) return <EmptyState>{t("noActivitiesThisWeek")}</EmptyState>;
   return (
     <ul className="grid gap-3 lg:grid-cols-2" data-testid="week-list">
-      {activities.map((a) => (
+      {[...activities].sort((x, y) => (ORDER[x.status] ?? 5) - (ORDER[y.status] ?? 5)).map((a) => (
         <li key={a.id} className="rounded-lg border p-3" data-activity={a.id} data-status={a.status}>
           <Link href={`/c/${slug}/takt/${planId}/activities/${a.id}`} className="flex min-h-11 items-start gap-3">
             <span aria-hidden className="mt-1 size-4 shrink-0 rounded" style={{ backgroundColor: a.workPackage.color }} />
@@ -40,7 +43,7 @@ export async function WeekList({ slug, planId, activities, canProgress }: { slug
           </Link>
           <div className="mt-2 flex items-center gap-2">
             <ProgressBar value={a.progressPct} label={t("progress")} />
-            <span className="w-10 shrink-0 text-right text-sm tabular-nums">{a.progressPct} %</span>
+            <span className="w-12 shrink-0 text-right text-sm whitespace-nowrap tabular-nums">{a.progressPct} %</span>
           </div>
           {canProgress && a.status !== "COMPLETE" && (
             <div className="mt-3 grid grid-cols-4 gap-2" aria-label={t("quickProgress")}>

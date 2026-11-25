@@ -22,8 +22,10 @@ type Message = { role: "user" | "assistant"; text: string; at: string };
 
 function requireAssistant(ctx: RequestContext) {
   if (ctx.external) throw new ForbiddenError("External members cannot use the assistant");
-  const any = hasPermission(ctx, "ai.use") || [...ctx.projectGrants.values()].some((g) => g.has("ai.use"));
-  if (!any) throw new ForbiddenError("Missing permission ai.use");
+  // assistant.use (role journeys 2026-11-26): site roles get the assistant without the AI project controller.
+  const keys = ["ai.use", "assistant.use"] as const;
+  const any = keys.some((k) => hasPermission(ctx, k)) || [...ctx.projectGrants.values()].some((g) => keys.some((k) => g.has(k)));
+  if (!any) throw new ForbiddenError("Missing permission assistant.use");
 }
 
 /** Whether the current member may use the assistant (for showing the button). */

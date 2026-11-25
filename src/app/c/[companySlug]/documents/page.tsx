@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { hasPermission } from "@/platform/authz";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 import { DOCUMENT_CATEGORIES } from "@/modules/documents/schemas";
@@ -20,17 +21,21 @@ export default async function DocumentsPage({ params, searchParams }: { params: 
   const ctx = await requireCompanyContext(companySlug);
   const category = (DOCUMENT_CATEGORIES as readonly string[]).includes(sp.category ?? "") ? sp.category : undefined;
   const [docs, t, tc, format] = await Promise.all([documentService.list(ctx, { q: sp.q, category, includeArchived: sp.archived === "1" }), getTranslations("documents"), getTranslations("common"), getFormatter()]);
+  // Only members who can add a document somewhere see the button (never external members).
+  const canCreate = !ctx.external && (hasPermission(ctx, "documents.manage") || [...ctx.projectGrants.values()].some((g) => g.has("documents.manage")));
   return (
     <>
       <PageHeader
         title={t("title")}
         description={tc("total", { count: docs.length })}
         actions={
-          <Button asChild>
-            <Link href={`/c/${companySlug}/documents/new`}>
-              <Plus aria-hidden /> {t("new")}
-            </Link>
-          </Button>
+          canCreate && (
+            <Button asChild>
+              <Link href={`/c/${companySlug}/documents/new`}>
+                <Plus aria-hidden /> {t("new")}
+              </Link>
+            </Button>
+          )
         }
       />
       <form className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center" role="search">

@@ -12,6 +12,8 @@ import { fmtDateTime } from "@/ui/format";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
 import { SiteDayPicker } from "../logistics/_components/site-day-picker";
 import { createLiftPlanAction } from "./actions";
+import { preferredSiteId, siteCookieName } from "@/app/_lib/site-preference";
+import { RememberSite } from "@/ui/components/remember-site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("lifting"))("title") };
@@ -46,7 +48,7 @@ export default async function LiftingPage({ params, searchParams }: Props) {
       </>
     );
   }
-  const siteId = sites.some((s) => s.id === sp.site) ? sp.site! : sites[0].id;
+  const siteId = (await preferredSiteId(companySlug, sites, sp.site)) ?? sites[0].id;
   const [plans, options] = await Promise.all([liftPlanService.list(ctx, { siteId }), loadOr404(liftPlanService.options(ctx, siteId))]);
   const open = plans.filter((p) => p.status === "OPEN");
   const closed = plans.filter((p) => p.status !== "OPEN");
@@ -59,6 +61,7 @@ export default async function LiftingPage({ params, searchParams }: Props) {
     );
   return (
     <>
+      <RememberSite cookieName={siteCookieName(companySlug)} siteId={siteId} />
       {header}
       <div className="space-y-4">
         <SiteDayPicker sites={sites} siteId={siteId} showDate={false} />

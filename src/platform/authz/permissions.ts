@@ -25,6 +25,7 @@ export const PERMISSIONS = {
   "hr.view": { category: "workforce", sensitive: true, description: "View work-related HR data: competence matrix, published assessments, trainings, cards, orientations, permits and languages" },
   "hr.manage": { category: "workforce", sensitive: true, description: "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items" },
   "employee.pid.manage": { category: "workforce", sensitive: true, description: "View and edit employees' personal identity codes (henkilötunnus)" },
+  "team.manage": { category: "workforce", sensitive: false, description: "Create teams, choose the leader and change team members" },
   "rotation.view": { category: "workforce", sensitive: false, description: "View the workforce rotation plan (absence reasons hidden)" },
   "rotation.manage": { category: "workforce", sensitive: true, description: "Plan workforce rotation and see absence reasons (sick leave is health data)" },
 
@@ -94,6 +95,7 @@ export const PERMISSIONS = {
   "variation.client_approve": { category: "portal", sensitive: false, description: "Approve or reject variations on behalf of the client" },
 
   // V8 — AI project controller (sends project data the user can see to the AI provider)
+  "assistant.use": { category: "ai", sensitive: true, description: "Use the voice/text assistant: it proposes actions that the user confirms (names go to the AI provider, never identity codes or rates)" },
   "ai.use": { category: "ai", sensitive: true, description: "Use the AI project controller (sends project data the user can see to the AI provider)" },
 } as const satisfies Record<string, { category: string; sensitive: boolean; description: string }>;
 
@@ -135,6 +137,7 @@ export const COMPANY_ONLY_PERMISSIONS: ReadonlySet<PermissionKey> = new Set([
   "audit.view",
   "employee.view",
   "employee.manage",
+  "team.manage",
   "employee.rates.view",
   "employee.rates.manage",
   "hr.view",
@@ -317,6 +320,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     permissions: P(
       "project.view",
       "employee.view",
+      "team.manage",
       "hr.view",
       "equipment.view",
       "equipment.manage",
@@ -354,7 +358,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Työnjohtaja", en: "Supervisor" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign", "takt.view", "takt.progress.update", "logistics.view", "logistics.request", "delivery.manage", "lift.request", "material.view", "material.manage", "hse.view", "hse.create", "rotation.view"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "timesheet.manage", "diary.view", "diary.manage", "diary.sign", "takt.view", "takt.progress.update", "logistics.view", "logistics.request", "delivery.manage", "lift.request", "material.view", "material.manage", "hse.view", "hse.create", "rotation.view", "assistant.use"),
   },
   {
     key: "LOGISTICS_COORDINATOR",
@@ -368,14 +372,14 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "HSE-asiantuntija", en: "HSE" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "hr.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "material.view", "hse.view", "hse.create", "hse.manage", "hse.investigate", "hse.serious.notify", "hse.personal.view", "permit.approve"),
+    permissions: P("project.view", "employee.view", "hr.view", "equipment.view", "documents.view", "documents.manage", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "material.view", "hse.view", "hse.create", "hse.manage", "hse.investigate", "hse.serious.notify", "hse.personal.view", "permit.approve", "assistant.use"),
   },
   {
     key: "EMPLOYEE",
     name: { fi: "Työntekijä", en: "Employee" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "material.view", "hse.view", "hse.create"),
+    permissions: P("project.view", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "material.view", "hse.view", "hse.create", "assistant.use"),
   },
   {
     key: "SUBCONTRACTOR",
@@ -396,7 +400,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Nostovastaava", en: "Lifting Supervisor" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "lift.request", "lift.plan.manage", "lift.plan.approve", "material.view", "hse.view", "hse.create"),
+    permissions: P("project.view", "employee.view", "equipment.view", "documents.view", "timesheet.submit", "diary.view", "takt.view", "logistics.view", "logistics.request", "lift.request", "lift.plan.manage", "lift.plan.approve", "material.view", "hse.view", "hse.create", "assistant.use"),
   },
   {
     // V7 owner decision 2: the named client person approves variations in the
@@ -414,7 +418,7 @@ export const ROLE_TEMPLATES: readonly RoleTemplate[] = [
     name: { fi: "Henkilöstöhallinto", en: "HR administrator" },
     projectAccess: "ASSIGNED",
     external: false,
-    permissions: P("employee.view", "employee.manage", "hr.view", "hr.manage", "equipment.view", "rotation.view", "rotation.manage", "employee.pid.manage"),
+    permissions: P("employee.view", "employee.manage", "team.manage", "hr.view", "hr.manage", "equipment.view", "rotation.view", "rotation.manage", "employee.pid.manage", "timesheet.export"),
   },
 ];
 

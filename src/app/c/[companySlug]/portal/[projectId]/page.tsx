@@ -8,6 +8,9 @@ import { hseOverviewService } from "@/modules/hse/hse.service";
 import { clientApprovalService } from "@/modules/commercial/client-approval.service";
 import { documentService } from "@/modules/documents/service";
 import { Button } from "@/ui/components/button";
+import { ActionForm, FileField, SelectField, SubmitButton, TextField, TextareaField } from "@/ui/components/form";
+import { EXTERNAL_SUBMISSION_CATEGORIES } from "@/modules/documents/schemas";
+import { submitDocumentAction } from "../actions";
 import { ProgressBar } from "@/ui/components/progress-bar";
 import { EmptyState, PageHeader, RowLink, RowList, Section } from "@/ui/components/page";
 import { StatusBadge } from "@/ui/components/status-badge";
@@ -19,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("portal"))("title") };
 }
 
-type Props = { params: Promise<{ companySlug: string; projectId: string }>; searchParams: Promise<{ reported?: string; decided?: string }> };
+type Props = { params: Promise<{ companySlug: string; projectId: string }>; searchParams: Promise<{ reported?: string; decided?: string; delivered?: string }> };
 
 export default async function PortalProjectPage({ params, searchParams }: Props) {
   const { companySlug, projectId } = await params;
@@ -27,15 +30,17 @@ export default async function PortalProjectPage({ params, searchParams }: Props)
   const ctx = await requireCompanyContext(companySlug);
   const project = await loadOr404(portalService.project(ctx, projectId));
   const s = project.sections;
-  const [t, th, format, schedule, figures, approvals, documents, own] = await Promise.all([
+  const [t, th, td, format, schedule, figures, approvals, documents, own, delivered] = await Promise.all([
     getTranslations("portal"),
     getTranslations("hse"),
+    getTranslations("documents"),
     getFormatter(),
-    s.client ? scheduleSummaryService.project(ctx, projectId) : Promise.resolve(null),
+    s.client || s.subcontractor ? scheduleSummaryService.project(ctx, projectId) : Promise.resolve(null),
     s.client ? hseOverviewService.portalFigures(ctx, projectId) : Promise.resolve(null),
     s.approveVariations ? clientApprovalService.list(ctx, projectId) : Promise.resolve([]),
     s.documents ? documentService.list(ctx, { projectId }) : Promise.resolve([]),
     s.reportHse ? hseOverviewService.register(ctx, projectId) : Promise.resolve(null),
+    s.subcontractor ? documentService.listOwnSubmissions(ctx, projectId) : Promise.resolve([]),
   ]);
   const base = `/c/${companySlug}`;
   const pending = approvals.filter((a) => a.decision === "PENDING");
@@ -51,24 +56,25 @@ export default async function PortalProjectPage({ params, searchParams }: Props)
       />
       <div className="space-y-4">
         {sp.reported && <p role="status" className="rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-800">{t("reportedThanks")}</p>}
+        {sp.delivered && <p role="status" className="rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-800">{t("deliveredThanks")}</p>}
         {sp.decided && <p role="status" className="rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-800">{t("decisionSaved")}</p>}
 
         {s.reportHse && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="portal-quick">
-            <Button asChild size="lg" className="h-14">
+            <Button asChild size="lg" className="h-auto min-h-14 py-2 whitespace-normal">
               <Link href={`${base}/hse/report${q}&kind=SAFETY_OBSERVATION`}>
                 <Eye aria-hidden /> {th("reportObservation")}
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-14">
+            <Button asChild size="lg" variant="outline" className="h-auto min-h-14 py-2 whitespace-normal">
               <Link href={`${base}/hse/report${q}&kind=NEAR_MISS`}>{th("reportNearMiss")}</Link>
             </Button>
-            <Button asChild size="lg" variant="destructive" className="h-14">
+            <Button asChild size="lg" variant="destructive" className="h-auto min-h-14 py-2 whitespace-normal">
               <Link href={`${base}/hse/report${q}&kind=INCIDENT`}>
                 <FileWarning aria-hidden /> {th("reportIncident")}
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-14">
+            <Button asChild size="lg" variant="outline" className="h-auto min-h-14 py-2 whitespace-normal">
               <Link href={`${base}/hse/report${q}&kind=PERMIT`}>
                 <ClipboardCheck aria-hidden /> {th("requestPermit")}
               </Link>
@@ -79,7 +85,7 @@ export default async function PortalProjectPage({ params, searchParams }: Props)
         {s.approveVariations && (
           <Section title={t("approvals")}>
             {pending.length === 0 ? (
-              <EmptyState>{t("noPendingApprovals")}</EmptyState>
+              <p className="text-sm text-muted-foreground">{t("noPendingApprovals")}</p>
             ) : (
               <RowList>
                 {pending.map((a) => (
@@ -95,16 +101,19 @@ export default async function PortalProjectPage({ params, searchParams }: Props)
               </RowList>
             )}
             {decided.length > 0 && (
-              <ul className="mt-3 divide-y text-sm" data-testid="decided-approvals">
-                {decided.map((a) => (
-                  <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <Link href={`${base}/portal/${projectId}/approvals/${a.id}`} className="underline">
-                      {t("variationNo", { n: a.snapshot.number })} · {a.snapshot.title}
-                    </Link>
-                    <StatusBadge status={a.decision === "APPROVED" ? "APPROVED" : a.decision === "REJECTED" ? "REJECTED" : "CLOSED"} label={t(`decisions.${a.decision}`)} />
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-4" data-testid="decided-approvals">
+                <h3 className="mb-1 text-sm font-semibold">{t("decidedApprovals")}</h3>
+                <RowList>
+                  {decided.map((a) => (
+                    <RowLink
+                      key={a.id}
+                      href={`${base}/portal/${projectId}/approvals/${a.id}`}
+                      title={`${t("variationNo", { n: a.snapshot.number })} · ${a.snapshot.title}`}
+                      badge={<StatusBadge status={a.decision === "APPROVED" ? "APPROVED" : a.decision === "REJECTED" ? "REJECTED" : "CLOSED"} label={t(`decisions.${a.decision}`)} />}
+                    />
+                  ))}
+                </RowList>
+              </div>
             )}
           </Section>
         )}
@@ -190,6 +199,35 @@ export default async function PortalProjectPage({ params, searchParams }: Props)
                 ))}
               </RowList>
             )}
+          </Section>
+        )}
+
+        {s.subcontractor && (
+          <Section title={t("deliverDocuments")}>
+            <p className="mb-3 text-sm text-muted-foreground">{t("deliverHint")}</p>
+            {delivered.length > 0 && (
+              <ul className="mb-4 divide-y text-sm" data-testid="own-deliveries">
+                {delivered.map((d) => (
+                  <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span className="min-w-0 break-words">
+                      <span className="font-medium">{d.title}</span> <span className="text-muted-foreground">· {td(`categories.${d.category}`)} · {fmtDate(format, d.createdAt)}</span>
+                    </span>
+                    {d.approvalState && <StatusBadge status={d.approvalState} label={td(`approvalStates.${d.approvalState}`)} />}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <ActionForm action={submitDocumentAction.bind(null, companySlug, projectId)} className="grid gap-3 sm:grid-cols-2" data-testid="deliver-form">
+              <TextField name="title" label={t("deliverTitle")} required />
+              <SelectField name="category" label={td("category")} defaultValue="RAMS" options={EXTERNAL_SUBMISSION_CATEGORIES.map((c) => ({ value: c, label: td(`categories.${c}`) }))} />
+              <TextareaField name="description" label={td("description")} rows={2} className="sm:col-span-2" />
+              <div className="sm:col-span-2">
+                <FileField label={td("file")} required />
+              </div>
+              <div className="sm:col-span-2">
+                <SubmitButton>{t("deliver")}</SubmitButton>
+              </div>
+            </ActionForm>
           </Section>
         )}
       </div>

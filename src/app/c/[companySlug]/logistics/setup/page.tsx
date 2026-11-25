@@ -8,6 +8,7 @@ import { EmptyState, PageHeader, Section } from "@/ui/components/page";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
 import { SiteDayPicker } from "../_components/site-day-picker";
 import { archiveLocationAction, createLocationAction } from "../actions";
+import { preferredSiteId } from "@/app/_lib/site-preference";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("logistics"))("setup") };
@@ -19,7 +20,7 @@ export default async function SetupPage({ params, searchParams }: { params: Prom
   const ctx = await requireCompanyContext(companySlug);
   const [sites, t, tc] = await Promise.all([logisticsBoardService.sites(ctx), getTranslations("logistics"), getTranslations("common")]);
   if (sites.length === 0) return <EmptyState>{t("noSites")}</EmptyState>;
-  const siteId = sites.some((s) => s.id === sp.site) ? sp.site! : sites[0].id;
+  const siteId = (await preferredSiteId(companySlug, sites, sp.site)) ?? sites[0].id;
   const { site, locations, permissions } = await loadOr404(logisticsLocationService.list(ctx, siteId));
   return (
     <>

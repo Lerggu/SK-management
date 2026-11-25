@@ -135,12 +135,23 @@
     "newEmployee": "New person",
     "newEquipment": "New equipment",
     "newDocument": "New document",
-    "comingLater": "Coming in later releases: takt planning, logistics, time tracking and project finance.",
     "today": "Today",
     "logHours": "Log hours",
     "myHoursToday": "My hours today: {hours} h",
     "approvalsWaiting": "Time entries to approve: {count}",
-    "diaryToday": "Site diaries today"
+    "diaryToday": "Site diaries today",
+    "reportObservation": "Report a safety observation",
+    "decisions": "Waiting for your decision",
+    "decisionKinds": {
+      "quote": "Quote",
+      "variation": "Variation",
+      "takt": "Takt plan",
+      "lift": "Lift plan",
+      "permit": "Permit",
+      "logistics": "Logistics request"
+    },
+    "hrExpiring": "Expiring cards and trainings",
+    "hrOrientations": "Open orientations"
   },
   "projects": {
     "title": "Projects",
@@ -501,12 +512,14 @@
       "ai_use": "Use the AI project controller (sends project data the user can see to the AI provider)",
       "hr_view": "View work-related HR data: competence matrix, published assessments, trainings, cards, orientations, permits and languages",
       "hr_manage": "Manage all HR data: competence areas, card types, requirements, assessments, attachments, clothing and company items",
+      "team_manage": "Create teams, choose the leader and change team members",
       "rotation_view": "View the workforce rotation plan (absence reasons hidden)",
       "rotation_manage": "Plan workforce rotation and see absence reasons (sick leave is health data)",
       "employee_pid_manage": "View and edit personal identity codes (sensitive)",
       "marketing_view": "View the marketing register, letters and call list",
       "marketing_manage": "Manage marketing settings and agents, edit the register and contacts",
-      "marketing_approve": "Approve and send marketing letters, use the call list"
+      "marketing_approve": "Approve and send marketing letters, use the call list",
+      "assistant_use": "Use the voice/text assistant: it proposes actions that the user confirms (names go to the AI provider, never identity codes or rates)"
     },
     "calendar": "Work calendar",
     "inviteSent": "Invitation sent by e-mail.",
@@ -525,7 +538,9 @@
     "inviteProjects": "Projects (optional)",
     "inviteProjectsHint": "Clients and subcontractors see only the projects they have been added to in the portal. Choose them here and access opens at once.",
     "noProjectsBadge": "No projects",
-    "noProjectsHint": "An external user sees nothing in the portal until they are added to a project (Project → People)."
+    "noProjectsHint": "An external user sees nothing in the portal until they are added to a project (Project → People).",
+    "rolePermissionCount": "{count, plural, one {# permission} other {# permissions}} – show and edit",
+    "showMore": "Show more"
   },
   "audit": {
     "actions": {
@@ -854,7 +869,8 @@
       "site_map_object_move": "Map object moved",
       "site_map_object_archive": "Map object removed",
       "site_map_place_task": "Task placed on the map",
-      "site_map_unplace_task": "Task removed from the map"
+      "site_map_unplace_task": "Task removed from the map",
+      "document_external_submit": "Subcontractor delivered a document"
     }
   },
   "errors": {
@@ -1427,7 +1443,10 @@
     "nextStructure": "Next: takt areas and work packages",
     "nextPlan": "Next: create a plan",
     "openStructure": "Open takt structure",
-    "viewStructure": "View takt structure"
+    "viewStructure": "View takt structure",
+    "proposedBy": "Proposed by {name}",
+    "ownProposal": "This is your own proposal. Good practice is that someone else, such as the project director, approves the baseline.",
+    "approveOwnConfirm": "Approve your own proposal as the baseline? The approval is logged under your name."
   },
   "logistics": {
     "title": "Logistics",
@@ -2217,7 +2236,7 @@
     "immediateActions": "Immediate actions",
     "permitType": "Permit type",
     "contractor": "Contractor",
-    "permitWork": "Work",
+    "permitWork": "Work description",
     "validFrom": "Valid from",
     "validTo": "Valid to",
     "precautions": "Precautions",
@@ -2305,7 +2324,8 @@
       "openActions": "Open actions",
       "overdue": "overdue {n}",
       "toolboxTalks": "Toolbox talks",
-      "hours": "Hours worked"
+      "hours": "Hours worked",
+      "ltifTooFewHours": "Shown from {hours} hours worked"
     },
     "kinds": {
       "SAFETY_OBSERVATION": "Safety observation",
@@ -2375,7 +2395,8 @@
       "MVR": "MVR inspection",
       "TR": "TR inspection",
       "GENERAL": "General inspection"
-    }
+    },
+    "showAllObservations": "Show all observations ({count})"
   },
   "portal": {
     "title": "Portal",
@@ -2421,7 +2442,13 @@
     "rejectNoteHint": "Required when rejecting.",
     "approve": "Approve the variation",
     "reject": "Reject",
-    "notSignature": "The approval is stored with your name, a timestamp and the version fingerprint. It is not an electronic signature."
+    "notSignature": "The approval is stored with your name, a timestamp and the version fingerprint. It is not an electronic signature.",
+    "decidedApprovals": "Decided variations",
+    "deliverDocuments": "Deliver a document",
+    "deliverHint": "Deliver for example a RAMS, a certificate or a qualification. The document goes to the project's approver, and you see its status here.",
+    "deliverTitle": "Document title",
+    "deliver": "Send document",
+    "deliveredThanks": "Thank you! The document was delivered for approval."
   },
   "ai": {
     "title": "AI project controller",
@@ -2688,7 +2715,6 @@
       "on": "Reminder {date}",
       "missingOwner": "The reminder is selected but the person has no e-mail address.",
       "missingMaintenance": "The reminder is selected but no maintenance e-mail address is set in the settings.",
-      "mailOff": "E-mail is not enabled in the service, so reminders are not sent.",
       "statuses": {
         "PENDING": "Waiting to be sent",
         "SENDING": "Sending",
@@ -2724,7 +2750,8 @@
       "notAcknowledged": "Waiting for the employee's acknowledgement",
       "acknowledge": "Acknowledge orientation",
       "renewalDueOn": "Renewal date",
-      "none": "No orientations."
+      "none": "No orientations.",
+      "waitingAcknowledgement": "Waiting for your acknowledgement"
     },
     "authorization": {
       "title": "Permits to operate",
@@ -2950,7 +2977,7 @@
       "reminderEmail": "Maintenance e-mail address",
       "reminderEmailHint": "Receives the reminder in addition to the card owner.",
       "mailOn": "E-mail sending is enabled.",
-      "mailOff": "E-mail sending is not enabled. Reminders wait and are not marked as sent. IT enables it with bash infra/enable-email.sh (docs/DEPLOY_AZURE.md, section 9).",
+      "mailOff": "E-mail sending is not enabled. Reminders wait and are not marked as sent. Ask your administrator to enable e-mail.",
       "runNow": "Send due reminders now",
       "runResult": "Reminders sent: {sent}. Failed: {failed}. Address missing: {noAddress}.",
       "schedule": "Reminders are sent automatically every hour.",
@@ -3371,6 +3398,7 @@
     "addMembers": "Add members",
     "moveHint": "A person already in another team is moved to this team.",
     "remove": "Remove {name} from the team",
+    "removeConfirm": "Remove {name} from the team?",
     "archive": "Archive team",
     "confirmArchive": "Archive team {name}? Its members will have no team.",
     "dragTeam": "Drag the whole team"

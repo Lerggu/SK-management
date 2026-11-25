@@ -117,9 +117,12 @@ describe("assistant", () => {
     await expect(assistantService.confirm(sm, r2.actions[0].id, { confirmAmount: "50" })).rejects.toBeInstanceOf(ForbiddenError);
   });
 
-  it("needs ai.use; conversations are personal; external members have no assistant", async () => {
+  it("needs ai.use or assistant.use; conversations are personal; external members have no assistant", async () => {
+    // Role journeys 2026-11-26: site roles get assistant.use; HR administration does not.
     const sup = await createMember(t, "SUPERVISOR");
-    await expect(assistantService.current(sup)).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(assistantService.current(sup)).resolves.toBeTruthy();
+    const hr = await createMember(t, "HR_ADMIN");
+    await expect(assistantService.current(hr)).rejects.toBeInstanceOf(ForbiddenError);
     const client = await createMember(t, "CLIENT");
     await expect(assistantService.converse(client, { message: "moi" })).rejects.toBeInstanceOf(ForbiddenError);
     const pm = await createMember(t, "PROJECT_MANAGER");

@@ -23,6 +23,7 @@ test.describe("logistics coordinator", () => {
   test("a task with a task type shows its resource needs; a candidate is booked", async ({ page }, testInfo) => {
     await page.goto("/c/sk-infra-demo/logistics");
     const title = unique(testInfo, "Purku");
+    await page.getByTestId("new-request").locator("summary").click();
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Tehtävätyyppi").selectOption({ label: "Kuorman purku" });
@@ -52,6 +53,7 @@ test.describe("production calendar", () => {
     const day = new Date(Date.now() + 3 * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
     await page.goto("/c/sk-infra-demo/logistics");
     const title = unique(testInfo, "Kalenteri");
+    await page.getByTestId("new-request").locator("summary").click();
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Alkaa").fill(`${day}T09:00`);
@@ -83,6 +85,7 @@ test.describe("deviations", () => {
     const day = new Date(Date.now() + 4 * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
     await page.goto("/c/sk-infra-demo/logistics");
     const title = unique(testInfo, "Poikkeama");
+    await page.getByTestId("new-request").locator("summary").click();
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Alkaa").fill(`${day}T10:00`);
@@ -117,6 +120,7 @@ test.describe("AI suggestions and risks (phase 4)", () => {
     const day = new Date(Date.now() + 5 * 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
     await page.goto("/c/sk-infra-demo/logistics");
     const title = unique(testInfo, "AI-purku");
+    await page.getByTestId("new-request").locator("summary").click();
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Alkaa").fill(`${day}T13:00`);
@@ -140,6 +144,7 @@ test.describe("AI suggestions and risks (phase 4)", () => {
     await page.goto("/c/sk-infra-demo/logistics");
     const title = unique(testInfo, "Riski");
     const day = new Date(Date.now() + 86_400_000).toLocaleDateString("sv-SE", { timeZone: "Europe/Helsinki" });
+    await page.getByTestId("new-request").locator("summary").click();
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Alkaa").fill(`${day}T07:00`);

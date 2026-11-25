@@ -4,6 +4,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { ActionForm, SubmitButton, TextField } from "@/ui/components/form";
 import { DetailList, PageHeader, Section } from "@/ui/components/page";
+import { ProductionTabs } from "@/app/c/[companySlug]/_components/production-tabs";
 import { StatusBadge } from "@/ui/components/status-badge";
 import { fmtDateTime } from "@/ui/format";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
@@ -41,6 +42,7 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
         backHref={`${base}?site=${r.siteId}`}
         backLabel={t("board")}
       />
+      <ProductionTabs ctx={ctx} active="logistics" site={r.siteId} />
       <div className="space-y-4">
         <Section title={t("request")}>
           <DetailList

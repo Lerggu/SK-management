@@ -102,7 +102,7 @@ function BuildingRows({
                         href={`/c/${slug}/takt/${planId}/activities/${a.id}`}
                         title={`${a.workPackage.name} · ${statusLabel(a.status)} · ${a.progressPct} %`}
                         aria-label={`${area.code} ${a.workPackage.name}: ${statusLabel(a.status)}`}
-                        className={cn("block min-h-8 rounded border-l-4 px-1 py-1 text-center font-semibold leading-tight text-white shadow-sm hover:opacity-90", STATUS_BORDER[a.status])}
+                        className={cn("block min-h-10 rounded border-l-4 px-1 py-2 text-center font-semibold leading-tight text-white shadow-sm hover:opacity-90", STATUS_BORDER[a.status])}
                         style={{ backgroundColor: a.workPackage.color }}
                         data-chip={a.workPackage.code}
                         data-status={a.status}

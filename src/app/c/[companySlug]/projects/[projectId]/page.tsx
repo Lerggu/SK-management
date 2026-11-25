@@ -161,10 +161,10 @@ export default async function ProjectPage({ params }: Props) {
         {diaries && (
           <Section title={tp("diary")}>
             {perms.has("diary.manage") && !project.archivedAt && sites.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
+              <div className="mb-3 grid gap-2 sm:grid-cols-2">
                 {sites.map((site) => (
-                  <ActionButton key={site.id} action={openDiaryAction.bind(null, companySlug, site.id, today)} variant="outline">
-                    <BookOpen aria-hidden /> {tp("openDiary")}: {site.name}
+                  <ActionButton key={site.id} action={openDiaryAction.bind(null, companySlug, site.id, today)} variant="outline" className="min-w-0 [&_button]:h-auto [&_button]:min-h-11 [&_button]:w-full [&_button]:justify-start [&_button]:py-2 [&_button]:text-left [&_button]:whitespace-normal">
+                    <BookOpen aria-hidden /> <span className="min-w-0 break-words">{tp("openDiary")}: {site.name}</span>
                   </ActionButton>
                 ))}
               </div>

@@ -77,7 +77,7 @@ test.describe("site progress", () => {
     await page.getByRole("link", { name: new RegExp(PLAN) }).click();
     const card = page
       .getByTestId("week-list")
-      .locator("li")
+      .locator('li:not([data-status="BLOCKED"])')
       .filter({ has: page.getByRole("button", { name: "100 %" }) })
       .first();
     const id = await card.getAttribute("data-activity");

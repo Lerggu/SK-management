@@ -4,6 +4,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { deliveryService, logisticsLocationService } from "@/modules/logistics/logistics.service";
 import { ActionButton, ActionForm, SelectField, SubmitButton, TextField } from "@/ui/components/form";
 import { DetailList, PageHeader, Section } from "@/ui/components/page";
+import { ProductionTabs } from "@/app/c/[companySlug]/_components/production-tabs";
 import { StatusBadge } from "@/ui/components/status-badge";
 import { fmtDateTime } from "@/ui/format";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
@@ -33,6 +34,7 @@ export default async function DeliveryPage({ params }: { params: Promise<{ compa
         backHref={`${base}?site=${d.siteId}&date=${d.local.date}`}
         backLabel={t("board")}
       />
+      <ProductionTabs ctx={ctx} active="logistics" site={d.siteId} date={d.local.date} />
       <div className="space-y-4">
         <Section title={tc("details")}>
           <DetailList
