@@ -1,0 +1,249 @@
+{
+  "role": "hr",
+  "project": "desktop",
+  "steps": 19,
+  "failed": 1,
+  "results": [
+    {
+      "n": 1,
+      "title": "Etusivu",
+      "ok": true,
+      "ms": 812,
+      "url": "/c/sk-infra-demo/dashboard",
+      "screenshot": "docs/journeys/desktop/hr/01-etusivu.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 2,
+      "title": "Avaa henkilöstörekisteri",
+      "ok": true,
+      "ms": 113,
+      "url": "/c/sk-infra-demo/dashboard",
+      "screenshot": "docs/journeys/desktop/hr/02-avaa-henkilöstörekisteri.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 3,
+      "title": "Hae henkilö nimellä",
+      "ok": true,
+      "ms": 1179,
+      "url": "/c/sk-infra-demo/workforce?q=Tyyppi",
+      "screenshot": "docs/journeys/desktop/hr/03-hae-henkilö-nimellä.jpg",
+      "consoleErrors": [
+        "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` wh"
+      ],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 4,
+      "title": "Perusta uusi henkilö",
+      "ok": true,
+      "ms": 3452,
+      "url": "/c/sk-infra-demo/workforce/01a214b1-0e29-7ba0-8776-d5a91c836d30",
+      "screenshot": "docs/journeys/desktop/hr/04-perusta-uusi-henkilö.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 5,
+      "title": "Täydennä esihenkilö ja toimipiste",
+      "ok": true,
+      "ms": 668,
+      "url": "/c/sk-infra-demo/workforce/01a214b1-0e29-7ba0-8776-d5a91c836d30",
+      "screenshot": "docs/journeys/desktop/hr/05-täydennä-esihenkilö-ja-toimipiste.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "group.admin",
+        "journey.ceo.dsk"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 6,
+      "title": "Lisää tulityökortti muistutuksella",
+      "ok": true,
+      "ms": 1971,
+      "url": "/c/sk-infra-demo/workforce/01a214b1-0e29-7ba0-8776-d5a91c836d30?tab=qualifications",
+      "screenshot": "docs/journeys/desktop/hr/06-lisää-tulityökortti-muistutuksella.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 7,
+      "title": "Tarkista vanhenemismuistutus",
+      "ok": true,
+      "ms": 24,
+      "url": "/c/sk-infra-demo/workforce/01a214b1-0e29-7ba0-8776-d5a91c836d30?tab=qualifications",
+      "screenshot": "docs/journeys/desktop/hr/07-tarkista-vanhenemismuistutus.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [],
+      "note": "Muistutus näkyy, mutta sähköpostin lähetys ei ole käytössä"
+    },
+    {
+      "n": 8,
+      "title": "Kirjaa työmaaperehdytys",
+      "ok": false,
+      "ms": 8073,
+      "url": "/c/sk-infra-demo/workforce/01a214b1-0e29-7ba0-8776-d5a91c836d30?tab=qualifications",
+      "screenshot": "docs/journeys/desktop/hr/08-kirjaa-työmaaperehdytys.jpg",
+      "error": "locator.fill: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('add-orientation').getByLabel('Aihe', { exact: true })\u001b[22m\n",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 9,
+      "title": "Tee ja julkaise osaamisarvio",
+      "ok": true,
+      "ms": 1476,
+      "url": "/c/sk-infra-demo/workforce/01a214b1-0e29-7ba0-8776-d5a91c836d30?tab=competence",
+      "screenshot": "docs/journeys/desktop/hr/09-tee-ja-julkaise-osaamisarvio.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 10,
+      "title": "Kirjaa työvaatteiden luovutus",
+      "ok": true,
+      "ms": 1448,
+      "url": "/c/sk-infra-demo/workforce/01a214b1-0e29-7ba0-8776-d5a91c836d30?tab=equipment",
+      "screenshot": "docs/journeys/desktop/hr/10-kirjaa-työvaatteiden-luovutus.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 11,
+      "title": "Luovuta työpuhelin",
+      "ok": true,
+      "ms": 1016,
+      "url": "/c/sk-infra-demo/workforce/01a214b1-0e29-7ba0-8776-d5a91c836d30?tab=equipment",
+      "screenshot": "docs/journeys/desktop/hr/11-luovuta-työpuhelin.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 12,
+      "title": "Katso osaamismatriisi",
+      "ok": true,
+      "ms": 2001,
+      "url": "/c/sk-infra-demo/workforce/matrix",
+      "screenshot": "docs/journeys/desktop/hr/12-katso-osaamismatriisi.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 13,
+      "title": "Suodata vanhenevat kortit",
+      "ok": true,
+      "ms": 2503,
+      "url": "/c/sk-infra-demo/workforce/qualifications?employeeId=&typeId=&validity=EXPIRING",
+      "screenshot": "docs/journeys/desktop/hr/13-suodata-vanhenevat-kortit.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 14,
+      "title": "Perusta tiimi vetäjineen",
+      "ok": true,
+      "ms": 3365,
+      "url": "/c/sk-infra-demo/workforce/teams",
+      "screenshot": "docs/journeys/desktop/hr/14-perusta-tiimi-vetäjineen.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 15,
+      "title": "Avaa rotaatio",
+      "ok": true,
+      "ms": 2516,
+      "url": "/c/sk-infra-demo/workforce/rotation",
+      "screenshot": "docs/journeys/desktop/hr/15-avaa-rotaatio.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 16,
+      "title": "Merkitse rotaatiorytmi 10/4 Sulattoon",
+      "ok": true,
+      "ms": 1094,
+      "url": "/c/sk-infra-demo/workforce/rotation",
+      "screenshot": "docs/journeys/desktop/hr/16-merkitse-rotaatiorytmi-10-4-sulattoon.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 17,
+      "title": "Katso HR-yleiskuva",
+      "ok": true,
+      "ms": 2568,
+      "url": "/c/sk-infra-demo/workforce/overview",
+      "screenshot": "docs/journeys/desktop/hr/17-katso-hr-yleiskuva.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 18,
+      "title": "Tarkista muistutusten asetukset",
+      "ok": true,
+      "ms": 2450,
+      "url": "/c/sk-infra-demo/workforce/settings",
+      "screenshot": "docs/journeys/desktop/hr/18-tarkista-muistutusten-asetukset.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "email.sh"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": [],
+      "note": "Sähköpostin lähetys ei ole käytössä: muistutukset jäävät odottamaan"
+    },
+    {
+      "n": 19,
+      "title": "Vie tunnit palkanlaskentaan",
+      "ok": true,
+      "ms": 97,
+      "url": "/c/sk-infra-demo/workforce/settings",
+      "screenshot": "docs/journeys/desktop/hr/19-vie-tunnit-palkanlaskentaan.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "email.sh"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": [],
+      "note": "Tunnit-valikkoa ei näy HR-roolille, joten tuntien vientiä palkanlaskentaan ei löydy"
+    }
+  ]
+}

@@ -1,0 +1,315 @@
+{
+  "role": "pm",
+  "project": "mobile",
+  "steps": 21,
+  "failed": 5,
+  "results": [
+    {
+      "n": 1,
+      "title": "Etusivu",
+      "ok": true,
+      "ms": 1206,
+      "url": "/c/sk-infra-demo/dashboard",
+      "screenshot": "docs/journeys/mobile/pm/01-etusivu.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 2,
+      "title": "Avaa projektilista",
+      "ok": false,
+      "ms": 8017,
+      "url": "/c/sk-infra-demo/dashboard",
+      "screenshot": "docs/journeys/mobile/pm/02-avaa-projektilista.jpg",
+      "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('mobile-more')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-state=\"closed\" aria-expanded=\"false\" aria-haspopup=\"dialog\" data-slot=\"sheet-trigger\" data-testid=\"mobile-more\" class=\"flex h-16 w-full flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 3,
+      "title": "Perusta projekti Terästehdas Luulaja – demo",
+      "ok": true,
+      "ms": 1901,
+      "url": "/c/sk-infra-demo/projects/01a214d3-02a9-70c0-a801-be9ac8a0ea13",
+      "screenshot": "docs/journeys/mobile/pm/03-perusta-projekti-terästehdas-luulaja-demo.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "group.admin",
+        "journey.ceo.dsk",
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 4,
+      "title": "Lisää työmaa",
+      "ok": true,
+      "ms": 1870,
+      "url": "/c/sk-infra-demo/projects/01a214d3-02a9-70c0-a801-be9ac8a0ea13",
+      "screenshot": "docs/journeys/mobile/pm/04-lisää-työmaa.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "group.admin",
+        "journey.ceo.dsk",
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 5,
+      "title": "Avaa projektin tahtirakenne",
+      "ok": true,
+      "ms": 867,
+      "url": "/c/sk-infra-demo/projects/01a214d3-02a9-70c0-a801-be9ac8a0ea13/takt",
+      "screenshot": "docs/journeys/mobile/pm/05-avaa-projektin-tahtirakenne.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 6,
+      "title": "Lisää rakennus Sulatto",
+      "ok": true,
+      "ms": 517,
+      "url": "/c/sk-infra-demo/projects/01a214d3-02a9-70c0-a801-be9ac8a0ea13/takt",
+      "screenshot": "docs/journeys/mobile/pm/06-lisää-rakennus-sulatto.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 7,
+      "title": "Lisää takt-alueet linjoille 1–3",
+      "ok": true,
+      "ms": 2388,
+      "url": "/c/sk-infra-demo/projects/01a214d3-02a9-70c0-a801-be9ac8a0ea13/takt",
+      "screenshot": "docs/journeys/mobile/pm/07-lisää-takt-alueet-linjoille-1-3.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 8,
+      "title": "Lisää työpaketit",
+      "ok": true,
+      "ms": 2967,
+      "url": "/c/sk-infra-demo/projects/01a214d3-02a9-70c0-a801-be9ac8a0ea13/takt",
+      "screenshot": "docs/journeys/mobile/pm/08-lisää-työpaketit.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 9,
+      "title": "Luo tahtisuunnitelma",
+      "ok": true,
+      "ms": 947,
+      "url": "/c/sk-infra-demo/takt/01a214d3-2cf2-7e40-9c18-87fc0802f6bd",
+      "screenshot": "docs/journeys/mobile/pm/09-luo-tahtisuunnitelma.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 10,
+      "title": "Generoi tahtijuna",
+      "ok": false,
+      "ms": 8087,
+      "url": "/c/sk-infra-demo/takt/01a214d3-2cf2-7e40-9c18-87fc0802f6bd",
+      "screenshot": "docs/journeys/mobile/pm/10-generoi-tahtijuna.jpg",
+      "error": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('takt-board').locator('[data-area=\"L1\"] [data-chip=\"TR\"]')\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m2\u001b[39m\nTimeout:  8000ms",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"TR\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"KH\" 52×32",
+        "a \"KH\" 52×32",
+        "a \"KV\" 52×32",
+        "a \"KV\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"KH\" 52×32",
+        "a \"KH\" 52×32",
+        "a \"KV\" 52×32",
+        "a \"KV\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"KH\" 52×32"
+      ]
+    },
+    {
+      "n": 11,
+      "title": "Lähetä versio hyväksyttäväksi",
+      "ok": true,
+      "ms": 853,
+      "url": "/c/sk-infra-demo/takt/01a214d3-2cf2-7e40-9c18-87fc0802f6bd",
+      "screenshot": "docs/journeys/mobile/pm/11-lähetä-versio-hyväksyttäväksi.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"TR\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"KH\" 52×32",
+        "a \"KH\" 52×32",
+        "a \"KV\" 52×32",
+        "a \"KV\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"KH\" 52×32",
+        "a \"KH\" 52×32",
+        "a \"KV\" 52×32",
+        "a \"KV\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"TR\" 52×32",
+        "a \"KH\" 52×32"
+      ]
+    },
+    {
+      "n": 12,
+      "title": "Löydä projekti tahtiaikataulusta",
+      "ok": true,
+      "ms": 980,
+      "url": "/c/sk-infra-demo/takt",
+      "screenshot": "docs/journeys/mobile/pm/12-löydä-projekti-tahtiaikataulusta.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 13,
+      "title": "Luo tarjous projektille",
+      "ok": false,
+      "ms": 793,
+      "url": "/c/sk-infra-demo/takt",
+      "screenshot": "docs/journeys/mobile/pm/13-luo-tarjous-projektille.jpg",
+      "error": "Asiakaslistalla ei ole asiakkaita",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 14,
+      "title": "Lisää tarjousrivit",
+      "ok": false,
+      "ms": 8014,
+      "url": "/c/sk-infra-demo/sales/quotes",
+      "screenshot": "docs/journeys/mobile/pm/14-lisää-tarjousrivit.jpg",
+      "error": "locator.selectOption: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('quote-line-form').getByLabel('Laji')\u001b[22m\n",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 15,
+      "title": "Aseta kate ja lähetä tarjous hyväksyttäväksi",
+      "ok": false,
+      "ms": 8003,
+      "url": "/c/sk-infra-demo/sales/quotes",
+      "screenshot": "docs/journeys/mobile/pm/15-aseta-kate-ja-lähetä-tarjous-hyväksyttäväksi.jpg",
+      "error": "locator.fill: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('quote-draft-form').getByLabel('Kate (% hinnasta)')\u001b[22m\n",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 16,
+      "title": "Kirjaa lisätyö projektille",
+      "ok": true,
+      "ms": 4876,
+      "url": "/c/sk-infra-demo/projects/01a214d3-02a9-70c0-a801-be9ac8a0ea13/commercial/variations/01a214d3-aaf2-75a3-9d6b-3bffc1e6db87",
+      "screenshot": "docs/journeys/mobile/pm/16-kirjaa-lisätyö-projektille.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 17,
+      "title": "Lisää projektille dokumentti",
+      "ok": true,
+      "ms": 3483,
+      "url": "/c/sk-infra-demo/documents/01a214d3-bc04-767a-ac43-d25bf2a084a1",
+      "screenshot": "docs/journeys/mobile/pm/17-lisää-projektille-dokumentti.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "input \"sharedWithClient\" 20×20",
+        "input \"sharedWithSubcontractors\" 20×20"
+      ]
+    },
+    {
+      "n": 18,
+      "title": "Lataa dokumentista uusi versio",
+      "ok": true,
+      "ms": 506,
+      "url": "/c/sk-infra-demo/documents/01a214d3-bc04-767a-ac43-d25bf2a084a1",
+      "screenshot": "docs/journeys/mobile/pm/18-lataa-dokumentista-uusi-versio.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "input \"sharedWithClient\" 20×20",
+        "input \"sharedWithSubcontractors\" 20×20"
+      ]
+    },
+    {
+      "n": 19,
+      "title": "Tarkista projektin talous",
+      "ok": true,
+      "ms": 2509,
+      "url": "/c/sk-infra-demo/projects/01a214d3-02a9-70c0-a801-be9ac8a0ea13/finance",
+      "screenshot": "docs/journeys/mobile/pm/19-tarkista-projektin-talous.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "input \"copyFromCurrent\" 20×20"
+      ]
+    },
+    {
+      "n": 20,
+      "title": "Tarkista laskutusvalmius",
+      "ok": true,
+      "ms": 1679,
+      "url": "/c/sk-infra-demo/billing",
+      "screenshot": "docs/journeys/mobile/pm/20-tarkista-laskutusvalmius.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "input \"includeExported\" 20×20"
+      ]
+    },
+    {
+      "n": 21,
+      "title": "Avaa markkinointi",
+      "ok": true,
+      "ms": 972,
+      "url": "/c/sk-infra-demo/marketing",
+      "screenshot": "docs/journeys/mobile/pm/21-avaa-markkinointi.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    }
+  ]
+}

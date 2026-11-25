@@ -1,0 +1,250 @@
+{
+  "role": "client",
+  "project": "mobile",
+  "steps": 17,
+  "failed": 0,
+  "results": [
+    {
+      "n": 1,
+      "title": "Etusivu",
+      "ok": true,
+      "ms": 2349,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10",
+      "screenshot": "docs/journeys/mobile/client/01-etusivu.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Muutostyö 4 · UPS-tilan lisäpistorasiat\" 265×20",
+        "a \"Muutostyö 3 · Kaapelihyllyn lisäkannakoi\" 303×20",
+        "a \"Muutostyö 1 · Lisäkaapelointi linja 6\" 252×20"
+      ]
+    },
+    {
+      "n": 2,
+      "title": "Avaa portaali valikosta",
+      "ok": true,
+      "ms": 191,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10",
+      "screenshot": "docs/journeys/mobile/client/02-avaa-portaali-valikosta.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Muutostyö 4 · UPS-tilan lisäpistorasiat\" 265×20",
+        "a \"Muutostyö 3 · Kaapelihyllyn lisäkannakoi\" 303×20",
+        "a \"Muutostyö 1 · Lisäkaapelointi linja 6\" 252×20"
+      ]
+    },
+    {
+      "n": 3,
+      "title": "Tarkista aikataulun tila",
+      "ok": true,
+      "ms": 126,
+      "url": "/c/sk-infra-demo/portal",
+      "screenshot": "docs/journeys/mobile/client/03-tarkista-aikataulun-tila.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 4,
+      "title": "Katso työturvallisuuden tunnusluvut",
+      "ok": true,
+      "ms": 376,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10",
+      "screenshot": "docs/journeys/mobile/client/04-katso-työturvallisuuden-tunnusluvut.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Muutostyö 4 · UPS-tilan lisäpistorasiat\" 265×20",
+        "a \"Muutostyö 3 · Kaapelihyllyn lisäkannakoi\" 303×20",
+        "a \"Muutostyö 1 · Lisäkaapelointi linja 6\" 252×20"
+      ]
+    },
+    {
+      "n": 5,
+      "title": "Katso hyväksyttävät muutostyöt",
+      "ok": true,
+      "ms": 23,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10",
+      "screenshot": "docs/journeys/mobile/client/05-katso-hyväksyttävät-muutostyöt.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Muutostyö 4 · UPS-tilan lisäpistorasiat\" 265×20",
+        "a \"Muutostyö 3 · Kaapelihyllyn lisäkannakoi\" 303×20",
+        "a \"Muutostyö 1 · Lisäkaapelointi linja 6\" 252×20"
+      ],
+      "note": "1 muutostyö(tä) odottaa päätöstä"
+    },
+    {
+      "n": 6,
+      "title": "Avaa odottava muutostyö",
+      "ok": true,
+      "ms": 845,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10/approvals/01a214b5-12e7-7a62-92b8-6877d9382292",
+      "screenshot": "docs/journeys/mobile/client/06-avaa-odottava-muutostyö.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 7,
+      "title": "Tarkista muutostyön kuvaus ja hinta",
+      "ok": true,
+      "ms": 50,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10/approvals/01a214b5-12e7-7a62-92b8-6877d9382292",
+      "screenshot": "docs/journeys/mobile/client/07-tarkista-muutostyön-kuvaus-ja-hinta.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 8,
+      "title": "Varmista, ettei kustannuksia tai katetta näy muutostyössä",
+      "ok": true,
+      "ms": 4,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10/approvals/01a214b5-12e7-7a62-92b8-6877d9382292",
+      "screenshot": "docs/journeys/mobile/client/08-varmista-ettei-kustannuksia-tai-katetta-näy-muutos.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 9,
+      "title": "Yritä hylätä ilman perustelua",
+      "ok": true,
+      "ms": 346,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10/approvals/01a214b5-12e7-7a62-92b8-6877d9382292",
+      "screenshot": "docs/journeys/mobile/client/09-yritä-hylätä-ilman-perustelua.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 10,
+      "title": "Hyväksy muutostyö kommentilla",
+      "ok": true,
+      "ms": 901,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10?decided=1",
+      "screenshot": "docs/journeys/mobile/client/10-hyväksy-muutostyö-kommentilla.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Muutostyö 2 · Väliaikainen työmaavalaist\" 304×20",
+        "a \"Muutostyö 4 · UPS-tilan lisäpistorasiat\" 265×20",
+        "a \"Muutostyö 3 · Kaapelihyllyn lisäkannakoi\" 303×20",
+        "a \"Muutostyö 1 · Lisäkaapelointi linja 6\" 252×20"
+      ]
+    },
+    {
+      "n": 11,
+      "title": "Tarkista päätetyt muutostyöt",
+      "ok": true,
+      "ms": 16,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10?decided=1",
+      "screenshot": "docs/journeys/mobile/client/11-tarkista-päätetyt-muutostyöt.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Muutostyö 2 · Väliaikainen työmaavalaist\" 304×20",
+        "a \"Muutostyö 4 · UPS-tilan lisäpistorasiat\" 265×20",
+        "a \"Muutostyö 3 · Kaapelihyllyn lisäkannakoi\" 303×20",
+        "a \"Muutostyö 1 · Lisäkaapelointi linja 6\" 252×20"
+      ]
+    },
+    {
+      "n": 12,
+      "title": "Avaa jaettu dokumentti",
+      "ok": true,
+      "ms": 913,
+      "url": "/c/sk-infra-demo/documents/01a214ae-2328-7180-b907-2b2d18b2c139",
+      "screenshot": "docs/journeys/mobile/client/12-avaa-jaettu-dokumentti.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 13,
+      "title": "Lataa dokumentin voimassa oleva versio",
+      "ok": true,
+      "ms": 2369,
+      "url": "/c/sk-infra-demo/documents/01a214ae-2328-7180-b907-2b2d18b2c139",
+      "screenshot": "docs/journeys/mobile/client/13-lataa-dokumentin-voimassa-oleva-versio.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [],
+      "note": "Ladattu tiedosto: NDC-E-110_B.txt"
+    },
+    {
+      "n": 14,
+      "title": "Varmista, ettei dokumentissa näy sisäisiä tietoja",
+      "ok": true,
+      "ms": 13,
+      "url": "/c/sk-infra-demo/documents/01a214ae-2328-7180-b907-2b2d18b2c139",
+      "screenshot": "docs/journeys/mobile/client/14-varmista-ettei-dokumentissa-näy-sisäisiä-tietoja.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 15,
+      "title": "Palaa portaaliin",
+      "ok": true,
+      "ms": 828,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10",
+      "screenshot": "docs/journeys/mobile/client/15-palaa-portaaliin.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Muutostyö 2 · Väliaikainen työmaavalaist\" 304×20",
+        "a \"Muutostyö 4 · UPS-tilan lisäpistorasiat\" 265×20",
+        "a \"Muutostyö 3 · Kaapelihyllyn lisäkannakoi\" 303×20",
+        "a \"Muutostyö 1 · Lisäkaapelointi linja 6\" 252×20"
+      ]
+    },
+    {
+      "n": 16,
+      "title": "Tarkista, ettei portaalissa näy kustannuksia tai hintoja",
+      "ok": true,
+      "ms": 4,
+      "url": "/c/sk-infra-demo/portal/01a214ae-1ff0-7f61-9129-68d0dcc88f10",
+      "screenshot": "docs/journeys/mobile/client/16-tarkista-ettei-portaalissa-näy-kustannuksia-tai-hi.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Muutostyö 2 · Väliaikainen työmaavalaist\" 304×20",
+        "a \"Muutostyö 4 · UPS-tilan lisäpistorasiat\" 265×20",
+        "a \"Muutostyö 3 · Kaapelihyllyn lisäkannakoi\" 303×20",
+        "a \"Muutostyö 1 · Lisäkaapelointi linja 6\" 252×20"
+      ]
+    },
+    {
+      "n": 17,
+      "title": "Sisäiset sivut eivät aukea tilaajalle",
+      "ok": true,
+      "ms": 14556,
+      "url": "/c/sk-infra-demo/portal",
+      "screenshot": "docs/journeys/mobile/client/17-sisäiset-sivut-eivät-aukea-tilaajalle.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    }
+  ]
+}

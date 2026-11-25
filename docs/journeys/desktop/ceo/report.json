@@ -1,0 +1,300 @@
+{
+  "role": "ceo",
+  "project": "desktop",
+  "steps": 23,
+  "failed": 1,
+  "results": [
+    {
+      "n": 1,
+      "title": "Etusivu",
+      "ok": true,
+      "ms": 1170,
+      "url": "/c/sk-infra-demo/dashboard",
+      "screenshot": "docs/journeys/desktop/ceo/01-etusivu.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 2,
+      "title": "Avaa terästehtaan projekti",
+      "ok": true,
+      "ms": 4467,
+      "url": "/c/sk-infra-demo/projects/01a214ae-1ff0-7f61-9129-68d0dcc88f10",
+      "screenshot": "docs/journeys/desktop/ceo/02-avaa-terästehtaan-projekti.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "group.admin",
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 3,
+      "title": "Tarkista projektin talous",
+      "ok": true,
+      "ms": 2363,
+      "url": "/c/sk-infra-demo/projects/01a214ae-1ff0-7f61-9129-68d0dcc88f10/finance",
+      "screenshot": "docs/journeys/desktop/ceo/03-tarkista-projektin-talous.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 4,
+      "title": "Katso sopimus ja ennuste",
+      "ok": true,
+      "ms": 3278,
+      "url": "/c/sk-infra-demo/projects/01a214ae-1ff0-7f61-9129-68d0dcc88f10/commercial",
+      "screenshot": "docs/journeys/desktop/ceo/04-katso-sopimus-ja-ennuste.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 5,
+      "title": "Kysy tekoälyohjaajalta katteesta",
+      "ok": true,
+      "ms": 3605,
+      "url": "/c/sk-infra-demo/projects/01a214ae-1ff0-7f61-9129-68d0dcc88f10/ai",
+      "screenshot": "docs/journeys/desktop/ceo/05-kysy-tekoälyohjaajalta-katteesta.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 6,
+      "title": "Myynnin yleiskuva ja myyntiputki",
+      "ok": true,
+      "ms": 2432,
+      "url": "/c/sk-infra-demo/sales",
+      "screenshot": "docs/journeys/desktop/ceo/06-myynnin-yleiskuva-ja-myyntiputki.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 7,
+      "title": "Avaa asiakas ja yhteyshenkilöt",
+      "ok": true,
+      "ms": 1864,
+      "url": "/c/sk-infra-demo/sales/customers/01a214ae-318a-7563-8ec7-30e59535a6b6",
+      "screenshot": "docs/journeys/desktop/ceo/07-avaa-asiakas-ja-yhteyshenkilöt.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "hanna.hankinta"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 8,
+      "title": "Luo uusi tarjous",
+      "ok": true,
+      "ms": 4212,
+      "url": "/c/sk-infra-demo/sales/quotes/01a214ae-f533-7a20-b864-8040629f11e1",
+      "screenshot": "docs/journeys/desktop/ceo/08-luo-uusi-tarjous.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 9,
+      "title": "Hinnoittele tarjous",
+      "ok": true,
+      "ms": 1059,
+      "url": "/c/sk-infra-demo/sales/quotes/01a214ae-f533-7a20-b864-8040629f11e1",
+      "screenshot": "docs/journeys/desktop/ceo/09-hinnoittele-tarjous.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 10,
+      "title": "Lähetä tarjous hyväksyttäväksi",
+      "ok": true,
+      "ms": 323,
+      "url": "/c/sk-infra-demo/sales/quotes/01a214ae-f533-7a20-b864-8040629f11e1",
+      "screenshot": "docs/journeys/desktop/ceo/10-lähetä-tarjous-hyväksyttäväksi.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 11,
+      "title": "Tarkista hyväksyntää odottava tarjous",
+      "ok": true,
+      "ms": 61,
+      "url": "/c/sk-infra-demo/sales/quotes/01a214ae-f533-7a20-b864-8040629f11e1",
+      "screenshot": "docs/journeys/desktop/ceo/11-tarkista-hyväksyntää-odottava-tarjous.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [],
+      "note": "Demon odottavaa tarjousta ei löytynyt listalta"
+    },
+    {
+      "n": 12,
+      "title": "Tee tilausvahvistus",
+      "ok": true,
+      "ms": 5323,
+      "url": "/c/sk-infra-demo/invoicing/01a214af-0fa6-7811-b096-f87897af965a",
+      "screenshot": "docs/journeys/desktop/ceo/12-tee-tilausvahvistus.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 13,
+      "title": "Lisää tilausvahvistukselle rivi",
+      "ok": true,
+      "ms": 1048,
+      "url": "/c/sk-infra-demo/invoicing/01a214af-0fa6-7811-b096-f87897af965a",
+      "screenshot": "docs/journeys/desktop/ceo/13-lisää-tilausvahvistukselle-rivi.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 14,
+      "title": "Vahvista ja lähetä tilausvahvistus",
+      "ok": true,
+      "ms": 1019,
+      "url": "/c/sk-infra-demo/invoicing/01a214af-0fa6-7811-b096-f87897af965a",
+      "screenshot": "docs/journeys/desktop/ceo/14-vahvista-ja-lähetä-tilausvahvistus.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "hanna.hankinta"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 15,
+      "title": "Tarkista laskutusasetukset",
+      "ok": true,
+      "ms": 2607,
+      "url": "/c/sk-infra-demo/invoicing/settings",
+      "screenshot": "docs/journeys/desktop/ceo/15-tarkista-laskutusasetukset.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 16,
+      "title": "Markkinoinnin tilanne",
+      "ok": true,
+      "ms": 1888,
+      "url": "/c/sk-infra-demo/marketing",
+      "screenshot": "docs/journeys/desktop/ceo/16-markkinoinnin-tilanne.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 17,
+      "title": "Lisää hanke käsin rekisteriin",
+      "ok": true,
+      "ms": 2476,
+      "url": "/c/sk-infra-demo/marketing/01a214af-3788-7803-a73a-654bd9df2f12",
+      "screenshot": "docs/journeys/desktop/ceo/17-lisää-hanke-käsin-rekisteriin.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 18,
+      "title": "Katso hyväksyttävät kirjeet",
+      "ok": true,
+      "ms": 2733,
+      "url": "/c/sk-infra-demo/marketing/approvals",
+      "screenshot": "docs/journeys/desktop/ceo/18-katso-hyväksyttävät-kirjeet.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 19,
+      "title": "Työturvallisuuden tilanne",
+      "ok": true,
+      "ms": 2383,
+      "url": "/c/sk-infra-demo/hse",
+      "screenshot": "docs/journeys/desktop/ceo/19-työturvallisuuden-tilanne.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 20,
+      "title": "Kutsu uusi käyttäjä",
+      "ok": true,
+      "ms": 6016,
+      "url": "/c/sk-infra-demo/settings/members",
+      "screenshot": "docs/journeys/desktop/ceo/20-kutsu-uusi-käyttäjä.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "group.admin",
+        "site.manager",
+        "journey.ceo.dsk"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 21,
+      "title": "Tarkista roolit ja oikeudet",
+      "ok": true,
+      "ms": 2486,
+      "url": "/c/sk-infra-demo/settings/roles",
+      "screenshot": "docs/journeys/desktop/ceo/21-tarkista-roolit-ja-oikeudet.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 22,
+      "title": "Selaa muutoslokia",
+      "ok": false,
+      "ms": 8152,
+      "url": "/c/sk-infra-demo/settings/audit",
+      "screenshot": "docs/journeys/desktop/ceo/22-selaa-muutoslokia.jpg",
+      "error": "\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('heading', { level: 1 })\nExpected: \u001b[32m\"Muutosloki\"\u001b[39m\nReceived: \u001b[31m\"Roolit ja oikeudet\"\u001b[39m\nTimeout:  8000ms",
+      "consoleErrors": [],
+      "untranslated": [
+        "journey.ceo.dsk",
+        "hanna.hankinta"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 23,
+      "title": "Aloita projekti avustajalla",
+      "ok": true,
+      "ms": 5236,
+      "url": "/c/sk-infra-demo/assistant?c=01a214af-ac6a-7d22-b5d6-ac91ba0aaa95",
+      "screenshot": "docs/journeys/desktop/ceo/23-aloita-projekti-avustajalla.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    }
+  ]
+}

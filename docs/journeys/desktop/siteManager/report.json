@@ -1,0 +1,250 @@
+{
+  "role": "siteManager",
+  "project": "desktop",
+  "steps": 18,
+  "failed": 10,
+  "results": [
+    {
+      "n": 1,
+      "title": "Etusivu",
+      "ok": true,
+      "ms": 1209,
+      "url": "/c/sk-infra-demo/dashboard",
+      "screenshot": "docs/journeys/desktop/siteManager/01-etusivu.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 2,
+      "title": "Hyväksy lähetetyt tunnit",
+      "ok": true,
+      "ms": 4268,
+      "url": "/c/sk-infra-demo/time/approvals",
+      "screenshot": "docs/journeys/desktop/siteManager/02-hyväksy-lähetetyt-tunnit.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 3,
+      "title": "Kirjaa omat 8 h tunnit",
+      "ok": true,
+      "ms": 1237,
+      "url": "/c/sk-infra-demo/time",
+      "screenshot": "docs/journeys/desktop/siteManager/03-kirjaa-omat-8-h-tunnit.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 4,
+      "title": "Avaa päivän työmaapäiväkirja",
+      "ok": true,
+      "ms": 4703,
+      "url": "/c/sk-infra-demo/diary/01a214ae-26d1-71b0-999a-1c710497d390",
+      "screenshot": "docs/journeys/desktop/siteManager/04-avaa-päivän-työmaapäiväkirja.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 5,
+      "title": "Kirjaa sää, yhteenveto ja tehty työ",
+      "ok": true,
+      "ms": 1276,
+      "url": "/c/sk-infra-demo/diary/01a214ae-26d1-71b0-999a-1c710497d390",
+      "screenshot": "docs/journeys/desktop/siteManager/05-kirjaa-sää-yhteenveto-ja-tehty-työ.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 6,
+      "title": "Allekirjoita työmaapäiväkirja",
+      "ok": true,
+      "ms": 371,
+      "url": "/c/sk-infra-demo/diary/01a214ae-26d1-71b0-999a-1c710497d390",
+      "screenshot": "docs/journeys/desktop/siteManager/06-allekirjoita-työmaapäiväkirja.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 7,
+      "title": "Avaa tahtitaulu",
+      "ok": true,
+      "ms": 1323,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c",
+      "screenshot": "docs/journeys/desktop/siteManager/07-avaa-tahtitaulu.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 8,
+      "title": "Kirjaa tämän päivän edistyminen 75 %",
+      "ok": true,
+      "ms": 998,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c",
+      "screenshot": "docs/journeys/desktop/siteManager/08-kirjaa-tämän-päivän-edistyminen-75.jpg",
+      "consoleErrors": [],
+      "untranslated": [
+        "site.manager"
+      ],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 9,
+      "title": "Lisää tehtävälle este (rajoite)",
+      "ok": false,
+      "ms": 586122,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.fill: Test ended.\nCall log:\n\u001b[2m  - waiting for getByLabel('Lisätiedot', { exact: true })\u001b[22m\n",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 10,
+      "title": "Tarkista look-ahead 6 viikkoa",
+      "ok": false,
+      "ms": 0,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.isVisible: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 11,
+      "title": "Katso tuotantokalenteri viikolta",
+      "ok": false,
+      "ms": 1,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.click: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 12,
+      "title": "Ilmoita poikkeama: kuorma myöhässä",
+      "ok": false,
+      "ms": 0,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.click: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 13,
+      "title": "Katso aluekartta ja portin tiedot",
+      "ok": false,
+      "ms": 2,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.click: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 14,
+      "title": "Tee turvallisuushavainto",
+      "ok": false,
+      "ms": 0,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.isVisible: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 15,
+      "title": "Lisää tapaturmalle korjaava toimenpide",
+      "ok": false,
+      "ms": 0,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.isVisible: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 16,
+      "title": "Merkitse rotaatioon koulutuspäivä",
+      "ok": false,
+      "ms": 0,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.isVisible: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 17,
+      "title": "Katso tiimit ja luo uusi tiimi",
+      "ok": false,
+      "ms": 6,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.isVisible: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 18,
+      "title": "Takaisin etusivulle",
+      "ok": false,
+      "ms": 1,
+      "url": "/c/sk-infra-demo/takt/01a214ae-2b0a-7600-afaa-43489a0d909c/activities/01a214ae-2bd2-7fc2-ac7b-ceb4e191f241",
+      "screenshot": null,
+      "error": "locator.isVisible: Target page, context or browser has been closed",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    }
+  ]
+}
