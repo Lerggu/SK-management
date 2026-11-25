@@ -62,6 +62,8 @@ export const quoteDraftSchema = z.object({
   riskPct: percent().default("0"),
   marginPct: percent(99.99).default("0"),
   validUntil: optionalDate(),
+  /** The quote's project; absent = unchanged, empty = none. */
+  projectId: z.preprocess((v) => (v === undefined ? undefined : v === "" || v === null ? null : v), z.string().uuid("validation.invalidOption").nullable().optional()),
 });
 export type QuoteDraftInput = z.input<typeof quoteDraftSchema>;
 
