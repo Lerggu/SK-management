@@ -164,7 +164,7 @@ test("lifting", async ({ browser }, testInfo) => {
     await form.getByLabel("Puhelin").fill("+358 40 000 0000", T);
     await form.getByRole("button", { name: "Tallenna pyyntö" }).click(T);
     await expect(h1()).toHaveText(requestTitle, T);
-    await expect(section(page, "Logistiikkapyyntö")).toContainText("18 m", T);
+    await expect(section(page, "Logistiikkapyyntö")).toContainText("Nostosäde (m)", T);
   });
 
   await j.step("Luo uusi nostosuunnitelma", async () => {
