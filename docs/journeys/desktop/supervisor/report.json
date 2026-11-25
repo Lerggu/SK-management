@@ -1,0 +1,231 @@
+{
+  "role": "supervisor",
+  "project": "desktop",
+  "steps": 18,
+  "failed": 0,
+  "results": [
+    {
+      "n": 1,
+      "title": "Etusivu",
+      "ok": true,
+      "ms": 1479,
+      "url": "/c/sk-infra-demo/dashboard",
+      "screenshot": "docs/journeys/desktop/supervisor/01-etusivu.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 2,
+      "title": "Kirjaa omat 8 h tunnit",
+      "ok": true,
+      "ms": 1779,
+      "url": "/c/sk-infra-demo/time",
+      "screenshot": "docs/journeys/desktop/supervisor/02-kirjaa-omat-8-h-tunnit.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 3,
+      "title": "Kirjaa työryhmälle 8 h",
+      "ok": true,
+      "ms": 783,
+      "url": "/c/sk-infra-demo/time",
+      "screenshot": "docs/journeys/desktop/supervisor/03-kirjaa-työryhmälle-8-h.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 4,
+      "title": "Tarkista työntekijän viikko",
+      "ok": true,
+      "ms": 1124,
+      "url": "/c/sk-infra-demo/time?date=2026-11-26&employee=01a214f7-479b-70f1-a6a8-ae01c063f3ff",
+      "screenshot": "docs/journeys/desktop/supervisor/04-tarkista-työntekijän-viikko.jpg",
+      "consoleErrors": [
+        "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` wh"
+      ],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 5,
+      "title": "Avaa tahtisuunnitelma",
+      "ok": true,
+      "ms": 2569,
+      "url": "/c/sk-infra-demo/takt/01a214f7-4bfb-72d1-aac2-d75d004c91e6",
+      "screenshot": "docs/journeys/desktop/supervisor/05-avaa-tahtisuunnitelma.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 6,
+      "title": "Pikakirjaa tehtävän valmiusaste",
+      "ok": true,
+      "ms": 990,
+      "url": "/c/sk-infra-demo/takt/01a214f7-4bfb-72d1-aac2-d75d004c91e6",
+      "screenshot": "docs/journeys/desktop/supervisor/06-pikakirjaa-tehtävän-valmiusaste.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 7,
+      "title": "Kirjaa edistyminen huomion kanssa",
+      "ok": true,
+      "ms": 1974,
+      "url": "/c/sk-infra-demo/takt/01a214f7-4bfb-72d1-aac2-d75d004c91e6/activities/01a214f7-4cd5-7130-8e4b-f1e71456e32d",
+      "screenshot": "docs/journeys/desktop/supervisor/07-kirjaa-edistyminen-huomion-kanssa.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 8,
+      "title": "Merkitse tehtävälle este",
+      "ok": true,
+      "ms": 1093,
+      "url": "/c/sk-infra-demo/takt/01a214f7-4bfb-72d1-aac2-d75d004c91e6/activities/01a214f7-4cd5-7130-8e4b-f1e71456e32d",
+      "screenshot": "docs/journeys/desktop/supervisor/08-merkitse-tehtävälle-este.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 9,
+      "title": "Avaa työmaan logistiikka",
+      "ok": true,
+      "ms": 3037,
+      "url": "/c/sk-infra-demo/logistics?site=01a214f7-4716-7183-b0a2-cd8ca4f78335&date=2026-11-26",
+      "screenshot": "docs/journeys/desktop/supervisor/09-avaa-työmaan-logistiikka.jpg",
+      "consoleErrors": [
+        "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` wh"
+      ],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 10,
+      "title": "Tilaa nosto nostotiedoilla",
+      "ok": true,
+      "ms": 1924,
+      "url": "/c/sk-infra-demo/logistics/requests/01a21502-0d88-7652-8103-db2ae3b56630",
+      "screenshot": "docs/journeys/desktop/supervisor/10-tilaa-nosto-nostotiedoilla.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 11,
+      "title": "Tarkista nostotilauksen tiedot",
+      "ok": true,
+      "ms": 59,
+      "url": "/c/sk-infra-demo/logistics/requests/01a21502-0d88-7652-8103-db2ae3b56630",
+      "screenshot": "docs/journeys/desktop/supervisor/11-tarkista-nostotilauksen-tiedot.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 12,
+      "title": "Avaa aluekartta",
+      "ok": true,
+      "ms": 3036,
+      "url": "/c/sk-infra-demo/logistics/map?range=week&date=2026-11-23&site=01a214f7-4716-7183-b0a2-cd8ca4f78335",
+      "screenshot": "docs/journeys/desktop/supervisor/12-avaa-aluekartta.jpg",
+      "consoleErrors": [
+        "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` wh"
+      ],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 13,
+      "title": "Ilmoita poikkeama kartan kohteeseen",
+      "ok": true,
+      "ms": 1493,
+      "url": "/c/sk-infra-demo/logistics/map?range=week&date=2026-11-23&site=01a214f7-4716-7183-b0a2-cd8ca4f78335",
+      "screenshot": "docs/journeys/desktop/supervisor/13-ilmoita-poikkeama-kartan-kohteeseen.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 14,
+      "title": "Tee turvallisuushavainto kuvalla",
+      "ok": true,
+      "ms": 3628,
+      "url": "/c/sk-infra-demo/hse/observations/01a21502-3159-7ae3-8790-aa6538e41b93",
+      "screenshot": "docs/journeys/desktop/supervisor/14-tee-turvallisuushavainto-kuvalla.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 15,
+      "title": "Avaa päivän työmaapäiväkirja",
+      "ok": true,
+      "ms": 2420,
+      "url": "/c/sk-infra-demo/diary/01a214f7-4b38-71b3-9775-24fc97f8ce23",
+      "screenshot": "docs/journeys/desktop/supervisor/15-avaa-päivän-työmaapäiväkirja.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 16,
+      "title": "Kirjaa sää ja päiväkirjamerkintä",
+      "ok": true,
+      "ms": 1069,
+      "url": "/c/sk-infra-demo/diary/01a214f7-4b38-71b3-9775-24fc97f8ce23",
+      "screenshot": "docs/journeys/desktop/supervisor/16-kirjaa-sää-ja-päiväkirjamerkintä.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [],
+      "note": "Päiväkirja oli jo allekirjoitettu, merkintä tehtiin lisäyksenä"
+    },
+    {
+      "n": 17,
+      "title": "Lisää kuva päiväkirjaan",
+      "ok": true,
+      "ms": 1053,
+      "url": "/c/sk-infra-demo/diary/01a214f7-4b38-71b3-9775-24fc97f8ce23",
+      "screenshot": "docs/journeys/desktop/supervisor/17-lisää-kuva-päiväkirjaan.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 18,
+      "title": "Lähetä oma viikko hyväksyttäväksi",
+      "ok": true,
+      "ms": 2882,
+      "url": "/c/sk-infra-demo/time",
+      "screenshot": "docs/journeys/desktop/supervisor/18-lähetä-oma-viikko-hyväksyttäväksi.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    }
+  ]
+}

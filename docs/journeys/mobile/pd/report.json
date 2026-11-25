@@ -1,0 +1,252 @@
+{
+  "role": "pd",
+  "project": "mobile",
+  "steps": 19,
+  "failed": 3,
+  "results": [
+    {
+      "n": 1,
+      "title": "Etusivu",
+      "ok": true,
+      "ms": 1687,
+      "url": "/c/sk-infra-demo/dashboard",
+      "screenshot": "docs/journeys/mobile/pd/01-etusivu.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 2,
+      "title": "Avaa projekti NSM-001",
+      "ok": true,
+      "ms": 2166,
+      "url": "/c/sk-infra-demo/projects/01a214f7-470b-75a1-a9e3-b58c1907de04",
+      "screenshot": "docs/journeys/mobile/pd/02-avaa-projekti-nsm-001.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 3,
+      "title": "Tarkista budjetti ja toteuma",
+      "ok": true,
+      "ms": 1602,
+      "url": "/c/sk-infra-demo/projects/01a214f7-470b-75a1-a9e3-b58c1907de04/finance",
+      "screenshot": "docs/journeys/mobile/pd/03-tarkista-budjetti-ja-toteuma.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 4,
+      "title": "Avaa ennuste (EAC)",
+      "ok": true,
+      "ms": 1979,
+      "url": "/c/sk-infra-demo/projects/01a214f7-470b-75a1-a9e3-b58c1907de04/commercial",
+      "screenshot": "docs/journeys/mobile/pd/04-avaa-ennuste-eac.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 5,
+      "title": "Päivitä jäljellä oleva kustannusarvio",
+      "ok": true,
+      "ms": 1180,
+      "url": "/c/sk-infra-demo/projects/01a214f7-470b-75a1-a9e3-b58c1907de04/commercial",
+      "screenshot": "docs/journeys/mobile/pd/05-päivitä-jäljellä-oleva-kustannusarvio.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 6,
+      "title": "Hyväksy lisätyö sisäisesti",
+      "ok": true,
+      "ms": 933,
+      "url": "/c/sk-infra-demo/projects/01a214f7-470b-75a1-a9e3-b58c1907de04/commercial/variations/01a214f7-534b-7d12-9790-703a81df014d",
+      "screenshot": "docs/journeys/mobile/pd/06-hyväksy-lisätyö-sisäisesti.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [],
+      "note": "Lisätyö ei ollut enää sisäisessä tarkastuksessa (hyväksytty aiemmassa ajossa)"
+    },
+    {
+      "n": 7,
+      "title": "Avaa hyväksyttävä tarjous",
+      "ok": true,
+      "ms": 2250,
+      "url": "/c/sk-infra-demo/sales/quotes/01a214f7-52ec-7fc1-b285-18a077275d86",
+      "screenshot": "docs/journeys/mobile/pd/07-avaa-hyväksyttävä-tarjous.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Nordic Steel Demo AB\" 155×20"
+      ]
+    },
+    {
+      "n": 8,
+      "title": "Hyväksy tarjous",
+      "ok": true,
+      "ms": 19,
+      "url": "/c/sk-infra-demo/sales/quotes/01a214f7-52ec-7fc1-b285-18a077275d86",
+      "screenshot": "docs/journeys/mobile/pd/08-hyväksy-tarjous.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Nordic Steel Demo AB\" 155×20"
+      ],
+      "note": "Tarjous ei ollut enää hyväksyttävänä (päätetty aiemmassa ajossa)"
+    },
+    {
+      "n": 9,
+      "title": "Etsi hyväksyntää odottava piirustus",
+      "ok": true,
+      "ms": 2874,
+      "url": "/c/sk-infra-demo/documents/01a214f7-48eb-7406-bfd7-4aa07876303a",
+      "screenshot": "docs/journeys/mobile/pd/09-etsi-hyväksyntää-odottava-piirustus.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 10,
+      "title": "Hyväksy piirustuksen revisio B",
+      "ok": true,
+      "ms": 15,
+      "url": "/c/sk-infra-demo/documents/01a214f7-48eb-7406-bfd7-4aa07876303a",
+      "screenshot": "docs/journeys/mobile/pd/10-hyväksy-piirustuksen-revisio-b.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [],
+      "note": "Voimassa oleva versio ei odottanut hyväksyntää (hyväksytty aiemmassa ajossa)"
+    },
+    {
+      "n": 11,
+      "title": "Avaa tahtisuunnitelma",
+      "ok": true,
+      "ms": 2102,
+      "url": "/c/sk-infra-demo/takt/01a214ff-b0c7-7500-a9dc-8054c7736f40",
+      "screenshot": "docs/journeys/mobile/pd/11-avaa-tahtisuunnitelma.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 12,
+      "title": "Vertaa uutta versiota baselineen",
+      "ok": false,
+      "ms": 10106,
+      "url": "/c/sk-infra-demo/takt/01a214ff-b0c7-7500-a9dc-8054c7736f40?v=01a214ff-b0ca-7731-9062-9142ee29a02a",
+      "screenshot": "docs/journeys/mobile/pd/12-vertaa-uutta-versiota-baselineen.jpg",
+      "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('link', { name: 'Vertaa baselineen' })\u001b[22m\n",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 13,
+      "title": "Hyväksy uusi baseline",
+      "ok": false,
+      "ms": 10006,
+      "url": "/c/sk-infra-demo/takt/01a214ff-b0c7-7500-a9dc-8054c7736f40?v=01a214ff-b0ca-7731-9062-9142ee29a02a",
+      "screenshot": "docs/journeys/mobile/pd/13-hyväksy-uusi-baseline.jpg",
+      "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('link', { name: 'Tahtitaulu', exact: true })\u001b[22m\n",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 14,
+      "title": "Tarkista avoimet poikkeamat",
+      "ok": true,
+      "ms": 1922,
+      "url": "/c/sk-infra-demo/logistics/deviations",
+      "screenshot": "docs/journeys/mobile/pd/14-tarkista-avoimet-poikkeamat.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": [
+        "a \"Kuonakauhan nosto JR4JA2\" 188×20",
+        "a \"Kartalla: PA Purkualue A\" 168×20",
+        "a \"Uunin kuoriosat 4 kpl\" 149×20",
+        "a \"Kuonakauhan nosto JQR47B\" 195×20",
+        "a \"Kartalla: N1 Ajoneuvonosturi 100 t\" 242×20"
+      ]
+    },
+    {
+      "n": 15,
+      "title": "Tarkista logistiikkariskit",
+      "ok": false,
+      "ms": 11127,
+      "url": "/c/sk-infra-demo/logistics/risks",
+      "screenshot": "docs/journeys/mobile/pd/15-tarkista-logistiikkariskit.jpg",
+      "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Näytä', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"submit\" class=\"inline-flex min-h-11 items-center rounded-lg border px-3 text-sm md:min-h-9\">Näytä</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 16,
+      "title": "Tarkista työturvallisuuden tilanne",
+      "ok": true,
+      "ms": 1004,
+      "url": "/c/sk-infra-demo/hse",
+      "screenshot": "docs/journeys/mobile/pd/16-tarkista-työturvallisuuden-tilanne.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 17,
+      "title": "Avaa tekoälyohjaaja",
+      "ok": true,
+      "ms": 3195,
+      "url": "/c/sk-infra-demo/projects/01a214f7-470b-75a1-a9e3-b58c1907de04/ai",
+      "screenshot": "docs/journeys/mobile/pd/17-avaa-tekoälyohjaaja.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 18,
+      "title": "Käsittele tekoälyn suositus",
+      "ok": true,
+      "ms": 966,
+      "url": "/c/sk-infra-demo/projects/01a214f7-470b-75a1-a9e3-b58c1907de04/ai",
+      "screenshot": "docs/journeys/mobile/pd/18-käsittele-tekoälyn-suositus.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    },
+    {
+      "n": 19,
+      "title": "Kysy tekoälyltä katteen riskeistä",
+      "ok": true,
+      "ms": 993,
+      "url": "/c/sk-infra-demo/projects/01a214f7-470b-75a1-a9e3-b58c1907de04/ai",
+      "screenshot": "docs/journeys/mobile/pd/19-kysy-tekoälyltä-katteen-riskeistä.jpg",
+      "consoleErrors": [],
+      "untranslated": [],
+      "horizontalOverflow": false,
+      "smallTargets": []
+    }
+  ]
+}
