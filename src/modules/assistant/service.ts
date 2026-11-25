@@ -5,8 +5,7 @@ import { getAiProvider, type AiProvider, type AiRunResult } from "@/platform/ai"
 import { getSpeech, isSupportedWav, SpeechError } from "@/platform/speech";
 import { hasPermission, projectIdsWithPermission, type RequestContext } from "@/platform/authz";
 import { todayInDisplayZone } from "@/platform/i18n/config";
-import { AiRepo } from "@/modules/ai/repo";
-import { budgetStatus, meteredFields, recordAiRun } from "@/modules/ai/service";
+import { meteredFields, recordAiRun, withAiBudget } from "@/modules/ai/service";
 import { projectService } from "@/modules/projects/service";
 import { employeeService } from "@/modules/workforce/service";
 import { teamService } from "@/modules/workforce/team.service";
@@ -202,53 +201,56 @@ export const assistantService = {
     const history = ((conv.messages as Message[]) ?? []).slice(-HISTORY);
 
     const base = { projectId: null, requestedById: ctx.user.id, kind: "ASSISTANT" as const, question: null, locale: ctx.locale, promptVersion: ASSISTANT_PROMPT_VERSION };
-    const budget = await budgetStatus(new AiRepo(db, ctx.company.id));
-    if (budget.exhausted) {
-      await recordAiRun(ctx, { ...base, provider: provider.name, model: provider.model, status: "BLOCKED_BUDGET", error: "ai.errors.budgetExhausted" }, null, []);
-      throw new ValidationError({ _form: ["ai.errors.budgetExhausted"] });
-    }
+    return withAiBudget(
+      ctx,
+      async () => {
+        await recordAiRun(ctx, { ...base, provider: provider.name, model: provider.model, status: "BLOCKED_BUDGET", error: "ai.errors.budgetExhausted" }, null, []);
+        throw new ValidationError({ _form: ["ai.errors.budgetExhausted"] });
+      },
+      async () => {
+        const { output, error } = await runModel(ctx, provider, message, history);
+        const metered = meteredFields(output, provider);
+        const parsed = output ? assistantResultSchema.safeParse(output.result) : null;
+        if (!output || !parsed?.success) {
+          await recordAiRun(ctx, { ...base, ...metered, status: "FAILED", error: output ? "ai.errors.invalidResult" : error }, null, []);
+          throw new ValidationError({ _form: ["assistant.failed"] });
+        }
 
-    const { output, error } = await runModel(ctx, provider, message, history);
-    const metered = meteredFields(output, provider);
-    const parsed = output ? assistantResultSchema.safeParse(output.result) : null;
-    if (!output || !parsed?.success) {
-      await recordAiRun(ctx, { ...base, ...metered, status: "FAILED", error: output ? "ai.errors.invalidResult" : error }, null, []);
-      throw new ValidationError({ _form: ["assistant.failed"] });
-    }
+        // Validate every proposal on the server; a bad one is dropped and said so.
+        const proposals: { type: ActionType; params: Record<string, unknown>; summary: string; money: boolean }[] = [];
+        let dropped = 0;
+        for (const a of parsed.data.actions) {
+          try {
+            if (!ACTION_TYPES.includes(a.type as ActionType)) throw new Error("unknown type");
+            const type = a.type as ActionType;
+            const params = parseActionParams(type, JSON.parse(a.params_json)) as Record<string, unknown>;
+            const labels = labelsFor(ctx, proposals.map((p) => p.summary));
+            const summary = await (ACTIONS[type].summary as (p: unknown, l: Labels) => Promise<string>)(params, labels);
+            proposals.push({ type, params, summary: clip(summary, 500), money: Boolean(ACTIONS[type].money) });
+          } catch {
+            dropped++;
+          }
+        }
+        const reply = dropped ? `${parsed.data.reply} (${ctx.locale === "en" ? `${dropped} unclear proposals were left out` : `${dropped} epäselvää ehdotusta jätettiin pois`})` : parsed.data.reply;
+        const now = new Date().toISOString();
+        const messages: Message[] = [...((conv.messages as Message[]) ?? []), { role: "user" as const, text: message, at: now }, { role: "assistant" as const, text: reply, at: now }].slice(-40);
 
-    // Validate every proposal on the server; a bad one is dropped and said so.
-    const proposals: { type: ActionType; params: Record<string, unknown>; summary: string; money: boolean }[] = [];
-    let dropped = 0;
-    for (const a of parsed.data.actions) {
-      try {
-        if (!ACTION_TYPES.includes(a.type as ActionType)) throw new Error("unknown type");
-        const type = a.type as ActionType;
-        const params = parseActionParams(type, JSON.parse(a.params_json)) as Record<string, unknown>;
-        const labels = labelsFor(ctx, proposals.map((p) => p.summary));
-        const summary = await (ACTIONS[type].summary as (p: unknown, l: Labels) => Promise<string>)(params, labels);
-        proposals.push({ type, params, summary: clip(summary, 500), money: Boolean(ACTIONS[type].money) });
-      } catch {
-        dropped++;
-      }
-    }
-    const reply = dropped ? `${parsed.data.reply} (${ctx.locale === "en" ? `${dropped} unclear proposals were left out` : `${dropped} epäselvää ehdotusta jätettiin pois`})` : parsed.data.reply;
-    const now = new Date().toISOString();
-    const messages: Message[] = [...((conv.messages as Message[]) ?? []), { role: "user" as const, text: message, at: now }, { role: "assistant" as const, text: reply, at: now }].slice(-40);
-
-    await runInTransaction(async (tx) => {
-      // A new proposal replaces the earlier unconfirmed one.
-      await tx.assistantAction.updateMany({ where: { companyId: ctx.company.id, conversationId: conv.id, status: "PROPOSED" }, data: { status: "REJECTED", decidedAt: new Date(), error: "assistant.superseded" } });
-      const last = await tx.assistantAction.aggregate({ where: { companyId: ctx.company.id, conversationId: conv.id }, _max: { position: true } });
-      const start = (last._max.position ?? 0) + 1;
-      if (proposals.length) {
-        await tx.assistantAction.createMany({
-          data: proposals.map((p, i) => ({ companyId: ctx.company.id, conversationId: conv.id, userId: ctx.user.id, position: start + i, type: p.type, summary: p.summary, params: p.params as Prisma.InputJsonValue, money: p.money })),
+        await runInTransaction(async (tx) => {
+          // A new proposal replaces the earlier unconfirmed one.
+          await tx.assistantAction.updateMany({ where: { companyId: ctx.company.id, conversationId: conv.id, status: "PROPOSED" }, data: { status: "REJECTED", decidedAt: new Date(), error: "assistant.superseded" } });
+          const last = await tx.assistantAction.aggregate({ where: { companyId: ctx.company.id, conversationId: conv.id }, _max: { position: true } });
+          const start = (last._max.position ?? 0) + 1;
+          if (proposals.length) {
+            await tx.assistantAction.createMany({
+              data: proposals.map((p, i) => ({ companyId: ctx.company.id, conversationId: conv.id, userId: ctx.user.id, position: start + i, type: p.type, summary: p.summary, params: p.params as Prisma.InputJsonValue, money: p.money })),
+            });
+          }
+          await tx.assistantConversation.update({ where: { id: conv.id }, data: { messages: messages as unknown as Prisma.InputJsonValue } });
         });
-      }
-      await tx.assistantConversation.update({ where: { id: conv.id }, data: { messages: messages as unknown as Prisma.InputJsonValue } });
-    });
-    await recordAiRun(ctx, { ...base, ...metered, status: "SUCCEEDED", error: null }, { reply, actions: proposals.map((p) => ({ type: p.type, summary: p.summary })) }, []);
-    return assistantService.current(ctx, { conversationId: conv.id });
+        await recordAiRun(ctx, { ...base, ...metered, status: "SUCCEEDED", error: null }, { reply, actions: proposals.map((p) => ({ type: p.type, summary: p.summary })) }, []);
+        return assistantService.current(ctx, { conversationId: conv.id });
+      },
+    );
   },
 
   /**
