@@ -197,7 +197,7 @@ test("pm", async ({ browser }, testInfo) => {
     const draft = page.getByTestId("quote-draft-form");
     await draft.getByLabel("Kate (% hinnasta)").fill("15", T);
     await draft.getByRole("button", { name: "Tallenna" }).click(T);
-    // Cost 800 × 48 € + 25 000 € = 63 400 €; the price shown must be above the cost.
+    // Cost 800 × 48 € + 25 000 € = 63 400 €; the calculated price must be shown.
     await expect(page.getByTestId("quote-price")).toContainText(/\d/, T);
     await page.getByRole("button", { name: "Lähetä hyväksyttäväksi" }).click(T);
     await expect(page.getByText(/Hyväksyttävänä/).first()).toBeVisible(T);
