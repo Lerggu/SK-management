@@ -36,10 +36,10 @@ export function DeviationReportForm({ action }: { action: (s: State, fd: FormDat
           })}
         </div>
       </fieldset>
-      <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-dashed px-3 text-sm">
+      <label className="flex min-h-14 min-w-0 cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-dashed px-3 py-2 text-sm">
         <Camera className="size-6 shrink-0 text-muted-foreground" aria-hidden />
         <span className="flex-1">{t("photo")}</span>
-        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" capture="environment" className="max-w-[55%] text-xs" />
+        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" capture="environment" className="w-full min-w-0 basis-full text-xs" />
       </label>
       <label className="block space-y-1.5 text-sm">
         <span className="font-medium">{t("comment")}</span>

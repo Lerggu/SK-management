@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { companyAdminService } from "@/modules/companies/service";
 import { EmptyState, PageHeader } from "@/ui/components/page";
@@ -27,11 +28,13 @@ function Delta({ before, after }: { before: unknown; after: unknown }) {
   );
 }
 
-export default async function AuditPage({ params, searchParams }: { params: Promise<{ companySlug: string }>; searchParams: Promise<{ entityType?: string }> }) {
+export default async function AuditPage({ params, searchParams }: { params: Promise<{ companySlug: string }>; searchParams: Promise<{ entityType?: string; limit?: string }> }) {
   const { companySlug } = await params;
-  const { entityType } = await searchParams;
+  const { entityType, limit: limitParam } = await searchParams;
+  // Pages of 50 (role journeys 2026-11-26): the newest first, "Näytä lisää" loads 50 more up to 200.
+  const limit = Math.min(200, Math.max(50, Math.round(Number(limitParam) / 50) * 50 || 50));
   const ctx = await requireCompanyContext(companySlug);
-  const [events, t, ta, format] = await Promise.all([loadOr404(companyAdminService.listAuditEvents(ctx, { entityType: entityType ?? null, limit: 200 })), getTranslations("settings"), getTranslations("audit.actions"), getFormatter()]);
+  const [events, t, ta, format] = await Promise.all([loadOr404(companyAdminService.listAuditEvents(ctx, { entityType: entityType ?? null, limit })), getTranslations("settings"), getTranslations("audit.actions"), getFormatter()]);
   return (
     <>
       <PageHeader title={t("audit")} description={t("auditHint")} />
@@ -56,6 +59,13 @@ export default async function AuditPage({ params, searchParams }: { params: Prom
             </li>
           ))}
         </ol>
+      )}
+      {events.length === limit && limit < 200 && (
+        <div className="mt-3">
+          <Link href={`?${new URLSearchParams({ ...(entityType ? { entityType } : {}), limit: String(limit + 50) })}`} className="inline-flex min-h-11 items-center rounded-lg border px-4 text-sm font-medium hover:bg-muted" scroll={false}>
+            {t("showMore")}
+          </Link>
+        </div>
       )}
     </>
   );

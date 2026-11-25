@@ -135,12 +135,23 @@
     "newEmployee": "Uusi henkilö",
     "newEquipment": "Uusi kalustoyksikkö",
     "newDocument": "Uusi dokumentti",
-    "comingLater": "Tulossa myöhemmissä versioissa: tahtiaikataulu, logistiikka, tunnit ja projektitalous.",
     "today": "Tänään",
     "logHours": "Kirjaa tunnit",
     "myHoursToday": "Omat tunnit tänään: {hours} h",
     "approvalsWaiting": "Hyväksyttäviä tuntikirjauksia: {count}",
-    "diaryToday": "Työmaapäiväkirjat tänään"
+    "diaryToday": "Työmaapäiväkirjat tänään",
+    "reportObservation": "Tee turvallisuushavainto",
+    "decisions": "Odottaa päätöstäsi",
+    "decisionKinds": {
+      "quote": "Tarjous",
+      "variation": "Muutostyö",
+      "takt": "Tahtiaikataulu",
+      "lift": "Nostosuunnitelma",
+      "permit": "Työlupa",
+      "logistics": "Logistiikkapyyntö"
+    },
+    "hrExpiring": "Vanhenevat kortit ja koulutukset",
+    "hrOrientations": "Avoimet perehdytykset"
   },
   "projects": {
     "title": "Projektit",
@@ -501,12 +512,14 @@
       "ai_use": "Tekoälyohjaajan käyttö (lähettää käyttäjän näkemiä projektitietoja tekoälypalveluun)",
       "hr_view": "Näkee työtehtävien kannalta tarpeelliset henkilöstötiedot: osaamismatriisi, julkaistut arviot, koulutukset, kortit, perehdytykset, käyttöluvat ja kielitaito",
       "hr_manage": "Hallitsee kaikkia henkilöstötietoja: osaamisalueet, korttityypit, vaatimukset, arvioinnit, liitteet, työvaatteet ja tavarat",
+      "team_manage": "Perustaa tiimejä, valita vetäjän ja muuttaa tiimien jäseniä",
       "rotation_view": "Näkee henkilöstön rotaatiosuunnitelman (poissaolon syyt piilotettu)",
       "rotation_manage": "Suunnittelee rotaation ja näkee poissaolojen syyt (sairauspoissaolo on terveystieto)",
       "employee_pid_manage": "Näkee ja muokkaa henkilötunnuksia (arkaluonteinen)",
       "marketing_view": "Näkee markkinointirekisterin, kirjeet ja soittolistan",
       "marketing_manage": "Hallitsee markkinoinnin asetuksia ja agentteja, muokkaa rekisteriä ja yhteyshenkilöitä",
-      "marketing_approve": "Hyväksyy ja lähettää markkinointikirjeet, käyttää soittolistaa"
+      "marketing_approve": "Hyväksyy ja lähettää markkinointikirjeet, käyttää soittolistaa",
+      "assistant_use": "Käyttää puhe- ja tekstiavustajaa: avustaja ehdottaa toimintoja, jotka käyttäjä vahvistaa (nimet välitetään tekoälypalvelulle, ei koskaan henkilötunnuksia tai hintoja)"
     },
     "calendar": "Työkalenteri",
     "inviteSent": "Kutsu lähetetty sähköpostilla.",
@@ -525,7 +538,9 @@
     "inviteProjects": "Projektit (valinnainen)",
     "inviteProjectsHint": "Asiakkaat ja aliurakoitsijat näkevät portaalissa vain projektit, joihin heidät on lisätty. Valitse projektit tässä, niin pääsy aukeaa heti.",
     "noProjectsBadge": "Ei projekteja",
-    "noProjectsHint": "Ulkoinen käyttäjä ei näe portaalissa mitään ennen kuin hänet lisätään projektiin (Projekti → Henkilöt)."
+    "noProjectsHint": "Ulkoinen käyttäjä ei näe portaalissa mitään ennen kuin hänet lisätään projektiin (Projekti → Henkilöt).",
+    "rolePermissionCount": "{count, plural, one {# oikeus} other {# oikeutta}} – näytä ja muokkaa",
+    "showMore": "Näytä lisää"
   },
   "audit": {
     "actions": {
@@ -854,7 +869,8 @@
       "site_map_object_move": "Kartan kohde siirretty",
       "site_map_object_archive": "Kartan kohde poistettu",
       "site_map_place_task": "Tehtävä sijoitettu kartalle",
-      "site_map_unplace_task": "Tehtävä poistettu kartalta"
+      "site_map_unplace_task": "Tehtävä poistettu kartalta",
+      "document_external_submit": "Aliurakoitsija toimitti dokumentin"
     }
   },
   "errors": {
@@ -1427,7 +1443,10 @@
     "nextStructure": "Seuraavaksi: tahtialueet ja työpaketit",
     "nextPlan": "Seuraavaksi: luo suunnitelma",
     "openStructure": "Avaa tahtirakenne",
-    "viewStructure": "Näytä tahtirakenne"
+    "viewStructure": "Näytä tahtirakenne",
+    "proposedBy": "Ehdottaja: {name}",
+    "ownProposal": "Tämä on oma ehdotuksesi. Hyvä käytäntö on, että baselinen hyväksyy joku muu, esimerkiksi projektijohtaja.",
+    "approveOwnConfirm": "Hyväksytkö oman ehdotuksesi baselineksi? Hyväksyntä kirjataan nimelläsi lokiin."
   },
   "logistics": {
     "title": "Logistiikka",
@@ -2217,7 +2236,7 @@
     "immediateActions": "Välittömät toimenpiteet",
     "permitType": "Työluvan tyyppi",
     "contractor": "Urakoitsija",
-    "permitWork": "Työ",
+    "permitWork": "Työn kuvaus",
     "validFrom": "Alkaa",
     "validTo": "Päättyy",
     "precautions": "Varotoimet",
@@ -2305,7 +2324,8 @@
       "openActions": "Avoimet toimenpiteet",
       "overdue": "myöhässä {n}",
       "toolboxTalks": "Työmaakokoukset",
-      "hours": "Työtunnit"
+      "hours": "Työtunnit",
+      "ltifTooFewHours": "Näytetään, kun tunteja on vähintään {hours} h"
     },
     "kinds": {
       "SAFETY_OBSERVATION": "Turvallisuushavainto",
@@ -2375,7 +2395,8 @@
       "MVR": "MVR-mittaus",
       "TR": "TR-mittaus",
       "GENERAL": "Yleinen tarkastus"
-    }
+    },
+    "showAllObservations": "Näytä kaikki havainnot ({count})"
   },
   "portal": {
     "title": "Portaali",
@@ -2421,7 +2442,13 @@
     "rejectNoteHint": "Pakollinen hylätessä.",
     "approve": "Hyväksyn muutostyön",
     "reject": "Hylkään",
-    "notSignature": "Hyväksyntä tallentuu nimelläsi, aikaleimalla ja versiotunnisteella. Se ei ole sähköinen allekirjoitus."
+    "notSignature": "Hyväksyntä tallentuu nimelläsi, aikaleimalla ja versiotunnisteella. Se ei ole sähköinen allekirjoitus.",
+    "decidedApprovals": "Päätetyt muutostyöt",
+    "deliverDocuments": "Toimita dokumentti",
+    "deliverHint": "Toimita esimerkiksi RAMS, todistus tai pätevyys. Dokumentti menee projektin hyväksyjälle, ja näet sen tilan tässä.",
+    "deliverTitle": "Dokumentin nimi",
+    "deliver": "Lähetä dokumentti",
+    "deliveredThanks": "Kiitos! Dokumentti on toimitettu hyväksyttäväksi."
   },
   "ai": {
     "title": "Tekoälyohjaaja",
@@ -2688,7 +2715,6 @@
       "on": "Muistutus {date}",
       "missingOwner": "Muistutus on valittu, mutta henkilöltä puuttuu sähköpostiosoite.",
       "missingMaintenance": "Muistutus on valittu, mutta ylläpidon sähköpostiosoitetta ei ole määritetty asetuksissa.",
-      "mailOff": "Sähköpostin lähetys ei ole käytössä palvelussa, joten muistutuksia ei lähetetä.",
       "statuses": {
         "PENDING": "Odottaa lähetystä",
         "SENDING": "Lähetetään",
@@ -2724,7 +2750,8 @@
       "notAcknowledged": "Odottaa työntekijän kuittausta",
       "acknowledge": "Kuittaa perehdytys",
       "renewalDueOn": "Uusimispäivä",
-      "none": "Ei perehdytyksiä."
+      "none": "Ei perehdytyksiä.",
+      "waitingAcknowledgement": "Odottaa kuittaustasi"
     },
     "authorization": {
       "title": "Käyttöluvat",
@@ -2950,7 +2977,7 @@
       "reminderEmail": "Ylläpidon sähköpostiosoite",
       "reminderEmailHint": "Saa muistutuksen kortin omistajan lisäksi.",
       "mailOn": "Sähköpostin lähetys on käytössä.",
-      "mailOff": "Sähköpostin lähetys ei ole käytössä. Muistutukset jäävät odottamaan, eikä niitä merkitä lähetetyiksi. Ylläpito ottaa lähetyksen käyttöön komennolla bash infra/enable-email.sh (docs/DEPLOY_AZURE.md, kohta 9).",
+      "mailOff": "Sähköpostin lähetys ei ole käytössä. Muistutukset jäävät odottamaan, eikä niitä merkitä lähetetyiksi. Pyydä ylläpitoa ottamaan sähköposti käyttöön.",
       "runNow": "Lähetä erääntyneet muistutukset nyt",
       "runResult": "Muistutuksia lähetetty: {sent}. Epäonnistui: {failed}. Osoite puuttuu: {noAddress}.",
       "schedule": "Muistutukset lähetetään automaattisesti tunnin välein.",
@@ -3371,6 +3398,7 @@
     "addMembers": "Lisää jäseniä",
     "moveHint": "Jos henkilö kuuluu jo toiseen tiimiin, hänet siirretään tähän tiimiin.",
     "remove": "Poista {name} tiimistä",
+    "removeConfirm": "Poistetaanko {name} tiimistä?",
     "archive": "Arkistoi tiimi",
     "confirmArchive": "Arkistoidaanko tiimi {name}? Jäsenet jäävät ilman tiimiä.",
     "dragTeam": "Raahaa koko tiimi"

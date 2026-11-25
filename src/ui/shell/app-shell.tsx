@@ -26,8 +26,10 @@ export interface ShellNavGroup {
   items: ShellNavItem[];
 }
 
+export type MobilePick = { item: NavKey } | { group: NavGroupKey };
+
 /** Bottom bar on phones: these first (when visible), the rest under "More". */
-const MOBILE_PRIMARY: ({ item: NavKey } | { group: NavGroupKey })[] = [
+const MOBILE_PRIMARY: MobilePick[] = [
   { item: "portal" },
   { item: "dashboard" },
   { item: "projects" },
@@ -52,6 +54,8 @@ export interface ShellProps {
   companies: { name: string; slug: string }[];
   user: { name: string | null; email: string };
   nav: ShellNavGroup[];
+  /** Role-specific bottom-bar picks, tried before the default order. */
+  mobilePrimary?: MobilePick[];
   locale: "fi" | "en";
   labels: {
     appName: string;
@@ -69,17 +73,19 @@ export interface ShellProps {
   children: React.ReactNode;
 }
 
-function mobileEntries(nav: ShellNavGroup[], active: NavKey | null): BarEntry[] {
+function mobileEntries(nav: ShellNavGroup[], active: NavKey | null, preferred: MobilePick[] = []): BarEntry[] {
   const out: BarEntry[] = [];
-  for (const pick of MOBILE_PRIMARY) {
+  for (const pick of [...preferred, ...MOBILE_PRIMARY]) {
     if (out.length === 4) break;
     if ("item" in pick) {
+      if (out.some((e) => e.id === pick.item)) continue;
       const g = nav.find((x) => x.items.some((i) => i.key === pick.item));
       const item = g?.items.find((i) => i.key === pick.item);
       // The first page of an area is labelled with the area (e.g. "Projektit" for the project list).
       const label = g && item && g.items.length > 1 && g.items[0].key === item.key ? g.label : item?.label;
       if (item && label) out.push({ id: item.key, href: item.href, label, Icon: NAV_ICONS[item.key], active: active === item.key });
     } else {
+      if (out.some((e) => e.id === pick.group)) continue;
       const g = nav.find((x) => x.key === pick.group);
       const rest = g?.items.filter((i) => !out.some((e) => e.id === i.key)) ?? [];
       if (g && rest.length) {
@@ -235,7 +241,7 @@ export function AppShell(props: ShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const active = activeNavKey(nav, pathname);
   // Phones: the most used destinations in the bottom bar, everything grouped under "More".
-  const primary = mobileEntries(nav, active);
+  const primary = mobileEntries(nav, active, props.mobilePrimary);
 
   return (
     <div className="min-h-dvh bg-muted/30">
@@ -265,7 +271,7 @@ export function AppShell(props: ShellProps) {
         <CompanySwitcher company={company} companies={companies} labels={labels} className="border-0 bg-transparent px-2" dark />
       </header>
 
-      <main className="pb-24 md:pb-10 md:pl-64">
+      <main className="overflow-x-clip pb-40 md:pb-10 md:pl-64">
         <div className="mx-auto w-full max-w-6xl px-4 py-5 md:px-8 md:py-8">{children}</div>
       </main>
 

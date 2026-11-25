@@ -62,7 +62,12 @@ export function isExternalPath(pathname: string | null): boolean {
  */
 export function navGroups(ctx: RequestContext, opts: { myEmployeeId?: string | null } = {}): NavGroup[] {
   const base = `/c/${ctx.company.slug}`;
-  if (ctx.external) return [{ key: "portalGroup", items: [{ key: "portal", href: `${base}/portal` }] }];
+  if (ctx.external) {
+    // One project: open it directly instead of going through the redirecting portal list.
+    const projects = [...ctx.projectGrants.keys()];
+    const href = projects.length === 1 ? `${base}/portal/${projects[0]}` : `${base}/portal`;
+    return [{ key: "portalGroup", items: [{ key: "portal", href, match: [`${base}/portal`, `${base}/hse`, `${base}/documents`] }] }];
+  }
   const has = (p: Parameters<RequestContext["permissions"]["has"]>[0]) => ctx.permissions.has(p);
   const grants = [...ctx.projectGrants.values()];
   const anyProjectGrant = grants.length > 0;
@@ -116,9 +121,38 @@ export function navGroups(ctx: RequestContext, opts: { myEmployeeId?: string | n
   return groups;
 }
 
+export type MobilePick = { item: NavKey } | { group: NavGroupKey };
+
+/**
+ * Phone bottom bar by role (role journeys 2026-11-26): the page a role uses
+ * most comes first. Decided by capabilities, never by role names; the shell
+ * fills the remaining slots in its default order.
+ */
+export function mobilePrimary(ctx: RequestContext): MobilePick[] {
+  if (ctx.external) return [];
+  const has = (p: Parameters<RequestContext["permissions"]["has"]>[0]) => ctx.permissions.has(p) || [...ctx.projectGrants.values()].some((g) => g.has(p));
+  const picks: MobilePick[] = [{ item: "dashboard" }];
+  // Lifting supervisor: lift plans, not takt.
+  if (has("lift.plan.approve") && !has("takt.manage")) picks.push({ item: "lifting" });
+  // Logistics coordinator: the logistics board, not takt.
+  if (has("logistics.approve") && !has("takt.manage")) picks.push({ item: "logistics" });
+  // HSE specialist: the HSE register before projects and hours.
+  if (has("hse.investigate") && !has("project.manage")) picks.push({ group: "hseGroup" });
+  // Worker without crew or logistics duties: hours, safety reporting and the own card.
+  if (!has("timesheet.manage") && !has("logistics.request") && !has("takt.manage")) picks.push({ item: "time" }, { group: "hseGroup" }, { item: "myCard" });
+  return picks;
+}
+
 /** Any time-tracking capability, company-wide or through a project role. */
 export function hasTimeAccess(ctx: RequestContext): boolean {
   const keys = ["timesheet.submit", "timesheet.manage", "timesheet.approve", "timesheet.export"] as const;
+  if (keys.some((k) => ctx.permissions.has(k))) return true;
+  return [...ctx.projectGrants.values()].some((g) => keys.some((k) => g.has(k)));
+}
+
+/** Entering, managing or approving hours (anything beyond the payroll export). */
+export function hasTimeEntryAccess(ctx: RequestContext): boolean {
+  const keys = ["timesheet.submit", "timesheet.manage", "timesheet.approve"] as const;
   if (keys.some((k) => ctx.permissions.has(k))) return true;
   return [...ctx.projectGrants.values()].some((g) => keys.some((k) => g.has(k)));
 }

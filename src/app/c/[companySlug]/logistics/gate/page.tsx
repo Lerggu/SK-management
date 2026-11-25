@@ -9,6 +9,7 @@ import { StatusBadge } from "@/ui/components/status-badge";
 import { loadOr404, requireCompanyContext } from "@/app/_lib/context";
 import { SiteDayPicker } from "../_components/site-day-picker";
 import { advanceDeliveryAction } from "../actions";
+import { preferredSiteId } from "@/app/_lib/site-preference";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("logistics"))("gateView") };
@@ -22,7 +23,7 @@ export default async function GatePage({ params, searchParams }: { params: Promi
   const [sites, t] = await Promise.all([logisticsBoardService.sites(ctx), getTranslations("logistics")]);
   const base = `/c/${companySlug}/logistics`;
   if (sites.length === 0) return <EmptyState>{t("noSites")}</EmptyState>;
-  const siteId = sites.some((s) => s.id === sp.site) ? sp.site! : sites[0].id;
+  const siteId = (await preferredSiteId(companySlug, sites, sp.site)) ?? sites[0].id;
   // Today by default; the board links with its chosen day (the service validates the date).
   const date = sp.date && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : todayInDisplayZone();
   const board = await loadOr404(logisticsBoardService.day(ctx, { siteId, date }));

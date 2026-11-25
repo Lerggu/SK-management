@@ -67,20 +67,20 @@ export default async function HsePage({ params, searchParams }: Props) {
 
         {/* Fast actions: large touch targets for site personnel. */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="hse-quick">
-          <Button asChild size="lg" className="h-14">
+          <Button asChild size="lg" className="h-auto min-h-14 py-2 whitespace-normal">
             <Link href={`${base}/report${q}&kind=SAFETY_OBSERVATION`}>
               <Eye aria-hidden /> {t("reportObservation")}
             </Link>
           </Button>
-          <Button asChild size="lg" variant="outline" className="h-14">
+          <Button asChild size="lg" variant="outline" className="h-auto min-h-14 py-2 whitespace-normal">
             <Link href={`${base}/report${q}&kind=NEAR_MISS`}>{t("reportNearMiss")}</Link>
           </Button>
-          <Button asChild size="lg" variant="destructive" className="h-14">
+          <Button asChild size="lg" variant="destructive" className="h-auto min-h-14 py-2 whitespace-normal">
             <Link href={`${base}/report${q}&kind=INCIDENT`}>
               <FileWarning aria-hidden /> {t("reportIncident")}
             </Link>
           </Button>
-          <Button asChild size="lg" variant="outline" className="h-14">
+          <Button asChild size="lg" variant="outline" className="h-auto min-h-14 py-2 whitespace-normal">
             <Link href={`${base}/report${q}&kind=PERMIT`}>
               <ClipboardCheck aria-hidden /> {t("requestPermit")}
             </Link>
@@ -93,6 +93,31 @@ export default async function HsePage({ params, searchParams }: Props) {
             <p className="mt-2 text-xs text-muted-foreground">{t("hoursNote")}</p>
           </Section>
         )}
+
+        {!r.can.ownOnly && (
+          <Section title={t("actions")}>
+            <ActionsList slug={companySlug} actions={r.actions.filter((a) => a.status !== "VERIFIED")} userId={ctx.user.id} can={r.can} />
+          </Section>
+        )}
+
+        <Section title={t("permits")}>
+          {r.permits.length === 0 ? (
+            <EmptyState>{t("noPermits")}</EmptyState>
+          ) : (
+            <RowList>
+              {r.permits.map((p) => (
+                <RowLink
+                  key={p.id}
+                  href={`${base}/permits/${p.id}`}
+                  title={`#${p.number} ${t(`permitTypes.${p.type}`)}`}
+                  subtitle={[p.description, p.contractor].filter(Boolean).join(" · ")}
+                  meta={`${fmtDateTime(format, p.validFrom)} – ${fmtDateTime(format, p.validTo)}`}
+                  badge={<StatusBadge status={p.status === "REQUESTED" ? "PENDING_APPROVAL" : p.status} label={t(`permitStatuses.${p.status}`)} />}
+                />
+              ))}
+            </RowList>
+          )}
+        </Section>
 
         <Section title={t("incidents")}>
           {r.incidents.length === 0 ? (
@@ -117,9 +142,10 @@ export default async function HsePage({ params, searchParams }: Props) {
           {r.observations.length === 0 ? (
             <EmptyState>{t("noObservations")}</EmptyState>
           ) : (
-            <RowList>
-              {r.observations.map((o) => (
-                <RowLink
+            <>
+              <RowList>
+                {r.observations.slice(0, 5).map((o) => (
+                  <RowLink
                   key={o.id}
                   href={`${base}/observations/${o.id}`}
                   title={`#${o.number} ${o.title}`}
@@ -127,33 +153,26 @@ export default async function HsePage({ params, searchParams }: Props) {
                   meta={fmtDateTime(format, o.occurredAt)}
                   badge={<StatusBadge status={statusTone(o.status)} label={t(`observationStatuses.${o.status}`)} />}
                 />
-              ))}
-            </RowList>
-          )}
-        </Section>
-
-        {!r.can.ownOnly && (
-          <Section title={t("actions")}>
-            <ActionsList slug={companySlug} actions={r.actions.filter((a) => a.status !== "VERIFIED")} userId={ctx.user.id} can={r.can} />
-          </Section>
-        )}
-
-        <Section title={t("permits")}>
-          {r.permits.length === 0 ? (
-            <EmptyState>{t("noPermits")}</EmptyState>
-          ) : (
-            <RowList>
-              {r.permits.map((p) => (
-                <RowLink
-                  key={p.id}
-                  href={`${base}/permits/${p.id}`}
-                  title={`#${p.number} ${t(`permitTypes.${p.type}`)}`}
-                  subtitle={[p.description, p.contractor].filter(Boolean).join(" · ")}
-                  meta={`${fmtDateTime(format, p.validFrom)} – ${fmtDateTime(format, p.validTo)}`}
-                  badge={<StatusBadge status={p.status === "REQUESTED" ? "PENDING_APPROVAL" : p.status} label={t(`permitStatuses.${p.status}`)} />}
+                ))}
+              </RowList>
+              {r.observations.length > 5 && (
+                <details className="mt-2" data-testid="observations-more">
+                  <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-primary">{t("showAllObservations", { count: r.observations.length })}</summary>
+                  <RowList>
+                    {r.observations.slice(5).map((o) => (
+                      <RowLink
+                  key={o.id}
+                  href={`${base}/observations/${o.id}`}
+                  title={`#${o.number} ${o.title}`}
+                  subtitle={`${t(`kinds.${o.kind}`)} · ${t(`categories.${o.category}`)} · ${t(`severities.${o.severity}`)}`}
+                  meta={fmtDateTime(format, o.occurredAt)}
+                  badge={<StatusBadge status={statusTone(o.status)} label={t(`observationStatuses.${o.status}`)} />}
                 />
-              ))}
-            </RowList>
+                    ))}
+                  </RowList>
+                </details>
+              )}
+            </>
           )}
         </Section>
 

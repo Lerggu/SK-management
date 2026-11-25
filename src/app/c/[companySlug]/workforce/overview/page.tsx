@@ -13,10 +13,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("hr.overview"))("title") };
 }
 
-function Block({ title, count, children, testId }: { title: string; count: number; children: React.ReactNode; testId: string }) {
+function Block({ title, count, children, testId, id }: { title: string; count: number; children: React.ReactNode; testId: string; id?: string }) {
   return (
     <Section title={`${title} (${count})`}>
-      <div data-testid={testId}>{children}</div>
+      <div data-testid={testId} id={id} className="scroll-mt-20">
+        {children}
+      </div>
     </Section>
   );
 }
@@ -28,7 +30,7 @@ export default async function HrOverviewPage({ params }: { params: Promise<{ com
   const [tabs, t, format] = await Promise.all([hrTabsFor(ctx), getTranslations("hr"), getFormatter()]);
   const o = await orForbidden(hrOverviewService.overview(ctx));
   const person = (p: { id: string; name: string }, tab?: string) => (
-    <Link href={`/c/${companySlug}/workforce/${p.id}${tab ? `?tab=${tab}` : ""}`} className="font-medium underline-offset-2 hover:underline">
+    <Link href={`/c/${companySlug}/workforce/${p.id}${tab ? `?tab=${tab}` : ""}`} className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:underline md:min-h-0">
       {p.name}
     </Link>
   );
@@ -50,6 +52,20 @@ export default async function HrOverviewPage({ params }: { params: Promise<{ com
                     <span className="flex-1">{x.name}</span>
                     <ValidityBadge state={x.validity} label={t(`validity.${x.validity}`)} />
                     <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(format, x.expiresOn)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Block>
+          <Block title={t("overview.openOrientations")} count={o.openOrientations.length} testId="overview-orientations" id="orientations">
+            {o.openOrientations.length === 0 ? nothing : (
+              <ul className="divide-y text-sm">
+                {o.openOrientations.map((x) => (
+                  <li key={x.id} className="flex flex-wrap items-center gap-2 py-2">
+                    {person(x.employee, "qualifications")}
+                    <span className="flex-1">{x.topic}</span>
+                    <SmallBadge tone={x.status === "DONE" ? "muted" : "warn"}>{t(`orientation.statuses.${x.status}`)}</SmallBadge>
+                    {x.renewalDueOn && <span className="text-xs text-muted-foreground">{t("orientation.renewalDueOn")} {fmtDate(format, x.renewalDueOn)}</span>}
                   </li>
                 ))}
               </ul>
@@ -127,20 +143,6 @@ export default async function HrOverviewPage({ params }: { params: Promise<{ com
                     <span className="flex-1">{x.name}</span>
                     <ValidityBadge state={x.validity} label={t(`validity.${x.validity}`)} />
                     <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(format, x.expiresOn)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Block>
-          <Block title={t("overview.openOrientations")} count={o.openOrientations.length} testId="overview-orientations">
-            {o.openOrientations.length === 0 ? nothing : (
-              <ul className="divide-y text-sm">
-                {o.openOrientations.map((x) => (
-                  <li key={x.id} className="flex flex-wrap items-center gap-2 py-2">
-                    {person(x.employee, "qualifications")}
-                    <span className="flex-1">{x.topic}</span>
-                    <SmallBadge tone={x.status === "DONE" ? "muted" : "warn"}>{t(`orientation.statuses.${x.status}`)}</SmallBadge>
-                    {x.renewalDueOn && <span className="text-xs text-muted-foreground">{t("orientation.renewalDueOn")} {fmtDate(format, x.renewalDueOn)}</span>}
                   </li>
                 ))}
               </ul>

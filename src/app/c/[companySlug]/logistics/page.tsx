@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { DoorOpen, Warehouse } from "lucide-react";
+import { DoorOpen, Plus, Warehouse } from "lucide-react";
 import { logisticsBoardService, logisticsRequestService } from "@/modules/logistics/logistics.service";
 import { taktPlanService } from "@/modules/takt/plan.service";
 import { PRIORITIES, SERVICE_TYPES } from "@/modules/logistics/schemas";
@@ -17,6 +17,8 @@ import { SiteDayPicker } from "./_components/site-day-picker";
 import { createDeliveryAction, createRequestAction } from "./actions";
 import { taskTypeService } from "@/modules/production/service";
 import { ProductionTabs } from "@/app/c/[companySlug]/_components/production-tabs";
+import { preferredSiteId, siteCookieName } from "@/app/_lib/site-preference";
+import { RememberSite } from "@/ui/components/remember-site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getTranslations("logistics"))("board") };
@@ -50,7 +52,7 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
       </>
     );
   }
-  const siteId = sites.some((s) => s.id === sp.site) ? sp.site! : sites[0].id;
+  const siteId = (await preferredSiteId(companySlug, sites, sp.site)) ?? sites[0].id;
   const date = sp.date || todayInDisplayZone();
   const board = await loadOr404(logisticsBoardService.day(ctx, { siteId, date }));
   const taskTypes = await taskTypeService.list(ctx).catch(() => []);
@@ -66,6 +68,7 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
 
   return (
     <>
+      <RememberSite cookieName={siteCookieName(companySlug)} siteId={siteId} />
       <PageHeader
         title={t("board")}
         description={`${board.site.project.code} · ${board.site.name}`}
@@ -84,7 +87,7 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
           </>
         }
       />
-      <ProductionTabs ctx={ctx} active="logistics" />
+      <ProductionTabs ctx={ctx} active="logistics" site={siteId} date={date} />
       <div className="space-y-4">
         <Section title={t("deliveries")}>
           <SiteDayPicker sites={sites} siteId={siteId} date={date} />
@@ -147,7 +150,11 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
           {board.deliveries.length === 0 && board.gates.length > 0 && <p className="mt-3 text-sm text-muted-foreground">{t("noDeliveries")}</p>}
 
           {perms.deliver && board.gates.length > 0 && (
-            <ActionForm action={createDeliveryAction.bind(null, companySlug)} className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="delivery-form">
+            <details className="group mt-4 rounded-lg border" data-testid="new-delivery">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-3 font-medium text-primary marker:hidden">
+                <Plus className="size-4" aria-hidden /> {t("newDelivery")}
+              </summary>
+            <ActionForm action={createDeliveryAction.bind(null, companySlug)} className="grid gap-3 border-t p-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="delivery-form">
               <input type="hidden" name="siteId" value={siteId} />
               <input type="hidden" name="date" value={date} />
               <SelectField name="gateId" label={t("gate")} options={board.gates.map((g) => ({ value: g.id, label: g.name }))} defaultValue={board.gates[0].id} />
@@ -167,6 +174,7 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
                 <SubmitButton>{t("schedule")}</SubmitButton>
               </div>
             </ActionForm>
+            </details>
           )}
         </Section>
 
@@ -191,7 +199,11 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
             </ul>
           )}
           {perms.request && (
-            <ActionForm action={createRequestAction.bind(null, companySlug)} className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="request-form">
+            <details className="group mt-4 rounded-lg border" data-testid="new-request">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-3 font-medium text-primary marker:hidden">
+                <Plus className="size-4" aria-hidden /> {t("newRequest")}
+              </summary>
+            <ActionForm action={createRequestAction.bind(null, companySlug)} className="grid gap-3 border-t p-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="request-form">
               <input type="hidden" name="siteId" value={siteId} />
               <SelectField name="serviceType" label={t("serviceType")} options={SERVICE_TYPES.map((s) => ({ value: s, label: t(`serviceTypes.${s}`) }))} defaultValue="DELIVERY" />
               <TextField name="title" label={t("requestTitle")} required className="lg:col-span-3" />
@@ -223,10 +235,11 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
                 <SubmitButton>{t("createRequest")}</SubmitButton>
               </div>
             </ActionForm>
+            </details>
           )}
         </Section>
 
-        <Section title={t("myBookings")} actions={<Link href={`${base}/bookings`} className="text-sm text-primary hover:underline">{tc("open")}</Link>}>
+        <Section title={t("myBookings")} actions={<Link href={`${base}/bookings`} className="inline-flex min-h-11 items-center px-2 text-sm text-primary hover:underline">{tc("open")}</Link>}>
           {board.bookings.length === 0 ? (
             <EmptyState>{t("noBookings")}</EmptyState>
           ) : (

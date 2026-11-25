@@ -153,8 +153,13 @@ export default async function TaktBoardPage({ params, searchParams }: Props) {
           {/* Approval */}
           {sel?.status === "PROPOSED" && (perms.approve || perms.manage) && (
             <div className="mt-4 space-y-3 border-t pt-4" data-testid="approval-tools">
+              {(() => {
+                const by = board.versions.find((v) => v.id === sel.id)?.proposedBy;
+                return by ? <p className="text-sm text-muted-foreground">{t("proposedBy", { name: by.name ?? by.email })}</p> : null;
+              })()}
+              {perms.approve && sel.proposedById === ctx.user.id && <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:bg-amber-950/20">{t("ownProposal")}</p>}
               {perms.approve && (
-                <ActionButton action={approveAction.bind(null, companySlug, sel.id)} confirm={t("approveConfirm")} variant="default">
+                <ActionButton action={approveAction.bind(null, companySlug, sel.id)} confirm={sel.proposedById === ctx.user.id ? t("approveOwnConfirm") : t("approveConfirm")} variant="default">
                   {t("approve")}
                 </ActionButton>
               )}

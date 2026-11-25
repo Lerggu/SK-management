@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { AlertTriangle, BookOpen, ClipboardCheck, Clock, FileText, FolderKanban, MapPin, Plus, Truck, Users } from "lucide-react";
+import { AlertTriangle, BookOpen, ChevronRight, ClipboardCheck, Clock, FileText, FolderKanban, GraduationCap, IdCard, MapPin, Plus, ShieldAlert, Truck, Users } from "lucide-react";
 import { hasPermission, projectIdsWithPermission, projectPermissions } from "@/platform/authz";
 import { todayInDisplayZone } from "@/platform/i18n/config";
 import { timesheetService } from "@/modules/timesheets/service";
 import { projectService, siteService } from "@/modules/projects/service";
 import { D } from "@/modules/finance/calculations";
-import { hasTimeAccess } from "@/app/_lib/nav";
+import { hasHseAccess, hasTimeAccess } from "@/app/_lib/nav";
+import { hrOverviewService } from "@/modules/hr/overview.service";
 import { openDiaryAction } from "../diary/actions";
 import { ActionButton } from "@/ui/components/form";
 import { dashboardService } from "@/modules/companies/dashboard";
@@ -61,7 +62,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ comp
   for (const p of (await projectService.list(ctx)).filter((p) => !p.archivedAt && projectPermissions(ctx, p.id).has("diary.manage")).slice(0, 4)) {
     for (const site of await siteService.list(ctx, p.id)) diarySites.push({ id: site.id, label: `${p.code} › ${site.name}` });
   }
-  const showToday = timeAccess || diarySites.length > 0;
+  const canReport = !ctx.external && (hasPermission(ctx, "hse.create") || [...ctx.projectGrants.values()].some((g) => g.has("hse.create"))) && hasHseAccess(ctx);
+  const showToday = timeAccess || diarySites.length > 0 || canReport;
+  const decisions = (await dashboardService.decisions(ctx)).slice(0, 8);
+  // HR (ADR 0025): expiring cards and open orientations for company-wide HR viewers.
+  const hr = hasPermission(ctx, "hr.view") ? await hrOverviewService.overview(ctx).catch(() => null) : null;
 
   const quick = [
     hasPermission(ctx, "project.manage") && { href: `${base}/projects/new`, label: t("newProject") },
@@ -86,6 +91,12 @@ export default async function DashboardPage({ params }: { params: Promise<{ comp
                 {myHoursToday && <span className="text-sm font-normal opacity-90">{t("myHoursToday", { hours: format.number(Number(myHoursToday.toString()), { maximumFractionDigits: 2 }) })}</span>}
               </Link>
             )}
+            {canReport && (
+              <Link href={`${base}/hse/report`} className="flex min-h-14 items-center gap-3 rounded-xl border px-4 text-sm font-medium hover:bg-muted">
+                <ShieldAlert className="size-5 text-primary" aria-hidden />
+                {t("reportObservation")}
+              </Link>
+            )}
             {approvals && approvals.length > 0 && (
               <Link href={`${base}/time/approvals`} className="flex min-h-14 items-center gap-3 rounded-xl border px-4 text-sm font-medium hover:bg-muted">
                 <ClipboardCheck className="size-5 text-primary" aria-hidden />
@@ -96,16 +107,42 @@ export default async function DashboardPage({ params }: { params: Promise<{ comp
           {diarySites.length > 0 && (
             <div className="mt-3">
               <p className="mb-2 text-sm text-muted-foreground">{t("diaryToday")}</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {diarySites.map((site) => (
-                  <ActionButton key={site.id} action={openDiaryAction.bind(null, companySlug, site.id, today)} variant="outline">
-                    <BookOpen aria-hidden /> {site.label}
+                  <ActionButton key={site.id} action={openDiaryAction.bind(null, companySlug, site.id, today)} variant="outline" className="min-w-0 [&_button]:h-auto [&_button]:min-h-11 [&_button]:w-full [&_button]:justify-start [&_button]:py-2 [&_button]:text-left [&_button]:whitespace-normal">
+                    <BookOpen aria-hidden /> <span className="min-w-0 break-words">{site.label}</span>
                   </ActionButton>
                 ))}
               </div>
             </div>
           )}
         </section>
+      )}
+
+      {decisions.length > 0 && (
+        <section className="mb-6 rounded-xl border border-amber-300 bg-amber-50/60 p-4 dark:bg-amber-950/20" aria-labelledby="decisions" data-testid="decisions">
+          <h2 id="decisions" className="mb-2 text-base font-semibold">
+            {t("decisions")}
+          </h2>
+          <ul className="divide-y">
+            {decisions.map((d) => (
+              <li key={`${d.kind}-${d.id}`}>
+                <Link href={`${base}/${d.path}`} className="flex min-h-12 items-center gap-3 py-2 text-sm hover:underline">
+                  <span className="w-28 shrink-0 text-xs font-medium text-muted-foreground uppercase">{t(`decisionKinds.${d.kind}`)}</span>
+                  <span className="min-w-0 flex-1 break-words">{d.title}</span>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {hr && (
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="hr-figures">
+          <Stat label={t("hrExpiring")} value={hr.expiring.length + hr.expiringTrainings.length} href={`${base}/workforce/overview`} icon={IdCard} />
+          <Stat label={t("hrOrientations")} value={hr.openOrientations.length} href={`${base}/workforce/overview#orientations`} icon={GraduationCap} />
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -168,7 +205,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ comp
           </Section>
         )}
       </div>
-      <p className="mt-6 text-xs text-muted-foreground">{t("comingLater")}</p>
     </>
   );
 }

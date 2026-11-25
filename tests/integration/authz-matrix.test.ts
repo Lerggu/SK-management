@@ -285,7 +285,7 @@ const MATRIX: Record<keyof typeof ACTIONS, Outcome[]> = {
   "record MVR inspection":   ["✓", "✓", "✓", "✓", "F", "F", "✓", "F", "F", "N", "F", "N"],
   "share document":          ["✓", "✓", "✓", "F", "F", "F", "F", "F", "N", "N", "F", "N"],
   "open portal":             ["N", "N", "N", "N", "N", "N", "N", "N", "✓", "✓", "N", "✓"],
-  "portal schedule":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "✓", "✓"],
+  "portal schedule":         ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓"],
   "portal HSE figures":      ["✓", "✓", "✓", "✓", "✓", "✓", "✓", "✓", "N", "✓", "✓", "✓"],
   "approve variation in portal":["N", "N", "N", "N", "N", "N", "N", "N", "N", "F", "N", "✓"],
   // V8 — AI project controller (ai.use); never for external roles

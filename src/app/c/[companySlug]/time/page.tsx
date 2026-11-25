@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { ChevronLeft, ChevronRight, ClipboardCheck, Download } from "lucide-react";
 import { ValidationError } from "@/platform/errors";
@@ -14,6 +15,7 @@ import { EmptyState, PageHeader, Section } from "@/ui/components/page";
 import { StatusBadge } from "@/ui/components/status-badge";
 import { Button } from "@/ui/components/button";
 import { requireCompanyContext } from "@/app/_lib/context";
+import { hasTimeEntryAccess } from "@/app/_lib/nav";
 import { todayInDisplayZone } from "@/platform/i18n/config";
 import { locationOptions } from "@/app/_lib/locations";
 import { archiveEntryAction, correctionAction, createCrewAction, createEntryAction, submitWeekAction } from "./actions";
@@ -33,6 +35,9 @@ export default async function TimePage({ params, searchParams }: { params: Promi
   const date = sp.date && ISO.test(sp.date) ? sp.date : today;
   const monday = weekStart(new Date(`${date}T00:00:00Z`));
   const base = `/c/${companySlug}/time`;
+
+  // Payroll export only (e.g. HR administrator): nothing to enter or approve here.
+  if (hasPermission(ctx, "timesheet.export") && !hasTimeEntryAccess(ctx)) redirect(`${base}/export`);
 
   const options = await timesheetService.entryOptions(ctx);
   const viewedEmployeeId = sp.employee && options.crewEmployees.some((e) => e.id === sp.employee) ? sp.employee : null;
@@ -95,9 +100,9 @@ export default async function TimePage({ params, searchParams }: { params: Promi
           </Link>
         </Button>
         {options.canManageCrew && (
-          <form className="flex flex-1 items-center gap-2 sm:flex-none">
+          <form className="flex w-full min-w-0 basis-full items-center gap-2 sm:w-auto sm:basis-auto">
             <input type="hidden" name="date" value={date} />
-            <select name="employee" defaultValue={viewedEmployeeId ?? ""} aria-label={t("employee")} className="h-11 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-base md:h-9 md:text-sm">
+            <select name="employee" defaultValue={viewedEmployeeId ?? ""} aria-label={t("employee")} className="h-11 w-0 min-w-0 flex-1 truncate rounded-lg border border-input bg-background px-3 text-base sm:w-64 sm:flex-none md:h-9 md:text-sm">
               <option value="">{t("self")}</option>
               {options.crewEmployees.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -125,7 +130,7 @@ export default async function TimePage({ params, searchParams }: { params: Promi
                   <SelectField name="location" label={t("project")} options={entryLocations} defaultValue={entryLocations[0]?.value} required className="sm:col-span-2" />
                   <TextField name="workDate" label={t("date")} type="date" defaultValue={date === today || !sp.date ? today : date} required />
                   <div className="space-y-2">
-                    <TextField name="hours" label={t("hours")} inputMode="decimal" placeholder="8" />
+                    <TextField name="hours" label={t("hours")} inputMode="decimal" />
                     <QuickHours label={t("quickHours")} />
                   </div>
                   <details className="sm:col-span-2">
@@ -225,7 +230,7 @@ export default async function TimePage({ params, searchParams }: { params: Promi
               </div>
               <SelectField name="location" label={t("project")} options={crewLocations} defaultValue={crewLocations[0]?.value} required className="sm:col-span-2" />
               <TextField name="workDate" label={t("date")} type="date" defaultValue={today} required />
-              <TextField name="hours" label={t("hours")} inputMode="decimal" placeholder="8" />
+              <TextField name="hours" label={t("hours")} inputMode="decimal" />
               <SelectField name="workClass" label={t("workClass")} defaultValue="NORMAL" options={classOptions} />
               <TextField name="note" label={t("note")} />
               <div className="sm:col-span-2">

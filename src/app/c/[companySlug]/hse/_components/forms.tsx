@@ -160,12 +160,18 @@ export async function ActionsList({ slug, actions, userId, can }: { slug: string
   );
 }
 
+/** Hours below which LTIF is not shown (role journeys 2026-11-26). */
+const LTIF_MIN_HOURS = 10_000;
+
 /** Key figure tiles (internal register and the client portal). */
 export async function MetricTiles({ m }: { m: Pick<HseMetrics, "ltif" | "reportRate" | "nearMisses" | "safetyObservations" | "incidents" | "lostTimeInjuries" | "openActions" | "overdueActions" | "toolboxTalks" | "latestInspectionIndex" | "hours"> }) {
   const [t, format] = await Promise.all([getTranslations("hse"), getFormatter()]);
   const n = (v: number | null, d = 1) => (v === null ? "–" : fmtNumber(format, v, d));
   const tiles = [
-    { key: "ltif", label: t("metrics.ltif"), value: n(m.ltif), hint: t("metrics.ltifHint") },
+    // A frequency per million hours is noise with few hours: show it only from LTIF_MIN_HOURS on.
+    m.hours !== null && m.hours < LTIF_MIN_HOURS
+      ? { key: "ltif", label: t("metrics.ltif"), value: "–", hint: t("metrics.ltifTooFewHours", { hours: fmtNumber(format, LTIF_MIN_HOURS, 0) }) }
+      : { key: "ltif", label: t("metrics.ltif"), value: n(m.ltif), hint: t("metrics.ltifHint") },
     { key: "reportRate", label: t("metrics.reportRate"), value: n(m.reportRate, 2), hint: t("metrics.reportRateHint") },
     { key: "mvr", label: t("metrics.mvr"), value: m.latestInspectionIndex === null ? "–" : `${n(m.latestInspectionIndex)} %` },
     { key: "observations", label: t("metrics.observations"), value: String(m.safetyObservations + m.nearMisses), hint: t("metrics.nearMisses", { n: m.nearMisses }) },

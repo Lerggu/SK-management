@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ROLE_TEMPLATES, type PermissionKey, type RequestContext, type RoleTemplateKey } from "@/platform/authz";
-import { navGroups } from "./nav";
+import { mobilePrimary, navGroups } from "./nav";
 
 function ctx(perms: PermissionKey[], opts: { external?: boolean } = {}): RequestContext {
   return {
@@ -50,5 +50,25 @@ describe("grouped navigation", () => {
 
   it("links point into the company", () => {
     for (const g of navGroups(ctx(role("CEO")), { myEmployeeId: "e1" })) for (const i of g.items) expect(i.href.startsWith("/c/x/")).toBe(true);
+  });
+});
+
+describe("phone bottom bar by role", () => {
+  const picks = (key: RoleTemplateKey) => mobilePrimary(ctx(role(key)));
+  it("puts lift plans first for the lifting supervisor", () => {
+    expect(picks("LIFTING_SUPERVISOR")).toContainEqual({ item: "lifting" });
+  });
+  it("puts the logistics board first for the logistics coordinator", () => {
+    expect(picks("LOGISTICS_COORDINATOR").slice(0, 2)).toEqual([{ item: "dashboard" }, { item: "logistics" }]);
+  });
+  it("puts HSE first for the HSE specialist", () => {
+    expect(picks("HSE").slice(0, 2)).toEqual([{ item: "dashboard" }, { group: "hseGroup" }]);
+  });
+  it("gives a worker hours, safety and the own card", () => {
+    expect(picks("EMPLOYEE")).toEqual([{ item: "dashboard" }, { item: "time" }, { group: "hseGroup" }, { item: "myCard" }]);
+  });
+  it("keeps the default order for managers and nothing for external members", () => {
+    expect(picks("SITE_MANAGER")).toEqual([{ item: "dashboard" }]);
+    expect(mobilePrimary(ctx(role("CLIENT"), { external: true }))).toEqual([]);
   });
 });

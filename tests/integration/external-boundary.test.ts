@@ -134,6 +134,7 @@ const ALLOWED_WRITES: Record<string, Role[]> = {
   "photo.add own": ["SUBCONTRACTOR"],
   "permit.close own approved": ["SUBCONTRACTOR"],
   "clientApproval.decide": ["CLIENT_APPROVER"],
+  "document.submitExternal": ["SUBCONTRACTOR"],
   "company.rememberCompany": ["CLIENT", "CLIENT_APPROVER", "SUBCONTRACTOR"],
 };
 
@@ -256,6 +257,9 @@ const CALLS: Record<string, Call> = {
   "document.download internal": r("document", (c) => documentService.downloadVersion(c, f.docVersion)),
   "document.listLinkedTo": r("document", (c) => documentService.listLinkedTo(c, { entityType: "PROJECT", entityId: f.project })),
   "document.create": w("document", (c) => documentService.create(c, { title: "x", projectId: f.project }, textFile("x.pdf"))),
+  // ADR 0037: subcontractors deliver documents for approval; nothing comes back unapproved.
+  "document.submitExternal": w("document", (c) => documentService.submitExternal(c, f.project, { title: "Toimitettu RAMS", category: "RAMS" }, textFile("rams.pdf"))),
+  "document.listOwnSubmissions": r("document", (c) => documentService.listOwnSubmissions(c, f.project)),
   "document.approve": w("document", (c) => documentService.setVersionApproval(c, f.sharedVersion, { state: "REJECTED" })),
   "document.setSharing": w("document", (c) => documentService.setSharing(c, f.sharedDoc, { sharedWithSubcontractors: "on" })),
   "profile.getProfile": r("profile", (c) => profileService.getProfile({ kind: "user", user: c.user, meta: c.meta, locale: "fi" })),

@@ -79,13 +79,13 @@ export default async function TeamsPage({ params }: { params: Promise<{ companyS
                       <ul className="flex flex-wrap gap-2" data-testid="team-members">
                         {team.members.map((m) => (
                           <li key={m.id} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 py-0.5 pr-1 pl-3 text-sm" data-member={m.name}>
-                            <Link href={`/c/${companySlug}/workforce/${m.id}`} className="hover:underline">
+                            <Link href={`/c/${companySlug}/workforce/${m.id}`} className="inline-flex min-h-10 items-center hover:underline">
                               {m.name}
                             </Link>
                             {m.trade && <span className="text-xs text-muted-foreground">{m.trade}</span>}
                             {team.leader?.id === m.id && <span className="rounded bg-primary/10 px-1 text-[10px] font-semibold uppercase">{t("leaderShort")}</span>}
                             {data.canManage && (
-                              <ActionButton action={teamRemoveMemberAction.bind(null, companySlug, team.id, m.id)} variant="ghost" className="[&_button]:size-8 [&_button]:p-0">
+                              <ActionButton action={teamRemoveMemberAction.bind(null, companySlug, team.id, m.id)} confirm={t("removeConfirm", { name: m.name })} variant="ghost" className="ml-1 [&_button]:size-10 [&_button]:p-0">
                                 <X className="size-4" aria-hidden />
                                 <span className="sr-only">{t("remove", { name: m.name })}</span>
                               </ActionButton>

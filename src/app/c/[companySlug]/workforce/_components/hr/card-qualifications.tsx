@@ -56,7 +56,6 @@ async function ReminderInfo({ q }: { q: { reminder: WorkData["qualifications"][n
       ))}
       {r.missingOwnerEmail && <p className="rounded bg-amber-100 px-2 py-1 text-amber-900" role="note">{t("missingOwner")}</p>}
       {r.missingMaintenanceEmail && <p className="rounded bg-amber-100 px-2 py-1 text-amber-900" role="note">{t("missingMaintenance")}</p>}
-      {!r.mailConfigured && <p className="rounded bg-amber-100 px-2 py-1 text-amber-900" role="note">{t("mailOff")}</p>}
     </div>
   );
 }
@@ -119,8 +118,27 @@ export async function QualificationsTab({ slug, card, act, files, types }: { slu
   const current = work.qualifications.filter((q) => !q.replacedAt);
   const replaced = work.qualifications.filter((q) => q.replacedAt);
   const verifiedBadge = (r: { verifiedAt: Date | null }) => (r.verifiedAt ? null : <SmallBadge tone="warn">{t("verification.unverified")}</SmallBadge>);
+  // Role journeys 2026-11-26: what waits for the employee's own acknowledgement comes first.
+  const toAcknowledge = card.can.selfService ? work.orientations.filter((o) => !o.acknowledgedAt) : [];
   return (
     <div className="space-y-4">
+      {toAcknowledge.length > 0 && (
+        <section className="rounded-xl border border-amber-300 bg-amber-50/60 p-4 dark:bg-amber-950/20" aria-labelledby="to-acknowledge" data-testid="to-acknowledge">
+          <h2 id="to-acknowledge" className="mb-2 text-base font-semibold">
+            {t("orientation.waitingAcknowledgement")}
+          </h2>
+          <ul className="divide-y">
+            {toAcknowledge.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="min-w-0 break-words font-medium">{o.topic}</span>
+                <ActionButton action={act("orientationAcknowledge", o.id)} variant="default">
+                  {t("orientation.acknowledge")}
+                </ActionButton>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <Section title={t("qualification.title")}>
         {canAdd && (
           <Disclosure summary={t("qualification.add")} testId="add-qualification">
@@ -150,7 +168,7 @@ export async function QualificationsTab({ slug, card, act, files, types }: { slu
                 <div className="mt-2 flex flex-wrap gap-2">
                   {card.can.supervise && !q.verifiedAt && <ActionButton action={act("qualificationVerify", q.id)}>{t("verification.verify")}</ActionButton>}
                   {(card.can.admin || (q.editable && !q.verifiedAt && card.can.selfService)) && (
-                    <ActionButton action={act("qualificationArchive", q.id)} variant="ghost" confirm={tc("confirmArchive")}>
+                    <ActionButton action={act("qualificationArchive", q.id)} variant="outline" className="[&_button]:text-destructive" confirm={tc("confirmArchive")}>
                       {tc("archive")}
                     </ActionButton>
                   )}
@@ -209,7 +227,7 @@ export async function QualificationsTab({ slug, card, act, files, types }: { slu
                 <div className="mt-2 flex flex-wrap gap-2">
                   {card.can.supervise && !x.verifiedAt && <ActionButton action={act("trainingVerify", x.id)}>{t("verification.verify")}</ActionButton>}
                   {(card.can.admin || (x.editable && !x.verifiedAt && card.can.selfService)) && (
-                    <ActionButton action={act("trainingArchive", x.id)} variant="ghost" confirm={tc("confirmArchive")}>
+                    <ActionButton action={act("trainingArchive", x.id)} variant="outline" className="[&_button]:text-destructive" confirm={tc("confirmArchive")}>
                       {tc("archive")}
                     </ActionButton>
                   )}
@@ -275,7 +293,7 @@ async function OrientationsSection({ slug, card, act, files }: { slug: string; c
                   </ActionButton>
                 )}
                 {card.can.admin && (
-                  <ActionButton action={act("orientationArchive", o.id)} variant="ghost" confirm={tc("confirmArchive")}>
+                  <ActionButton action={act("orientationArchive", o.id)} variant="outline" className="[&_button]:text-destructive" confirm={tc("confirmArchive")}>
                     {tc("archive")}
                   </ActionButton>
                 )}
@@ -342,7 +360,7 @@ async function AuthorizationsSection({ slug, card, act, files }: { slug: string;
               <Attachments slug={slug} files={files} act={act} employeeId={card.employee.id} target={{ type: "AUTHORIZATION", id: a.id, kind: "AUTHORIZATION" }} canAttach={!card.employee.archivedAt && card.can.supervise} />
               {card.can.supervise && (
                 <div className="mt-2">
-                  <ActionButton action={act("authorizationArchive", a.id)} variant="ghost" confirm={tc("confirmArchive")}>
+                  <ActionButton action={act("authorizationArchive", a.id)} variant="outline" className="[&_button]:text-destructive" confirm={tc("confirmArchive")}>
                     {tc("archive")}
                   </ActionButton>
                 </div>

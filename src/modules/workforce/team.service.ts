@@ -13,11 +13,11 @@ function requireView(ctx: RequestContext) {
 
 /** Teams are managed by those who manage employees or HR. */
 export function canManageTeams(ctx: RequestContext) {
-  return !ctx.external && (hasPermission(ctx, "employee.manage") || hasPermission(ctx, "hr.manage"));
+  return !ctx.external && (hasPermission(ctx, "employee.manage") || hasPermission(ctx, "hr.manage") || hasPermission(ctx, "team.manage"));
 }
 
 function requireManage(ctx: RequestContext) {
-  if (!canManageTeams(ctx)) throw new ForbiddenError("Missing permission employee.manage");
+  if (!canManageTeams(ctx)) throw new ForbiddenError("Missing permission team.manage");
 }
 
 const nameTaken = (e: unknown): never => {

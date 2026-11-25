@@ -7,15 +7,17 @@ import { spansFor } from "./plan.service";
 import { toWorkingCalendar } from "./access";
 
 /**
- * V7: schedule progress summary for a project — used by the client portal
- * (portal.client) and internal views (takt.view). Baseline dates and progress
+ * V7: schedule progress summary for a project — used by the client and
+ * subcontractor portals (portal.client, portal.subcontractor) and internal
+ * views (takt.view). Baseline dates and progress
  * only: no crews, resources, constraints or delay reasons.
  */
 export const scheduleSummaryService = {
   async project(ctx: RequestContext, projectId: string) {
     if (!canAccessProject(ctx, projectId)) throw new NotFoundError();
     const perms = projectPermissions(ctx, projectId);
-    if (!perms.has("takt.view") && !perms.has("portal.client")) throw new NotFoundError();
+    // Subcontractors see the same progress and dates (role journeys 2026-11-26): no money, crews or reasons.
+    if (!perms.has("takt.view") && !perms.has("portal.client") && !perms.has("portal.subcontractor")) throw new NotFoundError();
     const repo = new TaktRepo(readClient(), ctx.company.id);
     const project = await repo.findProject(projectId);
     if (!project) throw new NotFoundError();

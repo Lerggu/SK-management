@@ -32,7 +32,12 @@ export default async function RolesPage({ params }: { params: Promise<{ companyS
               </div>
             }
           >
-            <ActionForm action={updateRolePermissionsAction.bind(null, companySlug, role.id)} className="space-y-4" showSuccess>
+            <details className="group" data-role={role.name}>
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium text-primary marker:hidden">
+                <span aria-hidden className="inline-block transition-transform group-open:rotate-90">›</span>
+                {t("rolePermissionCount", { count: role.permissions.length })}
+              </summary>
+            <ActionForm action={updateRolePermissionsAction.bind(null, companySlug, role.id)} className="mt-3 space-y-4" showSuccess>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {CATEGORIES.map((cat) => (
                   <fieldset key={cat} className="space-y-1">
@@ -53,6 +58,7 @@ export default async function RolesPage({ params }: { params: Promise<{ companyS
               </div>
               {canEdit && <SubmitButton variant="outline">{t("savePermissions")}</SubmitButton>}
             </ActionForm>
+            </details>
           </Section>
         ))}
       </div>

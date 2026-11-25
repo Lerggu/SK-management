@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { GripVertical, X } from "lucide-react";
 import { cn } from "@/ui/lib/utils";
 
+/** "Virtanen Matti" → "Virtanen M." so the chip stays readable on a phone (full name in the title and label). */
+function shortName(name: string) {
+  const [first, ...rest] = name.trim().split(/\s+/);
+  return rest.length ? `${first} ${rest.map((r) => `${r[0]}.`).join(" ")}` : first;
+}
+
 export type Status = "WORK" | "OFF" | "VACATION" | "SICK" | "TRAINING" | "OTHER" | "ABSENT";
 type Entry = { status: Status; siteId: string | null; note: string | null };
 export interface RotationPerson {
@@ -247,11 +253,12 @@ export function RotationBoard({
                                     e.stopPropagation();
                                     open(p, d.date, p.days[d.date]?.status ?? row.status, p.days[d.date]?.siteId ?? row.siteId);
                                   }}
-                                  className={cn("block w-full truncate rounded border px-1 text-left text-[11px] leading-5", STATUS_STYLE[row.status])}
+                                  className={cn("block min-h-9 w-full truncate rounded border px-1 py-1 text-left text-xs leading-tight", STATUS_STYLE[row.status])}
                                   title={p.days[d.date]?.note ? `${p.name} – ${p.days[d.date]?.note}` : p.name}
+                                  aria-label={p.name}
                                   data-person={p.name}
                                 >
-                                  {p.name}
+                                  {shortName(p.name)}
                                 </button>
                               </li>
                             );

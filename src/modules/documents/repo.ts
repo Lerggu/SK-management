@@ -70,6 +70,16 @@ export class DocumentRepo {
     });
   }
 
+  /** Documents a member delivered to a project themselves (ADR 0037). */
+  listOwned(projectId: string, userId: string) {
+    return this.tx.document.findMany({
+      where: { companyId: this.companyId, projectId, ownerUserId: userId, archivedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, title: true, category: true, createdAt: true, versions: { where: { status: "CURRENT" }, select: { approvalState: true, fileName: true } } },
+    });
+  }
+
   find(id: string) {
     return this.tx.document.findFirst({ where: { id, companyId: this.companyId } });
   }

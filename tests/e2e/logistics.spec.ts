@@ -10,6 +10,7 @@ test.describe("logistics coordinator", () => {
     await expect(timeline).toContainText("Kaapelirummut 4 kpl");
     const material = unique(testInfo, "E2E-materiaali");
     const time = isMobile(testInfo) ? "14:00" : "13:00";
+    await page.getByTestId("new-delivery").locator("summary").click();
     const form = page.getByTestId("delivery-form");
     await form.getByLabel("Portti").selectOption({ label: "Portti 1 (pohjoinen)" });
     await form.getByLabel("Alkaa klo").fill(time);
@@ -28,6 +29,7 @@ test.describe("logistics coordinator", () => {
   test("creates and approves a logistics request linked to a takt activity", async ({ page }, testInfo) => {
     await openLogisticsBoard(page);
     const title = unique(testInfo, "E2E-nosto");
+    await page.getByTestId("new-request").locator("summary").click();
     const form = page.getByTestId("request-form");
     await form.getByLabel("Palvelu").selectOption({ label: "Nosto" });
     await form.getByLabel("Otsikko").fill(title);
@@ -65,6 +67,7 @@ test.describe("gate", () => {
 
   test("supervisor can request but not approve", async ({ page }, testInfo) => {
     await openLogisticsBoard(page);
+    await page.getByTestId("new-request").locator("summary").click();
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(unique(testInfo, "E2E-pyyntö"));
     await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
