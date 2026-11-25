@@ -138,6 +138,45 @@ describe("logistics requests", () => {
   });
 });
 
+describe("lift and resource order details (ADR 0036)", () => {
+  it("stores radius, heaviest piece, accessories, extra crew and the responsible person", async () => {
+    const s = await setup();
+    const base = { siteId: s.site.id, serviceType: "LIFT", title: "Muuntajan nosto", requestedStart: "2026-11-04T07:00", requestedEnd: "2026-11-04T11:30" } as const;
+    const r = await logisticsRequestService.create(s.sup, {
+      ...base,
+      weightKg: "12 500",
+      liftRadiusM: "22,5",
+      liftingAccessories: "4-haarainen ketjuraksi 16 t, nostopalkki 6 m",
+      riggerCount: "2",
+      extraCrew: "1 merkinantaja",
+      contactName: "Työnjohtaja Testi",
+      contactPhone: "+358 40 123 4567",
+      contactEmail: "TJ@Example.com",
+      submit: "on",
+    });
+    const got = await logisticsRequestService.get(s.log, r.id);
+    expect(got).toMatchObject({
+      weightKg: "12500",
+      liftRadiusM: "22.5",
+      liftingAccessories: "4-haarainen ketjuraksi 16 t, nostopalkki 6 m",
+      riggerCount: 2,
+      extraCrew: "1 merkinantaja",
+      contactName: "Työnjohtaja Testi",
+      contactPhone: "+358 40 123 4567",
+    });
+    expect(got.contactEmail?.toLowerCase()).toBe("tj@example.com");
+    expect((await auditFor(s.t.companyId, r.id)).map((a) => a.action)).toEqual(["logistics_request.create"]);
+
+    // Everything is optional; invalid values are rejected field by field.
+    expect((await logisticsRequestService.create(s.sup, { ...base, riggerCount: "", liftRadiusM: "" })).riggerCount).toBeNull();
+    await expect(logisticsRequestService.create(s.sup, { ...base, riggerCount: "51" })).rejects.toMatchObject({ fieldErrors: { riggerCount: expect.any(Array) } });
+    await expect(logisticsRequestService.create(s.sup, { ...base, liftRadiusM: "0" })).rejects.toMatchObject({ fieldErrors: { liftRadiusM: ["validation.positive"] } });
+    await expect(logisticsRequestService.create(s.sup, { ...base, contactEmail: "ei-osoite" })).rejects.toMatchObject({ fieldErrors: { contactEmail: expect.any(Array) } });
+    // The database refuses an impossible radius or crew size even without the service.
+    await expect(db.logisticsRequest.update({ where: { id: r.id }, data: { riggerCount: 99 } })).rejects.toThrow(/logistics_requests_rigger_count/);
+  });
+});
+
 describe("deliveries", () => {
   it("30-minute gate slots, no double booking, material constraint follows the delivery", async () => {
     const s = await setup();

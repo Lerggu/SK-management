@@ -467,6 +467,13 @@ async function main() {
     requestedStart: `${tomorrowIso}T07:00`,
     requestedEnd: `${tomorrowIso}T09:00`,
     weightKg: "1200",
+    liftRadiusM: "18",
+    liftingAccessories: "2-haarainen ketjuraksi 3,15 t, nostopalkki 4 m, taglinet",
+    riggerCount: "2",
+    extraCrew: "1 merkinantaja",
+    contactName: "Sanna Testi",
+    contactPhone: "+358 40 000 0001",
+    contactEmail: "supervisor@skinfra.example.com",
     submit: "on",
   });
 

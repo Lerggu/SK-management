@@ -55,7 +55,7 @@ test.describe("production calendar", () => {
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Alkaa").fill(`${day}T09:00`);
-    await form.getByLabel("Päättyy").fill(`${day}T11:00`);
+    await form.getByLabel("Arvioitu lopetus").fill(`${day}T11:00`);
     await form.getByLabel("Tehtävätyyppi").selectOption({ label: "Asennustyö" });
     await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
@@ -86,7 +86,7 @@ test.describe("deviations", () => {
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Alkaa").fill(`${day}T10:00`);
-    await form.getByLabel("Päättyy").fill(`${day}T12:00`);
+    await form.getByLabel("Arvioitu lopetus").fill(`${day}T12:00`);
     await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
 
@@ -120,7 +120,7 @@ test.describe("AI suggestions and risks (phase 4)", () => {
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Alkaa").fill(`${day}T13:00`);
-    await form.getByLabel("Päättyy").fill(`${day}T15:00`);
+    await form.getByLabel("Arvioitu lopetus").fill(`${day}T15:00`);
     await form.getByLabel("Tehtävätyyppi").selectOption({ label: "Kuorman purku" });
     await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
@@ -143,7 +143,7 @@ test.describe("AI suggestions and risks (phase 4)", () => {
     const form = page.getByTestId("request-form");
     await form.getByLabel("Otsikko").fill(title);
     await form.getByLabel("Alkaa").fill(`${day}T07:00`);
-    await form.getByLabel("Päättyy").fill(`${day}T09:00`);
+    await form.getByLabel("Arvioitu lopetus").fill(`${day}T09:00`);
     await form.getByLabel("Tehtävätyyppi").selectOption({ label: "Nosto" });
     await form.getByRole("button", { name: "Tallenna pyyntö" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);

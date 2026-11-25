@@ -26,6 +26,8 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
   const [t, td, format, staffing, taskTypes, deviations, ai] = await Promise.all([getTranslations("logistics"), getTranslations("production.deviations"), getFormatter(), staffingService.get(ctx, requestId), taskTypeService.list(ctx).catch(() => []), deviationService.list(ctx, { requestId }), logisticsAiService.suggestion(ctx, requestId)]);
   const base = `/c/${companySlug}/logistics`;
   const user = (id: string | null) => r.users.find((u) => u.id === id)?.name ?? "–";
+  const isLift = r.serviceType === "LIFT";
+  const minutes = Math.round((r.requestedEnd.getTime() - r.requestedStart.getTime()) / 60_000);
   return (
     <>
       <PageHeader
@@ -44,7 +46,9 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
           <DetailList
             items={[
               { label: t("site"), value: `${r.site.project.code} · ${r.site.name}` },
-              { label: t("requestedStart"), value: `${fmtDateTime(format, r.requestedStart)} – ${fmtDateTime(format, r.requestedEnd)}` },
+              { label: t("requestedStart"), value: fmtDateTime(format, r.requestedStart) },
+              { label: t("estimatedEnd"), value: fmtDateTime(format, r.requestedEnd) },
+              { label: t("duration"), value: t("durationValue", { h: Math.floor(minutes / 60), m: minutes % 60 }) },
               {
                 label: t("activity"),
                 value: r.activity ? (
@@ -54,11 +58,34 @@ export default async function RequestPage({ params }: { params: Promise<{ compan
                 ) : null,
               },
               { label: t("loadDescription"), value: r.loadDescription },
-              { label: t("weightKg"), value: r.weightKg },
+              { label: t("heaviestPieceKg"), value: r.weightKg },
               { label: t("dimensions"), value: r.dimensions },
+              ...(isLift || r.liftRadiusM ? [{ label: t("liftRadiusM"), value: r.liftRadiusM ? `${r.liftRadiusM} m` : null }] : []),
+              ...(isLift || r.liftingAccessories ? [{ label: t("liftingAccessories"), value: r.liftingAccessories }] : []),
+              ...(isLift || r.riggerCount !== null ? [{ label: t("riggerCount"), value: r.riggerCount === null ? null : t("persons", { n: r.riggerCount }) }] : []),
+              ...(isLift || r.extraCrew ? [{ label: t("extraCrew"), value: r.extraCrew }] : []),
               { label: t("pickup"), value: r.pickup },
               { label: t("destination"), value: r.destination },
               { label: t("equipmentType"), value: r.equipmentType?.name },
+              {
+                label: t("contactSection"),
+                value:
+                  r.contactName || r.contactPhone || r.contactEmail ? (
+                    <span className="flex flex-col gap-1" data-testid="request-contact">
+                      {r.contactName && <span>{r.contactName}</span>}
+                      {r.contactPhone && (
+                        <a href={`tel:${r.contactPhone.replace(/[^\d+]/g, "")}`} className="inline-flex min-h-11 items-center text-primary hover:underline md:min-h-0">
+                          {r.contactPhone}
+                        </a>
+                      )}
+                      {r.contactEmail && (
+                        <a href={`mailto:${r.contactEmail}`} className="inline-flex min-h-11 items-center break-all text-primary hover:underline md:min-h-0">
+                          {r.contactEmail}
+                        </a>
+                      )}
+                    </span>
+                  ) : null,
+              },
               { label: t("bookedBy"), value: user(r.requestedById ?? r.createdById) },
               { label: t("approve"), value: r.approvedAt ? `${user(r.approvedById)} · ${fmtDateTime(format, r.approvedAt)}` : null },
               { label: t("decisionNote"), value: r.decisionNote },

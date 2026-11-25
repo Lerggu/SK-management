@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { parseClockTime, parseLocalDateTime } from "@/platform/i18n/time";
-import { dateOnly, flag, optionalDecimal, optionalText, optionalUuid, text, uuid } from "@/platform/http/validation";
+import { dateOnly, flag, optionalDecimal, optionalEmail, optionalText, optionalUuid, text, uuid } from "@/platform/http/validation";
 
 const int = (min: number, max: number) =>
   z.preprocess((v) => (typeof v === "string" ? (v.trim() === "" ? undefined : Number(v.trim())) : v), z.number().int().min(min).max(max));
+
+const optionalInt = (min: number, max: number) =>
+  z.preprocess((v) => (v === undefined || v === null || (typeof v === "string" && v.trim() === "") ? null : typeof v === "string" ? Number(v.trim()) : v), z.number().int().min(min).max(max).nullable()).default(null);
 
 /** "HH:MM" → minute of day. */
 const clock = () =>
@@ -99,6 +102,14 @@ export const requestSchema = z
     equipmentTypeId: optionalUuid(),
     /** Production control: task type defining the resource needs (ADR 0026). */
     taskTypeId: optionalUuid(),
+    /** Lift and resource order details (ADR 0036); `weightKg` is the heaviest piece. */
+    liftRadiusM: optionalDecimal(3, 1).refine((v) => v === null || Number(v) > 0, "validation.positive"),
+    liftingAccessories: optionalText(300),
+    riggerCount: optionalInt(0, 50),
+    extraCrew: optionalText(300),
+    contactName: optionalText(120),
+    contactPhone: optionalText(40),
+    contactEmail: optionalEmail(),
     priority: z.enum(PRIORITIES).default("NORMAL"),
     note: optionalText(500),
     submit: flag(),

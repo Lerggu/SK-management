@@ -1707,6 +1707,15 @@ model LogisticsRequest {
   equipmentTypeId String?                @map("equipment_type_id") @db.Uuid
   /// Production control: task type that defines the resource needs (ADR 0026).
   taskTypeId      String?                @map("task_type_id") @db.Uuid
+  /// Lift and resource order details (ADR 0036): radius, lifting accessories,
+  /// extra crew and the responsible person on site.
+  liftRadiusM        Decimal?            @map("lift_radius_m") @db.Decimal(5, 1)
+  liftingAccessories String?             @map("lifting_accessories")
+  riggerCount        Int?                @map("rigger_count")
+  extraCrew          String?             @map("extra_crew")
+  contactName        String?             @map("contact_name")
+  contactPhone       String?             @map("contact_phone")
+  contactEmail       String?             @map("contact_email")
   priority        LogisticsPriority      @default(NORMAL)
   status          LogisticsRequestStatus @default(DRAFT)
   note            String?

@@ -196,9 +196,9 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
               <SelectField name="serviceType" label={t("serviceType")} options={SERVICE_TYPES.map((s) => ({ value: s, label: t(`serviceTypes.${s}`) }))} defaultValue="DELIVERY" />
               <TextField name="title" label={t("requestTitle")} required className="lg:col-span-3" />
               <TextField name="requestedStart" label={t("requestedStart")} type="datetime-local" defaultValue={`${date}T07:00`} required />
-              <TextField name="requestedEnd" label={t("requestedEnd")} type="datetime-local" defaultValue={`${date}T08:00`} required />
+              <TextField name="requestedEnd" label={t("estimatedEnd")} type="datetime-local" defaultValue={`${date}T08:00`} required />
               <SelectField name="priority" label={t("priority")} options={PRIORITIES.map((p) => ({ value: p, label: t(`priorities.${p}`) }))} defaultValue="NORMAL" />
-              <TextField name="weightKg" label={t("weightKg")} inputMode="decimal" />
+              <TextField name="weightKg" label={t("heaviestPieceKg")} inputMode="decimal" />
               <TextField name="loadDescription" label={t("loadDescription")} className="sm:col-span-2" />
               <TextField name="dimensions" label={t("dimensions")} />
               <SelectField name="equipmentTypeId" label={t("equipmentType")} placeholder="–" options={board.equipmentTypes.map((e) => ({ value: e.id, label: e.name }))} />
@@ -206,6 +206,15 @@ export default async function LogisticsPage({ params, searchParams }: Props) {
               <TextField name="pickup" label={t("pickup")} />
               <TextField name="destination" label={t("destination")} />
               <SelectField name="activityId" label={t("activity")} placeholder="–" options={activityOptions} className="sm:col-span-2" />
+              <p className="pt-2 text-sm font-semibold sm:col-span-2 lg:col-span-4">{t("liftDetails")}</p>
+              <TextField name="liftRadiusM" label={t("liftRadiusM")} inputMode="decimal" />
+              <TextField name="riggerCount" label={t("riggerCount")} type="number" inputMode="numeric" min={0} max={50} />
+              <TextField name="extraCrew" label={t("extraCrew")} hint={t("extraCrewHint")} className="sm:col-span-2" />
+              <TextField name="liftingAccessories" label={t("liftingAccessories")} hint={t("liftingAccessoriesHint")} className="sm:col-span-2 lg:col-span-4" />
+              <p className="pt-2 text-sm font-semibold sm:col-span-2 lg:col-span-4">{t("contactSection")}</p>
+              <TextField name="contactName" label={t("contactName")} defaultValue={ctx.user.name} autoComplete="name" />
+              <TextField name="contactPhone" label={t("contactPhone")} type="tel" inputMode="tel" autoComplete="tel" />
+              <TextField name="contactEmail" label={t("contactEmail")} type="email" defaultValue={ctx.user.email} autoComplete="email" className="sm:col-span-2" />
               <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2 lg:col-span-4 md:min-h-0">
                 <input type="checkbox" name="submit" defaultChecked className="size-5 accent-primary md:size-4" />
                 {t("submitNow")}
