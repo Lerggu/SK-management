@@ -70,7 +70,7 @@ test("siteManager", async ({ browser }, testInfo) => {
       return "Ei hyväksyttäviä tunteja (toinen ajo hyväksyi ne jo)";
     }
     await page.getByRole("button", { name: "Hyväksy valitut" }).click(T);
-    await expect(page.getByRole("status").or(page.getByText("Ei hyväksyttäviä tunteja."))).toBeVisible(T);
+    await expect(page.getByRole("status").or(page.getByText("Ei hyväksyttäviä tunteja.")).first()).toBeVisible(T);
   });
 
   await j.step("Kirjaa omat 8 h tunnit", async () => {
