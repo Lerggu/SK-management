@@ -82,7 +82,7 @@ export default async function SiteMapPage({ params, searchParams }: { params: Pr
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-end gap-2" data-testid="map-controls">
-            <form method="get" className="flex min-w-0 flex-1 items-end gap-2 sm:flex-none">
+            <form method="get" className="flex w-full min-w-0 basis-full items-end gap-2 sm:w-auto sm:basis-auto">
               <input type="hidden" name="range" value={data.range.kind} />
               <input type="hidden" name="date" value={data.range.startDate} />
               <label className="min-w-0 flex-1 text-sm sm:w-72 sm:flex-none">
