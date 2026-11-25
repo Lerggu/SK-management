@@ -166,15 +166,15 @@ async function main() {
   const skCeo = await ctxFor("ceo@skinfra.example.com", "sk-infra-demo");
 
   const ndc = await projectService.create(skCeo, {
-    code: "NDC-001",
-    name: "Nordic Data Center Demo",
-    customerName: "Nordic Hyperscale Demo Oy",
+    code: "NSM-001",
+    name: "Nordic Steel Mill Demo",
+    customerName: "Nordic Steel Demo AB",
     description: "Fictional data center campus: data halls, 110 kV substation and site logistics.",
     status: "ACTIVE",
     startDate: "2026-03-01",
     endDate: "2027-12-31",
   });
-  const hallA = await siteService.create(skCeo, ndc.id, { code: "DH-A", name: "Data Hall A", address: "Demotie 1", postalCode: "90100", city: "Oulu" });
+  const hallA = await siteService.create(skCeo, ndc.id, { code: "DH-A", name: "Sulatto (EAF)", address: "Demotie 1", postalCode: "90100", city: "Oulu" });
   const substation = await siteService.create(skCeo, ndc.id, { code: "SS-110", name: "110 kV Substation", address: "Demotie 3", postalCode: "90100", city: "Oulu" });
   await siteService.create(skCeo, ndc.id, { code: "LOG", name: "Logistics Yard", address: "Demotie 5", postalCode: "90100", city: "Oulu" });
 
@@ -263,8 +263,8 @@ async function main() {
   try {
     const rams = await documentService.create(
       skCeo,
-      { title: "RAMS – Data Hall A nostot", category: "RAMS", documentNumber: "NDC-RAMS-001", projectId: ndc.id, siteId: hallA.id, revisionLabel: "A" },
-      textFile("NDC-RAMS-001_A.txt", "FICTIONAL DEMO DOCUMENT\nRisk assessment and method statement for lifting operations in Data Hall A.\n"),
+      { title: "RAMS – Sulatto (EAF) nostot", category: "RAMS", documentNumber: "NDC-RAMS-001", projectId: ndc.id, siteId: hallA.id, revisionLabel: "A" },
+      textFile("NDC-RAMS-001_A.txt", "FICTIONAL DEMO DOCUMENT\nRisk assessment and method statement for lifting operations in Sulatto (EAF).\n"),
     );
     await documentService.setVersionApproval(skCeo, rams.currentVersion.id, { state: "APPROVED" });
 
@@ -324,7 +324,7 @@ async function main() {
   // Last week: crew hours entered by the supervisor, submitted and approved by the site manager.
   for (let d = 0; d < 5; d++) {
     const workDate = isoDateString(addDays(lastMonday, d));
-    await timesheetService.createCrew(supervisorCtx, { employeeIds: crew, projectId: ndc.id, siteId: hallA.id, workDate, hours: "8", note: "Kaapelihyllyt, Data Hall A" });
+    await timesheetService.createCrew(supervisorCtx, { employeeIds: crew, projectId: ndc.id, siteId: hallA.id, workDate, hours: "8", note: "Kaapelihyllyt, Sulatto (EAF)" });
     if (d === 3) await timesheetService.createCrew(supervisorCtx, { employeeIds: crew.slice(0, 2), projectId: ndc.id, siteId: hallA.id, workDate, hours: "2", workClass: "OVERTIME_50", note: "Kiireellinen nosto" });
   }
   for (const id of crew) await timesheetService.submitWeek(supervisorCtx, { employeeId: id, date: isoDateString(lastMonday) });
@@ -342,7 +342,7 @@ async function main() {
   // Site diary: last Friday signed (with crane hours), today's draft.
   const friday = isoDateString(addDays(lastMonday, 4));
   const signedDiary = await diaryService.open(supervisorCtx, { siteId: hallA.id, date: friday });
-  await diaryService.update(supervisorCtx, signedDiary.id, { weather: "Pilvistä, +2 °C", summary: "Kaapelihyllyasennukset Data Hall A:ssa valmiit linjoilla 1–4. Nosturilla nostettiin muuntajan osat paikalleen." });
+  await diaryService.update(supervisorCtx, signedDiary.id, { weather: "Pilvistä, +2 °C", summary: "Kaapelihyllyasennukset Sulatto (EAF):ssa valmiit linjoilla 1–4. Nosturilla nostettiin muuntajan osat paikalleen." });
   await diaryService.addEntry(supervisorCtx, signedDiary.id, { kind: "WORK", description: "Kaapelihyllyt linjat 1–4 asennettu ja tarkastettu" });
   await diaryService.addEntry(supervisorCtx, signedDiary.id, { kind: "EQUIPMENT", equipmentId: createdEquipment[0].id, hours: "4" });
   await diaryService.addEntry(supervisorCtx, signedDiary.id, { kind: "DELAY", description: "Toimitus myöhässä 2 h (kaapelirummut)" });
@@ -362,23 +362,23 @@ async function main() {
     await budgetService.addLine(skCeo, budget.id, { category, description, amount });
   }
   await budgetService.activate(skCeo, budget.id);
-  await costService.create(skCeo, ndc.id, { category: "MATERIALS", entryDate: isoDateString(lastMonday), description: "Kaapelirummut 4 kpl", supplier: "Kaapeli Demo Oy", reference: "LASKU-1001", amount: "38500" });
+  await costService.create(skCeo, ndc.id, { category: "MATERIALS", entryDate: isoDateString(lastMonday), description: "Uunin kuoriosat 4 kpl", supplier: "Teräs Demo AB", reference: "LASKU-1001", amount: "38500" });
   await costService.create(skCeo, ndc.id, { category: "SUBCONTRACT", entryDate: isoDateString(addDays(lastMonday, 2)), description: "Telinetyöt viikko", supplier: "Teline Demo Oy", reference: "LASKU-2001", amount: "12000" });
 
-  // ── V3: takt plan for Data Hall A (SK Infra Demo) ─────────────────
+  // ── V3: takt plan for Sulatto (EAF) (SK Infra Demo) ─────────────────
   const pmCtx = await ctxFor("pm@skinfra.example.com", "sk-infra-demo");
-  const dc1 = await taktStructureService.createBuilding(pmCtx, { siteId: hallA.id, name: "DC1 – Data Hall A", code: "DC1" });
-  for (let i = 1; i <= 6; i++) await taktStructureService.createArea(pmCtx, { buildingId: dc1.id, code: `A${i}`, name: `Sali A, vyöhyke ${i}` });
+  const dc1 = await taktStructureService.createBuilding(pmCtx, { siteId: hallA.id, name: "EAF – Sulattorakennus", code: "DC1" });
+  for (let i = 1; i <= 6; i++) await taktStructureService.createArea(pmCtx, { buildingId: dc1.id, code: `A${i}`, name: `Sulatto, linja ${i}` });
   const wagons = [
     { code: "TE", name: "Telineet", trade: "Telinerakentaja", defaultCrewSize: "2", color: "#B7950B" },
-    { code: "KH", name: "Kaapelihyllyt", trade: "Sähköasentaja", defaultCrewSize: "3", color: "#1E88A8", equipmentTypeId: types.TELEHANDLER, equipmentCount: "1" },
-    { code: "KA", name: "Kaapelinveto", trade: "Sähköasentaja", defaultCrewSize: "4", color: "#0B2545", equipmentTypeId: types.CABLE_EQUIPMENT, equipmentCount: "1" },
-    { code: "KY", name: "Kytkennät", trade: "Sähköasentaja", defaultCrewSize: "2", color: "#4C9F38" },
+    { code: "KH", name: "Teräsrakenteet", trade: "Asentaja", defaultCrewSize: "3", color: "#1E88A8", equipmentTypeId: types.TELEHANDLER, equipmentCount: "1" },
+    { code: "KA", name: "Laiteasennukset", trade: "Asentaja", defaultCrewSize: "4", color: "#0B2545", equipmentTypeId: types.CABLE_EQUIPMENT, equipmentCount: "1" },
+    { code: "KY", name: "Kaapelointi ja kytkennät", trade: "Sähköasentaja", defaultCrewSize: "2", color: "#4C9F38" },
     { code: "TS", name: "Testaus ja käyttöönotto", trade: "Sähköasentaja", defaultCrewSize: "2", color: "#8E44AD" },
   ];
   const wagonIds: Record<string, string> = {};
   for (const w of wagons) wagonIds[w.code] = (await taktStructureService.createWorkPackage(pmCtx, ndc.id, { ...w, defaultDurationCycles: "1" })).id;
-  const taktPlan = await taktPlanService.create(pmCtx, { siteId: hallA.id, name: "Data Hall A – sähkötahti", startDate: isoDateString(lastMonday) });
+  const taktPlan = await taktPlanService.create(pmCtx, { siteId: hallA.id, name: "Sulatto – asennustahti", startDate: isoDateString(lastMonday) });
   const v1 = (await taktPlanService.board(pmCtx, taktPlan.id)).selected!;
   await taktPlanService.generateTrain(pmCtx, v1.id, { startCycle: 0, bufferCycles: 0 });
   await taktPlanService.propose(pmCtx, v1.id);
@@ -435,26 +435,26 @@ async function main() {
   // Shared with the group: SK Infra may book it (Purent approves; ownership stays with Purent).
   const purentForklift = await equipmentService.create(purentCeo, { equipmentTypeId: forklift.id, assetNumber: "PU-EQ-01", name: "Forklift 2.5 t", manufacturer: "Linde", nextInspectionDate: "2026-11-30", shareableInGroup: "on" });
 
-  // ── V4: logistics at Data Hall A (SK Infra Demo) ──────────────────
+  // ── V4: logistics at Sulatto (EAF) (SK Infra Demo) ──────────────────
   const logCtx = await ctxFor("logistics@skinfra.example.com", "sk-infra-demo");
   const tomorrowIso = isoDateString(addDays(today, 1));
   const gate1 = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "GATE", name: "Portti 1 (pohjoinen)", opens: "06:00", closes: "18:00" });
   const gate2 = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "GATE", name: "Portti 2 (itä)", opens: "07:00", closes: "15:00" });
   const unloadA = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "UNLOADING", name: "Purkualue A" });
-  const cableStore = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "STORAGE", name: "Kaapelivarasto" });
+  const cableStore = await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "STORAGE", name: "Teräsrakennevarasto" });
   await logisticsLocationService.create(logCtx, { siteId: hallA.id, kind: "STORAGE", name: "Kenttävarasto" });
 
   const drumRequest = await logisticsRequestService.create(supervisorCtx, {
     siteId: hallA.id,
     activityId: byKey("KA", "A5").id,
     serviceType: "DELIVERY",
-    title: "Kaapelirummut 4 kpl (AXMK 4×240)",
+    title: "Uunin kuoriosat 4 kpl",
     requestedStart: `${todayIso}T09:00`,
     requestedEnd: `${todayIso}T10:00`,
     weightKg: "8400",
     priority: "HIGH",
-    pickup: "Kaapeli Demo Oy, Vantaa",
-    destination: "Kaapelivarasto",
+    pickup: "Teräs Demo AB, Vantaa",
+    destination: "Teräsrakennevarasto",
     equipmentTypeId: types.CRANE,
     submit: "on",
   });
@@ -463,7 +463,7 @@ async function main() {
     siteId: hallA.id,
     activityId: byKey("KH", "A6").id,
     serviceType: "LIFT",
-    title: "Kaapelihyllynippujen nosto 2. kerrokseen",
+    title: "Nosturiradan palkkien nosto +12 m tasolle",
     requestedStart: `${tomorrowIso}T07:00`,
     requestedEnd: `${tomorrowIso}T09:00`,
     weightKg: "1200",
@@ -479,9 +479,9 @@ async function main() {
 
   const scaffolding = await deliveryService.create(logCtx, { siteId: hallA.id, gateId: gate1.id, unloadingId: unloadA.id, supplier: "Teline Demo Oy", vehicle: "ABC-123", material: "Telinetarvikkeet", quantity: "2 lavaa", date: todayIso, startTime: "07:00", slots: "1" });
   for (const to of ["ARRIVED_GATE", "CHECKED_IN", "UNLOADING", "STORED"]) await deliveryService.advance(logCtx, scaffolding.id, { to });
-  const drums = await deliveryService.create(logCtx, { siteId: hallA.id, gateId: gate1.id, unloadingId: unloadA.id, storageId: cableStore.id, requestId: drumRequest.id, supplier: "Kaapeli Demo Oy", carrier: "Kuljetus Demo Oy", vehicle: "XYZ-789", material: "Kaapelirummut 4 kpl", quantity: "4 rumpua", weightKg: "8400", date: todayIso, startTime: "09:00", slots: "2" });
+  const drums = await deliveryService.create(logCtx, { siteId: hallA.id, gateId: gate1.id, unloadingId: unloadA.id, storageId: cableStore.id, requestId: drumRequest.id, supplier: "Teräs Demo AB", carrier: "Kuljetus Demo Oy", vehicle: "XYZ-789", material: "Uunin kuoriosat 4 kpl", quantity: "4 osaa", weightKg: "8400", date: todayIso, startTime: "09:00", slots: "2" });
   await deliveryService.advance(logCtx, drums.id, { to: "CONFIRMED" });
-  await deliveryService.create(logCtx, { siteId: hallA.id, gateId: gate2.id, activityId: byKey("KH", "A6").id, supplier: "Hylly Demo Oy", material: "Kaapelihyllyt 200 m", quantity: "200 m", date: todayIso, startTime: "11:00", slots: "1" });
+  await deliveryService.create(logCtx, { siteId: hallA.id, gateId: gate2.id, activityId: byKey("KH", "A6").id, supplier: "Palkki Demo AB", material: "Nosturiradan palkit 24 kpl", quantity: "24 kpl", date: todayIso, startTime: "11:00", slots: "1" });
 
   // Bookings: crane for today (approved), an overlapping request (conflict), a crew for tomorrow, Purent's forklift.
   await bookingService.create(pmCtx, { resources: [`EQUIPMENT:${createdEquipment[0].id}`], projectId: ndc.id, activityId: byKey("KA", "A5").id, startsAt: `${todayIso}T07:00`, endsAt: `${todayIso}T15:30`, note: "Kaapelirumpujen purku" });
@@ -490,7 +490,7 @@ async function main() {
   await bookingService.create(pmCtx, { resources: electricians, projectId: ndc.id, activityId: byKey("KA", "A6").id, startsAt: `${tomorrowIso}T07:00`, endsAt: `${tomorrowIso}T15:30` });
   await bookingService.create(pmCtx, { resources: [`EQUIPMENT:${purentForklift.id}`], projectId: ndc.id, siteId: hallA.id, startsAt: `${tomorrowIso}T07:00`, endsAt: `${tomorrowIso}T15:30`, note: "Kenttävaraston siirrot" });
 
-  // ── V5: lifting and material flow at Data Hall A (SK Infra Demo) ──
+  // ── V5: lifting and material flow at Sulatto (EAF) (SK Infra Demo) ──
   const liftCtx = await ctxFor("lifting@skinfra.example.com", "sk-infra-demo");
   const smCtx = await ctxFor("site.manager@skinfra.example.com", "sk-infra-demo");
   const inDays = (n: number) => isoDateString(addDays(today, n));
@@ -505,7 +505,7 @@ async function main() {
   // An approved lift for the LIFT request (supervisor plans, lifting supervisor approves).
   const liftRequest = await db.logisticsRequest.findFirstOrThrow({ where: { companyId: sk.company.id, serviceType: "LIFT" } });
   await logisticsRequestService.transition(logCtx, liftRequest.id, { to: "APPROVED" });
-  const trayLift = await liftPlanService.create(supervisorCtx, { siteId: hallA.id, requestId: liftRequest.id, title: "Kaapelihyllynippujen nosto 2. kerrokseen", plannedStart: `${tomorrowIso}T07:00`, plannedEnd: `${tomorrowIso}T09:00` });
+  const trayLift = await liftPlanService.create(supervisorCtx, { siteId: hallA.id, requestId: liftRequest.id, title: "Nosturiradan palkkien nosto +12 m tasolle", plannedStart: `${tomorrowIso}T07:00`, plannedEnd: `${tomorrowIso}T09:00` });
   await liftPlanService.updateDraft(supervisorCtx, trayLift.id, { loadDescription: "Kaapelihyllyniput 4 × 300 kg nostopalkissa", loadWeightKg: "1200", riggingWeightKg: "350", cogNotes: "Painopiste palkin keskellä", craneId: createdEquipment[0].id, radiusM: "22", craneCapacityKg: "7400", areaDescription: "Nostoalue aidattu linjalla 5, liikenne ohjattu portille 2", safetyDistanceM: "6", riskDocumentId: rams.id });
   await liftPlanService.addAccessory(supervisorCtx, trayLift.id, { accessoryId: beam.id, count: 1 });
   await liftPlanService.addAccessory(supervisorCtx, trayLift.id, { accessoryId: sling4.id, count: 1 });
@@ -515,7 +515,7 @@ async function main() {
   await bookingService.create(pmCtx, { resources: [`EMPLOYEE:${operator.id}`], projectId: ndc.id, siteId: hallA.id, liftPlanId: trayLift.id, startsAt: `${tomorrowIso}T06:30`, endsAt: `${tomorrowIso}T09:30`, note: "Nosturinkuljettaja" });
 
   // A heavier lift awaiting approval (high utilisation, warnings shown to the approver).
-  const transformerLift = await liftPlanService.create(supervisorCtx, { siteId: hallA.id, activityId: byKey("KA", "A6").id, title: "Muuntajan nosto perustukselle", plannedStart: `${inDays(3)}T08:00`, plannedEnd: `${inDays(3)}T10:00` });
+  const transformerLift = await liftPlanService.create(supervisorCtx, { siteId: hallA.id, activityId: byKey("KA", "A6").id, title: "Uunimuuntajan nosto perustukselle", plannedStart: `${inDays(3)}T08:00`, plannedEnd: `${inDays(3)}T10:00` });
   await liftPlanService.updateDraft(supervisorCtx, transformerLift.id, { loadDescription: "Jakelumuuntaja 1600 kVA", loadWeightKg: "6200", riggingWeightKg: "400", cogNotes: "Valmistajan nostopisteet, painopiste merkitty", craneId: createdEquipment[0].id, radiusM: "14", craneCapacityKg: "7200", areaDescription: "Muuntamon edusta", safetyDistanceM: "8" });
   await liftPlanService.addAccessory(supervisorCtx, transformerLift.id, { accessoryId: shackle.id, count: 2 });
   await liftPlanService.addAccessory(supervisorCtx, transformerLift.id, { accessoryId: sling4.id, count: 2 });
@@ -546,16 +546,16 @@ async function main() {
 
   // ── V6: commercial (SK Infra Demo) ───────────────────────────────
   const pdCtx = await ctxFor("pd@skinfra.example.com", "sk-infra-demo");
-  const hyperscale = await customerService.create(pmCtx, { name: "Nordic Hyperscale Demo Oy", businessId: "0000001-9", address: "Esimerkkitie 1", postalCode: "90100", city: "Oulu" });
+  const hyperscale = await customerService.create(pmCtx, { name: "Nordic Steel Demo AB", businessId: "0000001-9", address: "Esimerkkitie 1", postalCode: "90100", city: "Oulu" });
   await customerService.addContact(pmCtx, hyperscale.id, { name: "Hanna Hankinta", title: "Hankintapäällikkö", email: "hanna.hankinta@hyperscale.example.com", phone: "+358 40 000 0001" });
   const verkko = await customerService.create(pmCtx, { name: "Verkko Demo Oy", businessId: "0000002-7", city: "Muhos" });
   const tuuli = await customerService.create(pmCtx, { name: "Tuulipuisto Demo Oy", businessId: "0000003-5", city: "Raahe" });
   await opportunityService.create(pmCtx, { customerId: tuuli.id, title: "Tuulipuiston keräilyverkko 33 kV", stage: "RFQ", estimatedValue: "1850000", probabilityPct: "30", expectedCloseDate: inDays(60) });
   await opportunityService.create(pmCtx, { customerId: verkko.id, title: "Kaapelireitti osa 2", stage: "QUALIFIED", estimatedValue: "620000", probabilityPct: "50", expectedCloseDate: inDays(45) });
-  const phase2 = await opportunityService.create(pmCtx, { customerId: hyperscale.id, title: "Data Hall B sähköasennukset", stage: "TENDER", estimatedValue: "940000", probabilityPct: "60", expectedCloseDate: inDays(30) });
+  const phase2 = await opportunityService.create(pmCtx, { customerId: hyperscale.id, title: "Valssaamon sähköasennukset", stage: "TENDER", estimatedValue: "940000", probabilityPct: "60", expectedCloseDate: inDays(30) });
 
   // Main contract for the data center project: a won quote (PM prepared, PD approved).
-  const mainQuote = await quoteService.create(pmCtx, { customerId: hyperscale.id, projectId: ndc.id, title: "Data Hall A kaapeloinnit ja nostot" });
+  const mainQuote = await quoteService.create(pmCtx, { customerId: hyperscale.id, projectId: ndc.id, title: "Sulaton asennukset ja nostot" });
   for (const [category, description, quantity, unit, unitCost] of [
     ["LABOR", "Sähköasennustyö", "6400", "h", "44.00"],
     ["EQUIPMENT", "Kurottaja ja kaapelirumpuvaunu", "900", "h", "38.00"],
@@ -563,16 +563,16 @@ async function main() {
     ["MATERIALS", "Kaapelit ja hyllyt", "1", "erä", "310000.00"],
     ["SUBCONTRACT", "Telineet", "1", "erä", "42000.00"],
   ] as const) await quoteService.addLine(pmCtx, mainQuote.id, { category, description, quantity, unit, unitCost });
-  await quoteService.updateDraft(pmCtx, mainQuote.id, { overheadPct: "8", riskPct: "4", marginPct: "14", validUntil: inDays(30), scope: "Kaapeloinnit, hyllyt ja nostot Data Hall A:ssa. Ei sisällä muuntajia." });
+  await quoteService.updateDraft(pmCtx, mainQuote.id, { overheadPct: "8", riskPct: "4", marginPct: "14", validUntil: inDays(30), scope: "Kaapeloinnit, hyllyt ja nostot Sulatto (EAF):ssa. Ei sisällä muuntajia." });
   await quoteService.submit(pmCtx, mainQuote.id);
   await quoteService.decide(pdCtx, mainQuote.id, { decision: "APPROVE", note: "Kate ja riskivaraus OK" });
   await quoteService.markSent(pmCtx, mainQuote.id);
-  const won = await quoteService.recordOutcome(pmCtx, mainQuote.id, { outcome: "WON", projectId: ndc.id, contractNumber: "SOP-NDC-001", signedDate: isoDateString(addDays(today, -40)) });
+  const won = await quoteService.recordOutcome(pmCtx, mainQuote.id, { outcome: "WON", projectId: ndc.id, contractNumber: "SOP-NSM-001", signedDate: isoDateString(addDays(today, -40)) });
   await contractService.addMilestone(pmCtx, won.contractId!, { title: "Ennakko 15 %", amount: "120000", dueDate: isoDateString(addDays(today, -30)) });
   await contractService.addMilestone(pmCtx, won.contractId!, { title: "Hyllyasennukset valmiit", amount: "220000", dueDate: inDays(20) });
 
   // Phase 2 quote awaiting the Project Director's approval.
-  const phase2Quote = await quoteService.create(pmCtx, { customerId: hyperscale.id, opportunityId: phase2.id, title: "Data Hall B sähköasennukset" });
+  const phase2Quote = await quoteService.create(pmCtx, { customerId: hyperscale.id, opportunityId: phase2.id, title: "Valssaamon sähköasennukset" });
   await quoteService.addLine(pmCtx, phase2Quote.id, { category: "LABOR", description: "Sähköasennustyö", quantity: "8200", unit: "h", unitCost: "45.00" });
   await quoteService.addLine(pmCtx, phase2Quote.id, { category: "MATERIALS", description: "Kaapelit ja hyllyt", quantity: "1", unit: "erä", unitCost: "380000.00" });
   await quoteService.addLine(pmCtx, phase2Quote.id, { category: "LIFTING", description: "Nostot", quantity: "30", unit: "kpl", unitCost: "1450.00" });
@@ -606,12 +606,12 @@ async function main() {
   for (const [category, etcAmount] of [["LABOR", "182000"], ["EQUIPMENT", "41000"], ["MATERIALS", "96000"], ["SUBCONTRACT", "18000"]] as const) await forecastService.setEtc(pmCtx, ndc.id, { category, etcAmount, note: "Kuukausiennuste" });
   await invoiceService.generate(pmCtx, { projectId: ndc.id, to: todayIso });
 
-  // ── V7: HSE (SK Infra Demo, Nordic Data Center Demo) ─────────────
+  // ── V7: HSE (SK Infra Demo, Nordic Steel Mill Demo) ─────────────
   const hseCtx = await ctxFor("hse@skinfra.example.com", "sk-infra-demo");
   const subCtx = await ctxFor("subcontractor@example.com", "sk-infra-demo");
   const at = (days: number, hm: string) => `${inDays(days)}T${hm}`;
-  await hseObservationService.create(employeeCtx, { projectId: ndc.id, siteId: hallA.id, kind: "SAFETY_OBSERVATION", category: "HOUSEKEEPING", severity: "MEDIUM", title: "Kaapelikelojen välissä kulkuväylä tukossa", location: "Data Hall A, 1. krs", occurredAt: at(-3, "09:20") });
-  const nearMiss = await hseObservationService.create(subCtx, { projectId: ndc.id, siteId: hallA.id, kind: "NEAR_MISS", category: "LIFTING", severity: "HIGH", title: "Hyllynippu heilahti noston aikana", description: "Taglinea ei käytetty, kukaan ei ollut nostoalueella.", occurredAt: at(-2, "13:05"), liftPlanId: trayLift.id });
+  await hseObservationService.create(employeeCtx, { projectId: ndc.id, siteId: hallA.id, kind: "SAFETY_OBSERVATION", category: "HOUSEKEEPING", severity: "MEDIUM", title: "Teräspalkkien välissä kulkuväylä tukossa", location: "Sulatto (EAF), 1. krs", occurredAt: at(-3, "09:20") });
+  const nearMiss = await hseObservationService.create(subCtx, { projectId: ndc.id, siteId: hallA.id, kind: "NEAR_MISS", category: "LIFTING", severity: "HIGH", title: "Palkki heilahti noston aikana", description: "Taglinea ei käytetty, kukaan ei ollut nostoalueella.", occurredAt: at(-2, "13:05"), liftPlanId: trayLift.id });
   await hseObservationService.triage(smCtx, nearMiss.id, { category: "LIFTING", severity: "HIGH" });
   const tagAction = await hseActionService.create(smCtx, { sourceType: "OBSERVATION", sourceId: nearMiss.id, title: "Taglinet pakollisiksi kaikkiin hyllynostoihin", assigneeId: (await db.user.findUniqueOrThrow({ where: { email: "supervisor@skinfra.example.com" } })).id, dueDate: inDays(3) });
   void tagAction;
@@ -630,7 +630,7 @@ async function main() {
   for (const [days, correct, incorrect] of [[-21, 88, 12], [-14, 91, 9], [-7, 94, 6]] as const) {
     await hseInspectionService.create(smCtx, { projectId: ndc.id, siteId: hallA.id, kind: "MVR", inspectedOn: inDays(days), correctCount: String(correct), incorrectCount: String(incorrect) });
   }
-  const ra = await riskAssessmentService.create(smCtx, { projectId: ndc.id, siteId: hallA.id, title: "Muuntajan nosto perustukselle", workDescription: "Ajoneuvonosturi, 18 t muuntaja", liftPlanId: transformerLift.id });
+  const ra = await riskAssessmentService.create(smCtx, { projectId: ndc.id, siteId: hallA.id, title: "Uunimuuntajan nosto perustukselle", workDescription: "Ajoneuvonosturi, 18 t uunimuuntaja", liftPlanId: transformerLift.id });
   await riskAssessmentService.addItem(smCtx, ra.id, { hazard: "Taakan putoaminen", likelihood: "2", consequence: "5", controls: "Nostoalue eristetty, nostovastaava paikalla", residualLikelihood: "1", residualConsequence: "5" });
   await riskAssessmentService.addItem(smCtx, ra.id, { hazard: "Nosturin kaatuminen", likelihood: "1", consequence: "5", controls: "Maapohja tarkastettu, tukijalkojen alusta", residualLikelihood: "1", residualConsequence: "4" });
   await riskAssessmentService.approve(hseCtx, ra.id);
@@ -709,7 +709,7 @@ async function main() {
   await qualificationService.add(hrCtx, byNumber("E-1001"), { typeId: qType("Sähkötyöturvallisuus (SFS 6002)"), issuedOn: day(-24), expiresOn: day(36), remindBeforeExpiry: "on" });
   await trainingService.add(supervisorCtx, timo, { name: "Piirustustenluvun koulutus", provider: "Demo Koulutus Oy", status: "PLANNED", plannedOn: day(1) });
   await trainingService.add(hrCtx, timo, { name: "Kaapelinvetäjän peruskurssi", provider: "Demo Koulutus Oy", completedOn: day(-14) });
-  await orientationService.add(supervisorCtx, timo, { scope: "SITE", topic: "Työmaaperehdytys", target: "Nordic Data Center Demo", instructorName: "Sanna Testi", status: "DONE", completedOn: day(-1) });
+  await orientationService.add(supervisorCtx, timo, { scope: "SITE", topic: "Työmaaperehdytys", target: "Nordic Steel Mill Demo", instructorName: "Sanna Testi", status: "DONE", completedOn: day(-1) });
   await orientationService.add(supervisorCtx, timo, { scope: "COMPANY", topic: "Yrityksen yleisperehdytys", instructorName: "Helena Henkilöstö", status: "IN_PROGRESS" });
   await authorizationService.add(supervisorCtx, timo, { target: "Henkilönostin (saksilava)", grantedOn: day(-3), expiresOn: day(9) });
   await languageService.save(employeeCtx, timo, { language: "fi", speaking: "NATIVE", understanding: "NATIVE", reading: "NATIVE", writing: "NATIVE", source: "SELF" });
@@ -760,14 +760,14 @@ async function main() {
   {
     const hallAId = (await db.site.findFirstOrThrow({ where: { company: { slug: "sk-infra-demo" }, code: "DH-A" } })).id;
     const plan = new Uint8Array(readFileSync("prisma/seed-assets/ndc-site-plan.png"));
-    await siteMapService.uploadMap(logisticsCtx, hallAId, { width: "2400", height: "1600", title: "Nordic Data Center Demo – asemapiirros" }, { fileName: "ndc-asemapiirros.png", bytes: plan });
+    await siteMapService.uploadMap(logisticsCtx, hallAId, { width: "2400", height: "1600", title: "Nordic Steel Mill Demo – asemapiirros" }, { fileName: "ndc-asemapiirros.png", bytes: plan });
     const loc = async (name: string) => (await db.logisticsLocation.findFirstOrThrow({ where: { siteId: hallAId, name } })).id;
     const add = (input: Parameters<typeof siteMapService.createObject>[2]) => siteMapService.createObject(logisticsCtx, hallAId, input);
     await add({ kind: "GATE", code: "P1", name: "Portti 1 (pohjoinen)", x: "0.4646", y: "0.106", locationId: await loc("Portti 1 (pohjoinen)") });
     await add({ kind: "GATE", code: "P2", name: "Portti 2 (itä)", x: "0.8667", y: "0.497", locationId: await loc("Portti 2 (itä)") });
     await add({ kind: "GATE", code: "P3", name: "Portti 3 (etelä)", x: "0.4646", y: "0.875", opens: "06:00", closes: "22:00", notes: "Erikoiskuljetukset ja muuntajat" });
     const unload = await add({ kind: "UNLOADING", code: "PA", name: "Purkualue A", x: "0.4625", y: "0.47", locationId: await loc("Purkualue A") });
-    const store = await add({ kind: "STORAGE", code: "KV", name: "Kaapelivarasto", x: "0.504", y: "0.6", width: "0.1333", height: "0.1813", locationId: await loc("Kaapelivarasto") });
+    const store = await add({ kind: "STORAGE", code: "KV", name: "Teräsrakennevarasto", x: "0.504", y: "0.6", width: "0.1333", height: "0.1813", locationId: await loc("Teräsrakennevarasto") });
     await add({ kind: "STORAGE", code: "KT", name: "Kenttävarasto", x: "0.517", y: "0.25", width: "0.108", height: "0.1", locationId: await loc("Kenttävarasto") });
     const crane = await add({ kind: "CRANE", code: "N1", name: "Ajoneuvonosturi 100 t", x: "0.455", y: "0.3", notes: "Tukijalat aina kuormanjakolevyjen päällä" });
     await add({ kind: "LIFT_AREA", code: "NA1", name: "Nostoalue A", x: "0.43", y: "0.22", width: "0.07", height: "0.16" });
