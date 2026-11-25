@@ -25,7 +25,7 @@ export default async function QuotePage({ params }: { params: Promise<{ companyS
   const v = q.versions[0];
   const money = (x: string | null) => (x === null ? "–" : fmtMoney(format, x, q.currency));
   const user = (id: string | null) => q.users.find((u) => u.id === id)?.name ?? "–";
-  const projects = q.can.outcome ? await projectService.list(ctx) : [];
+  const projects = q.can.outcome || q.can.edit ? await projectService.list(ctx) : [];
   const slug = companySlug;
   const base = `/c/${slug}/sales`;
   return (
@@ -135,6 +135,7 @@ export default async function QuotePage({ params }: { params: Promise<{ companyS
               <TextField name="riskPct" label={t("riskPct")} inputMode="decimal" defaultValue={v.riskPct} />
               <TextField name="marginPct" label={t("marginPct")} inputMode="decimal" defaultValue={v.marginPct} />
               <TextField name="validUntil" label={t("validUntil")} type="date" defaultValue={isoDate(v.validUntil)} />
+              <SelectField name="projectId" label={t("project")} placeholder={t("none")} options={projects.filter((p) => !p.archivedAt || p.id === q.project?.id).map((p) => ({ value: p.id, label: `${p.code} · ${p.name}` }))} defaultValue={q.project?.id ?? null} className="sm:col-span-2" />
               <TextareaField name="scope" label={t("scope")} defaultValue={v.scope} className="sm:col-span-4" rows={3} />
               <div className="flex flex-wrap gap-2 sm:col-span-4">
                 <SubmitButton>{tc("save")}</SubmitButton>

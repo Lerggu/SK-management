@@ -147,7 +147,17 @@ export const quoteService = {
       requireCompanyPermission(ctx, "commercial.manage");
       const open = openVersion(q);
       if (open?.status !== "DRAFT") throw new ValidationError({ _form: ["validation.versionNotDraft"] });
-      const after = await repo.updateQuoteVersion(open.id, { ...data, updatedById: ctx.user.id });
+      const { projectId, ...versionData } = data;
+      // The project can be set or changed while the quote is a draft (owner 2026-11-25).
+      if (projectId !== undefined && projectId !== q.projectId) {
+        if (projectId) {
+          const p = await repo.findProject(projectId);
+          if (!p || p.archivedAt || !canAccessProject(ctx, p.id)) throw new ValidationError({ projectId: ["validation.invalidOption"] });
+        }
+        await repo.updateQuote(q.id, { projectId, updatedById: ctx.user.id });
+        await writeAudit(tx, ctx, { action: "quote.update", entityType: "quote", entityId: q.id, before: { projectId: q.projectId }, after: { projectId }, diff: true });
+      }
+      const after = await repo.updateQuoteVersion(open.id, { ...versionData, updatedById: ctx.user.id });
       const { lines: _l, contract: _c, ...before } = open;
       await writeAudit(tx, ctx, { action: "quote.update", entityType: "quote_version", entityId: open.id, before, after, diff: true });
       return after;

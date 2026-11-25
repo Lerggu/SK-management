@@ -39,6 +39,27 @@ async function quoteWithLines(s: S, author = s.pm) {
   return q;
 }
 
+describe("quote project while a draft (owner 2026-11-25)", () => {
+  it("sets, keeps, clears and validates the project of a draft quote", async () => {
+    const s = await setup();
+    const q = await quoteWithLines(s);
+    expect((await quoteService.get(s.pm, q.id)).project).toBeNull();
+    await quoteService.updateDraft(s.pm, q.id, { projectId: s.project.id });
+    expect((await quoteService.get(s.pm, q.id)).project?.id).toBe(s.project.id);
+    // A draft save without the field keeps the project.
+    await quoteService.updateDraft(s.pm, q.id, { scope: "Laajuus" });
+    expect((await quoteService.get(s.pm, q.id)).project?.id).toBe(s.project.id);
+    expect((await auditFor(s.t.companyId, q.id)).map((a) => a.action)).toContain("quote.update");
+    // An unknown or another company's project is refused.
+    await expect(quoteService.updateDraft(s.pm, q.id, { projectId: "01900000-0000-7000-8000-000000000000" })).rejects.toMatchObject({ fieldErrors: { projectId: ["validation.invalidOption"] } });
+    await quoteService.updateDraft(s.pm, q.id, { projectId: "" });
+    expect((await quoteService.get(s.pm, q.id)).project).toBeNull();
+    // Not after the draft is submitted.
+    await quoteService.submit(s.pm, q.id);
+    await expect(quoteService.updateDraft(s.pm, q.id, { projectId: s.project.id })).rejects.toMatchObject({ fieldErrors: { _form: ["validation.versionNotDraft"] } });
+  });
+});
+
 describe("acceptance 1: quotes cannot change silently; the Project Director approves", () => {
   it("prices, submits, approves (never by the author), sends and wins into a contract", async () => {
     const s = await setup();
