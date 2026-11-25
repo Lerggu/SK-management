@@ -28,6 +28,12 @@ test("steel mill demo views", async ({ browser }, testInfo) => {
   await log.getByTestId("site-day-picker").getByRole("button", { name: "Näytä" }).click();
   await log.waitForURL(/site=/);
   await log.screenshot({ path: out("logistics-board", p), fullPage: true, caret: "initial" });
+  // The lift request is seeded for tomorrow: open the board on that day.
+  const u = new URL(log.url());
+  const d = new Date(`${u.searchParams.get("date")}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  u.searchParams.set("date", d.toISOString().slice(0, 10));
+  await log.goto(u.toString());
   await log.getByTestId("request-list").getByRole("link", { name: /Nosturiradan palkkien nosto/ }).first().click();
   await log.waitForURL(/requests\/[0-9a-f-]{36}$/);
   await log.screenshot({ path: out("lift-request", p), fullPage: true, caret: "initial" });
